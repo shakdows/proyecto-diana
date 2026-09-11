@@ -7,7 +7,7 @@ export default function Page() {
   return (
     <PhasePlaceholder
       title="Control de calidad"
-      description="Verificación de los trabajos antes de liberar el equipo."
+      description="Verificación de los trabajos antes de liberar el vehículo."
       phase={13}
       delivers={[
           'Checklist final configurable',

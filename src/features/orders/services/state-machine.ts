@@ -246,7 +246,7 @@ const TRANSITION_DEFS: readonly TransitionDef[] = [
     guard: (f) =>
       unmet(
         [f.hasCustomer, 'Falta identificar al cliente.'],
-        [f.hasVehicle, 'Falta identificar el equipo.'],
+        [f.hasVehicle, 'Falta identificar el vehículo.'],
       ),
   },
   {

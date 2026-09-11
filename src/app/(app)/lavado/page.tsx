@@ -10,7 +10,7 @@ export default function Page() {
       description="Registro de inicio y fin del lavado."
       phase={13}
       delivers={[
-          'Cola de equipos pendientes de lavado',
+          'Cola de vehículos pendientes de lavado',
           'Marcas de inicio y fin con responsable',
           'Encadenamiento automático con la siguiente etapa configurada',
       ]}

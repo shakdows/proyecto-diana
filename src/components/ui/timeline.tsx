@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils/cn';
 
 /**
- * Línea de tiempo del equipo.
+ * Línea de tiempo del vehículo.
  *
  * Es una lista ordenada de verdad (`<ol>`), no una pila de divs: el orden ES el
  * contenido, y quien la escuche debe oír «1 de 8» y no ocho párrafos sueltos.

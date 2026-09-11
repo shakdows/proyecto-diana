@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     template: `%s · ${clientEnv.NEXT_PUBLIC_APP_NAME}`,
   },
   description:
-    'Gestión integral de taller de maquinaria pesada: recepción, orden de servicio, diagnóstico, cotización, compras, reparación, entrega y satisfacción del cliente.',
+    'Gestión integral de taller automotriz: recepción, orden de servicio, diagnóstico, cotización, compras, reparación, entrega y satisfacción del cliente.',
   robots: { index: false, follow: false },
 };
 

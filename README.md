@@ -21,11 +21,10 @@ región `gru1`.
 | Ruta | Qué muestra |
 | --- | --- |
 | [`/presentacion`](https://proyecto-diana-blue.vercel.app/presentacion) | Página de presentación del producto, sin login ni datos |
-| [`/tablero`](https://proyecto-diana-blue.vercel.app/tablero) | Control tower: todas las órdenes vivas con avance, hora estimada y semáforo |
+| [`/tablero`](https://proyecto-diana-blue.vercel.app/tablero) | Centro de operaciones: indicadores, flujo del taller y torre de control |
 | [`/ordenes`](https://proyecto-diana-blue.vercel.app/ordenes) | Listado de órdenes |
 | [`/ordenes/os-154`](https://proyecto-diana-blue.vercel.app/ordenes/os-154) | Detalle con el desglose del avance y las acciones que la máquina de estados permite |
 | [`/api/health`](https://proyecto-diana-blue.vercel.app/api/health) | Salud del servicio, sin sesión |
-| [`/vista-previa/index.html`](https://proyecto-diana-blue.vercel.app/vista-previa/index.html) | Las 25 pantallas congeladas como HTML estático |
 
 > ⚠️ Las pantallas **todavía no leen de la base de datos**: eso llega en la
 > Fase 3. Muestran su estructura real con datos marcados como de demostración,
@@ -36,6 +35,19 @@ región `gru1`.
 > No hay `index.html`: en Next.js con App Router las páginas se renderizan en
 > el servidor. El archivo que hace ese papel es `src/app/(app)/page.tsx`, que
 > redirige a la pantalla de inicio según el rol del usuario.
+
+## Diseño
+
+El rediseño de interfaz va por fases y tiene dos documentos propios:
+
+| Documento | Qué contiene |
+| --- | --- |
+| [Auditoría de UI/UX](docs/UI-UX-AUDIT.md) | Estado real de cada ruta antes de tocar nada, con clasificación A/B/C/D |
+| [Rediseño de UI/UX](docs/UI-UX-REDESIGN.md) | Concepto, tokens, catálogo de componentes, trampas verificadas y plan |
+
+> De las 19 rutas de la aplicación, **15 son todavía marcadores de posición**.
+> La auditoría lo dice ruta por ruta, en lugar de dejar que parezcan
+> pantallas terminadas.
 
 ## Estado
 
