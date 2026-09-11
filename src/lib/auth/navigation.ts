@@ -105,7 +105,10 @@ export function visibleNavigation(granted: readonly Permission[]): readonly NavG
 const HOME_BY_ROLE: Readonly<Record<RoleCode, string>> = {
   super_admin: '/tablero',
   admin: '/tablero',
-  asesor: '/tablero',
+  /* El asesor NO aterriza en el tablero. No dirige el taller: recibe
+     vehículos y atiende clientes, y nueve indicadores entre él y el botón que
+     necesita son nueve cosas que leer para nada. El tablero sigue a un clic. */
+  asesor: '/inicio',
   tecnico: '/taller',
   planchado_pintura: '/taller',
   compras: '/compras',

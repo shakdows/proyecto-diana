@@ -4,6 +4,7 @@ import { ChevronDown } from 'lucide-react';
 import type {
   InputHTMLAttributes,
   ReactNode,
+  Ref,
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
 } from 'react';
@@ -32,13 +33,26 @@ const control = [
 
 export function Input({
   className,
-  prefix,
+  leading,
+  ref,
   ...props
-}: InputHTMLAttributes<HTMLInputElement> & { readonly prefix?: ReactNode }) {
+}: InputHTMLAttributes<HTMLInputElement> & {
+  /**
+   * Icono a la izquierda, dentro del campo.
+   *
+   * Se llama `leading` y no `prefix` porque `prefix` es un atributo HTML real
+   * —de RDFa— tipado como `string`. Al intersecarlo, la prop no podía aceptar
+   * un elemento: quedaba `string & ReactNode`, que no admite nada. Nadie la
+   * había usado todavía, así que el fallo estaba ahí sin dar la cara.
+   */
+  readonly leading?: ReactNode;
+  /** Para poder llevar el foco al primer campo al abrir un formulario. */
+  readonly ref?: Ref<HTMLInputElement>;
+}) {
   const field = useFieldControl();
 
-  if (prefix === undefined) {
-    return <input {...field} className={cn(control, 'h-11 px-3', className)} {...props} />;
+  if (leading === undefined) {
+    return <input ref={ref} {...field} className={cn(control, 'h-11 px-3', className)} {...props} />;
   }
 
   return (
@@ -47,9 +61,14 @@ export function Input({
         aria-hidden
         className="pointer-events-none absolute left-3 flex items-center text-fg-subtle"
       >
-        {prefix}
+        {leading}
       </span>
-      <input {...field} className={cn(control, 'h-11 pl-9 pr-3', className)} {...props} />
+      <input
+        ref={ref}
+        {...field}
+        className={cn(control, 'h-11 pl-9 pr-3', className)}
+        {...props}
+      />
     </div>
   );
 }

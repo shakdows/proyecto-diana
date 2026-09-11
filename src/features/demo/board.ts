@@ -64,6 +64,9 @@ export interface DemoOrder {
   /* --- Ficha de la orden --- */
   readonly color: string;
   readonly vin: string;
+  /** ⚠️ Propio de cada cliente. Compartirlo hace que la búsqueda por
+   *  teléfono devuelva media cartera y que el control de duplicados avise
+   *  siempre, que es como no avisar nunca. */
   readonly customerPhone: string;
   readonly customerEmail: string;
   readonly customerAddress: string;
@@ -309,6 +312,9 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       equipmentKind: 'vehiculo',
       usage: 112450,
       customer: 'Transportes del Sur S.A.C.',
+      customerPhone: '+51 1 6428800',
+      customerEmail: 'flota@transportesdelsur.com.pe',
+      customerDocLast3: '610',
       corporateClient: 'Mitsui',
       advisor: 'Andrea López',
       technician: 'Luis Ramírez',
@@ -338,6 +344,9 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       equipmentKind: 'vehiculo',
       usage: 24310,
       customer: 'María Quispe',
+      customerPhone: '+51 962 118 340',
+      customerEmail: 'maria.quispe@ejemplo.com',
+      customerDocLast3: '481',
       advisor: 'Diego Salas',
       technician: 'Carlos Mendoza',
       serviceType: 'PLANCHADO Y PINTURA',
@@ -358,6 +367,9 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       equipmentKind: 'vehiculo',
       usage: 61905,
       customer: 'Banco Continental',
+      customerPhone: '+51 1 5959000',
+      customerEmail: 'vehiculos@bbva.com.pe',
+      customerDocLast3: '037',
       corporateClient: 'BBVA',
       advisor: 'Andrea López',
       technician: 'Rosa Huamán',
@@ -391,6 +403,9 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       equipmentKind: 'vehiculo',
       usage: 88240,
       customer: 'Renting Andino S.A.',
+      customerPhone: '+51 1 7124500',
+      customerEmail: 'taller@rentingandino.com',
+      customerDocLast3: '852',
       corporateClient: 'Relsa',
       advisor: 'Diego Salas',
       technician: 'Luis Ramírez',
@@ -426,6 +441,9 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       equipmentKind: 'vehiculo',
       usage: 143060,
       customer: 'Inversiones Vega E.I.R.L.',
+      customerPhone: '+51 934 507 219',
+      customerEmail: 'contacto@invega.com.pe',
+      customerDocLast3: '194',
       corporateClient: 'Invetsa',
       advisor: 'Andrea López',
       technician: null,
@@ -444,6 +462,9 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       equipmentKind: 'vehiculo',
       usage: 9180,
       customer: 'Automotores MG Perú',
+      customerPhone: '+51 1 6407700',
+      customerEmail: 'postventa@mgperu.pe',
+      customerDocLast3: '763',
       corporateClient: 'MG',
       advisor: 'Diego Salas',
       technician: 'Rosa Huamán',
@@ -481,6 +502,9 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       equipmentKind: 'maquinaria',
       usage: 8420,
       customer: 'Movimiento de Tierras Andes S.A.C.',
+      customerPhone: '+51 984 226 705',
+      customerEmail: 'operaciones@mtandes.pe',
+      customerDocLast3: '528',
       advisor: 'Andrea López',
       technician: null,
       serviceType: 'REPOSICIÓN DE MOTOR',

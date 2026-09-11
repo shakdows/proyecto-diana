@@ -1,20 +1,18 @@
 import type { Metadata } from 'next';
-import { PhasePlaceholder } from '@/components/layout/phase-placeholder';
+import { CustomerDirectory } from '@/components/customers/customer-directory';
+import { demoCorporateClients, demoCustomers } from '@/features/customers/demo';
 
 export const metadata: Metadata = { title: 'Clientes' };
 
-export default function Page() {
+/* La cartera incluye a quien está hoy en el taller, y eso se calcula contra
+   `now`: prerrenderizar dejaría la lista congelada en la hora de compilación. */
+export const dynamic = 'force-dynamic';
+
+export default function ClientesPage() {
   return (
-    <PhasePlaceholder
-      title="Clientes"
-      description="Personas y empresas, con el documento de identidad enmascarado."
-      phase={4}
-      delivers={[
-          'Documento mostrado siempre como •••••123',
-          'Ver el número completo exige permiso y queda auditado',
-          'Vehículos asociados e historial de órdenes',
-          'Pertenencia a cliente corporativo',
-      ]}
+    <CustomerDirectory
+      customers={demoCustomers(new Date())}
+      corporateClients={demoCorporateClients()}
     />
   );
 }
