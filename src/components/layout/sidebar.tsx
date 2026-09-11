@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { NavGroup } from '@/lib/auth/navigation';
-import { RomeroWordmark } from '@/components/brand/romero-logo';
+import { DianaLockup } from '@/components/brand/diana-logo';
 import { cn } from '@/lib/utils/cn';
 import { NavIcon } from './nav-icon';
 
@@ -58,16 +58,7 @@ export function Sidebar({
     >
       <header className="shrink-0 px-5 py-5 [@media(max-height:50rem)]:py-3">
         <Link href="/" onClick={onNavigate} className="inline-flex rounded-control">
-          {/* Monocroma: el rojo de la marca compite con el rojo de «retrasado»
-              que vive a cuatro centímetros, en los chips del tablero. */}
-          <RomeroWordmark
-            on="dark"
-            mono
-            /* En pantalla baja el logotipo encoge con todo lo demás: los 26 px
-               que gana de alto se los quitaba a la lista, y «Auditoría»
-               volvía a caer fuera. */
-            className="h-auto w-44 text-white [@media(max-height:50rem)]:w-32"
-          />
+          <DianaLockup />
         </Link>
       </header>
 
