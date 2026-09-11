@@ -2,12 +2,8 @@
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { homeRouteFor } from '@/lib/auth/navigation';
-import {
-  DEMO_ROLE_COOKIE,
-  roleFromCookieValue,
-  userForRole,
-} from '@/lib/auth/session';
+import { homeRouteForRole } from '@/lib/auth/navigation';
+import { DEMO_ROLE_COOKIE, roleFromCookieValue } from '@/lib/auth/session';
 
 /**
  * Entrar en modo demostración con un rol.
@@ -33,7 +29,7 @@ export async function enterDemo(formData: FormData): Promise<void> {
     maxAge: 60 * 60 * 8,
   });
 
-  redirect(homeRouteFor(userForRole(role).permissions));
+  redirect(homeRouteForRole(role));
 }
 
 export async function leaveDemo(): Promise<void> {

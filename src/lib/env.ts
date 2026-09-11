@@ -25,6 +25,18 @@ const clientSchema = z.object({
     (v) => (v === '' || v === undefined ? 'Diana' : v),
     z.string().min(1),
   ),
+  /*
+   * Modo demostración. Por defecto ENCENDIDO mientras no hay autenticación
+   * real: apagarlo hoy dejaría el sistema sin ninguna forma de entrar.
+   *
+   * Cuando llegue la Fase 3 se pone en `false` en producción y los accesos de
+   * ejemplo desaparecen de la pantalla de entrada. Es una sola variable
+   * porque un acceso sin contraseña olvidado encendido no es un detalle.
+   */
+  NEXT_PUBLIC_DEMO_MODE: z.preprocess(
+    (v) => v !== 'false',
+    z.boolean(),
+  ),
 });
 
 export type ClientEnv = z.infer<typeof clientSchema>;
@@ -43,6 +55,7 @@ const parsed = clientSchema.safeParse({
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
+  NEXT_PUBLIC_DEMO_MODE: process.env.NEXT_PUBLIC_DEMO_MODE,
 });
 
 if (!parsed.success) {

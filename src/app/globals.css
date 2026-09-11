@@ -14,8 +14,8 @@
 
 @theme {
   /* Grafito y acero: la base del sistema */
-  --color-graphite-950: #090c10;
-  --color-graphite-900: #0f141a;
+  --color-graphite-950: #0b1118;
+  --color-graphite-900: #101820;
   --color-graphite-800: #171e27;
   --color-graphite-700: #222c38;
   --color-graphite-600: #2f3c4b;
@@ -29,24 +29,26 @@
   /*
    * Azul corporativo: el ÚNICO color de marca.
    *
-   * La rampa se profundizó respecto a la primera versión. El azul anterior
-   * (#1859bc en el 600) era claro y saturado: al usarlo en la fila activa del
-   * menú y en cada botón primario, la pantalla se teñía de azul y el color
-   * dejaba de significar «esto es accionable» para significar «esto es una
-   * aplicación». Un azul marino más cerrado aguanta el uso repetido sin gritar
-   * y deja el contraste para lo que de verdad debe destacar: el estado.
+   * `brand-600` es #146EF5. Sobre blanco da 4.65:1, que pasa AA para texto
+   * normal y por tanto sirve como fondo de botón con texto blanco. Se
+   * comprobó antes de fijarlo: un azul de marca que no llegue a 4.5:1 obliga
+   * después a poner el texto en gris oscuro sobre el botón, y eso se ve mal
+   * en todas las pantallas a la vez.
+   *
+   * Sigue siendo el único color de marca. El estado tiene los suyos y no se
+   * mezclan: si el azul empieza a significar «correcto», el verde sobra.
    */
-  --color-brand-950: #07173a;
-  --color-brand-900: #0a2350;
-  --color-brand-800: #0d2f68;
-  --color-brand-700: #113d80;
-  --color-brand-600: #164e9e;
-  --color-brand-500: #2263bd;
-  --color-brand-400: #4483d6;
-  --color-brand-300: #79a7e6;
-  --color-brand-200: #b3cdf2;
-  --color-brand-100: #dbe8fa;
-  --color-brand-50: #eef4fd;
+  --color-brand-950: #061a3d;
+  --color-brand-900: #0a2a63;
+  --color-brand-800: #0d3a8a;
+  --color-brand-700: #1053bd;
+  --color-brand-600: #146ef5;
+  --color-brand-500: #3b86f7;
+  --color-brand-400: #6aa4f9;
+  --color-brand-300: #9cc3fb;
+  --color-brand-200: #c6dcfd;
+  --color-brand-100: #e3eefe;
+  --color-brand-50: #f1f7ff;
 
   /* Señal: reservado al ESTADO. El color informa, no decora. */
   --color-ok-700: #14664a;
@@ -142,31 +144,37 @@
 :root {
   --surface: #ffffff;
   --surface-raised: #ffffff;
-  --surface-sunken: #f2f5f8;
-  --surface-inverted: #0f141a;
-  --fg: #171e27;
-  --fg-muted: #415062;
-  --fg-subtle: #5c6c80;
-  --fg-inverted: #f2f5f8;
-  --border: #dce3ea;
-  --border-strong: #b4c0cc;
-  --focus: #1859bc;
+  --surface-sunken: #f5f7fa;
+  --surface-inverted: #101820;
+  --fg: #0f172a;
+  /*
+   * `fg-muted` es #475569 y no el #64748B del texto secundario: sobre
+   * #F5F7FA, #64748B da 4.3:1 —por debajo de AA para texto normal—. El gris
+   * más claro queda para `fg-subtle`, que solo viste rótulos y unidades, y
+   * nunca frases que haya que leer.
+   */
+  --fg-muted: #475569;
+  --fg-subtle: #64748b;
+  --fg-inverted: #f5f7fa;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --focus: #146ef5;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --surface: #0f141a;
-    --surface-raised: #171e27;
-    --surface-sunken: #090c10;
-    --surface-inverted: #f2f5f8;
-    --fg: #f2f5f8;
-    --fg-muted: #b4c0cc;
-    --fg-subtle: #8695a7;
-    --fg-inverted: #0f141a;
-    --border: #222c38;
-    --border-strong: #2f3c4b;
-    --focus: #4e8be3;
+    --surface: #101820;
+    --surface-raised: #17212b;
+    --surface-sunken: #0b1118;
+    --surface-inverted: #f5f7fa;
+    --fg: #f1f5f9;
+    --fg-muted: #cbd5e1;
+    --fg-subtle: #94a3b8;
+    --fg-inverted: #101820;
+    --border: #1e293b;
+    --border-strong: #334155;
+    --focus: #6aa4f9;
     color-scheme: dark;
   }
 }

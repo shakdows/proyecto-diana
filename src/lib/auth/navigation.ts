@@ -1,4 +1,4 @@
-import type { Permission } from './permissions';
+import type { Permission, RoleCode } from './permissions';
 
 /**
  * Mapa de navegación.
@@ -64,15 +64,14 @@ export const NAVIGATION: readonly NavGroup[] = [
       { href: '/recepcion', label: 'Recepción', icon: 'recepcion', permission: 'receptions:read', phase: 5 },
       { href: '/ordenes', label: 'Órdenes', icon: 'ordenes', permission: 'orders:read', phase: 7 },
       { href: '/taller', label: 'Taller', icon: 'taller', permission: 'repairs:read', phase: 12 },
-      { href: '/calidad', label: 'Calidad', icon: 'calidad', permission: 'quality:read', phase: 13 },
+      /* Lavado y alineamiento solo los ve quien los ejecuta: su permiso es
+         `:execute`, que el asesor no tiene. Por eso no ensucian su menú y a la
+         vez el operario de lavado no se queda sin ninguna entrada. */
       { href: '/lavado', label: 'Lavado', icon: 'lavado', permission: 'washing:execute', phase: 13 },
       { href: '/alineamiento', label: 'Alineamiento', icon: 'alineamiento', permission: 'alignment:execute', phase: 13 },
       { href: '/compras', label: 'Compras', icon: 'compras', permission: 'purchases:read', phase: 11 },
       { href: '/clientes', label: 'Clientes', icon: 'clientes', permission: 'customers:read', phase: 4 },
-      { href: '/vehiculos', label: 'Vehículos', icon: 'vehiculos', permission: 'vehicles:read', phase: 4 },
       { href: '/encuestas', label: 'Encuestas', icon: 'encuestas', permission: 'surveys:read', phase: 15 },
-      { href: '/panel', label: 'Panel', icon: 'panel', permission: 'dashboard:read', phase: 15 },
-      { href: '/seguimiento', label: 'Seguimiento', icon: 'seguimiento', permission: 'followups:read', phase: 15 },
       { href: '/informes', label: 'Reportes', icon: 'informes', permission: 'reports:read', phase: 16 },
     ],
   },
@@ -94,7 +93,37 @@ export function visibleNavigation(granted: readonly Permission[]): readonly NavG
   })).filter((group) => group.items.length > 0);
 }
 
-/** Primera pantalla tras iniciar sesión, según lo que el usuario pueda ver. */
+/**
+ * Pantalla de entrada declarada para cada puesto.
+ *
+ * No se deduce del menú: el operario de calidad trabaja en `/calidad` y el
+ * analista en `/panel`, y ninguna de las dos está en el menú base —la de
+ * calidad la abre el asesor desde la orden, y el panel desde Reportes—.
+ * Deducirla del primer elemento visible mandaba al de calidad al tablero,
+ * que no es su trabajo.
+ */
+const HOME_BY_ROLE: Readonly<Record<RoleCode, string>> = {
+  super_admin: '/tablero',
+  admin: '/tablero',
+  asesor: '/tablero',
+  tecnico: '/taller',
+  planchado_pintura: '/taller',
+  compras: '/compras',
+  calidad: '/calidad',
+  lavado: '/lavado',
+  alineamiento: '/alineamiento',
+  analista: '/panel',
+  cliente_corporativo: '/ordenes',
+};
+
+export function homeRouteForRole(role: RoleCode): string {
+  return HOME_BY_ROLE[role];
+}
+
+/**
+ * Respaldo cuando solo se conocen los permisos: la primera pantalla que el
+ * usuario puede ver. Sigue existiendo porque `/` lo usa sin saber el rol.
+ */
 export function homeRouteFor(granted: readonly Permission[]): string {
   const groups = visibleNavigation(granted);
   return groups[0]?.items[0]?.href ?? '/sin-acceso';

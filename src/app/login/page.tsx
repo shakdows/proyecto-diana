@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import {
   Activity,
-  Building2,
   ClipboardList,
   Eye,
   Lock,
@@ -15,6 +14,7 @@ import type { ReactNode } from 'react';
 import { RomeroMark } from '@/components/brand/romero-logo';
 import { AssetImage } from '@/components/ui/asset-image';
 import type { RoleCode } from '@/lib/auth/permissions';
+import { clientEnv } from '@/lib/env';
 import { enterDemo } from './actions';
 
 export const metadata: Metadata = {
@@ -35,7 +35,6 @@ const DEMO_ROLES: readonly {
   { role: 'tecnico', icon: <Wrench />, label: 'Técnico', hint: 'Diagnóstico y reparación' },
   { role: 'compras', icon: <ShoppingCart />, label: 'Compras', hint: 'Repuestos y proveedores' },
   { role: 'calidad', icon: <ShieldCheck />, label: 'Calidad', hint: 'Control de calidad' },
-  { role: 'cliente_corporativo', icon: <Building2 />, label: 'Cliente', hint: 'Vista de su flota' },
 ];
 
 export default function LoginPage() {
@@ -107,12 +106,7 @@ function ShowcasePanel() {
         </div>
 
         <footer>
-          <dl className="flex flex-wrap gap-x-10 gap-y-4 rounded-panel border border-white/10 bg-white/5 px-6 py-5">
-            <Stat value="34" label="Estados con transiciones validadas" />
-            <Stat value="68" label="Tablas con seguridad por fila" />
-            <Stat value="195" label="Políticas de acceso" />
-          </dl>
-          <p className="mt-5 text-xs text-graphite-500">
+          <p className="text-xs text-graphite-500">
             © 2026 Romero Motors. Todos los derechos reservados.
           </p>
         </footer>
@@ -137,20 +131,6 @@ function Feature({ icon, label }: { readonly icon: ReactNode; readonly label: st
   );
 }
 
-function Stat({ value, label }: { readonly value: string; readonly label: string }) {
-  return (
-    <div className="min-w-0">
-      <dd
-        data-numeric
-        className="font-display text-2xl font-semibold tracking-tight text-white"
-      >
-        {value}
-      </dd>
-      <dt className="mt-0.5 max-w-[11rem] text-xs leading-snug text-graphite-400">{label}</dt>
-    </div>
-  );
-}
-
 /** Panel derecho: el acceso propiamente dicho. */
 function AccessPanel() {
   return (
@@ -165,9 +145,11 @@ function AccessPanel() {
 
         <div className="rounded-modal border border-border bg-surface-raised p-7 shadow-panel sm:p-8">
           <h2 className="font-display text-3xl font-semibold tracking-tight text-fg">
-            Bienvenido
+            Bienvenido a DIANA
           </h2>
-          <p className="mt-1.5 text-sm text-fg-muted">Accede al centro de operaciones</p>
+          <p className="mt-1.5 text-sm text-fg-muted">
+            Accede al centro de operaciones automotrices.
+          </p>
 
           {/*
             El formulario de correo y contraseña está DESACTIVADO a propósito.
@@ -200,6 +182,8 @@ function AccessPanel() {
             eligiendo un puesto.
           </p>
 
+          {clientEnv.NEXT_PUBLIC_DEMO_MODE && (
+            <>
           <div className="my-6 flex items-center gap-3" aria-hidden>
             <span className="h-px flex-1 bg-border" />
             <span className="text-xs text-fg-subtle">o</span>
@@ -235,13 +219,16 @@ function AccessPanel() {
               </button>
             ))}
           </form>
+            </>
+          )}
 
-          <footer className="mt-7 flex items-center justify-between border-t border-border pt-4 text-xs text-fg-subtle">
-            <span data-numeric>Diana v1.0.0</span>
+          <footer className="mt-7 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-t border-border pt-4 text-xs text-fg-subtle">
+            <span data-numeric>DIANA v1.0.0</span>
             <span className="flex items-center gap-1.5">
               <span aria-hidden className="size-2 rounded-full bg-ok-500" />
               Sistema operativo
             </span>
+            <span>© Romero Motors</span>
           </footer>
         </div>
       </div>
