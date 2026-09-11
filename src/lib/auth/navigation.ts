@@ -48,7 +48,7 @@ export const NAVIGATION: readonly NavGroup[] = [
   {
     label: 'Operación',
     items: [
-      { href: '/tablero', label: 'Tablero', icon: 'tablero', permission: 'dashboard:control_tower', phase: 14 },
+      { href: '/tablero', label: 'Centro de operaciones', icon: 'tablero', permission: 'dashboard:control_tower', phase: 14 },
       { href: '/recepcion', label: 'Recepción', icon: 'recepcion', permission: 'receptions:read', phase: 5 },
       { href: '/ordenes', label: 'Órdenes', icon: 'ordenes', permission: 'orders:read', phase: 7 },
       { href: '/buscar', label: 'Buscar', icon: 'buscar', permission: 'vehicles:search', phase: 4 },
@@ -70,25 +70,25 @@ export const NAVIGATION: readonly NavGroup[] = [
     ],
   },
   {
-    label: 'Personas y equipos',
+    label: 'Clientes',
     items: [
-      { href: '/vehiculos', label: 'Equipos', icon: 'vehiculos', permission: 'vehicles:read', phase: 4 },
       { href: '/clientes', label: 'Clientes', icon: 'clientes', permission: 'customers:read', phase: 4 },
+      { href: '/vehiculos', label: 'Vehículos', icon: 'vehiculos', permission: 'vehicles:read', phase: 4 },
+      { href: '/encuestas', label: 'Encuestas', icon: 'encuestas', permission: 'surveys:read', phase: 15 },
     ],
   },
   {
-    label: 'Experiencia del cliente',
+    label: 'Inteligencia',
     items: [
-      { href: '/encuestas', label: 'Encuestas', icon: 'encuestas', permission: 'surveys:read', phase: 15 },
       { href: '/panel', label: 'Panel', icon: 'panel', permission: 'dashboard:read', phase: 15 },
       { href: '/seguimiento', label: 'Seguimiento', icon: 'seguimiento', permission: 'followups:read', phase: 15 },
       { href: '/informes', label: 'Informes', icon: 'informes', permission: 'reports:read', phase: 16 },
     ],
   },
   {
-    label: 'Administración',
+    label: 'Sistema',
     items: [
-      { href: '/admin', label: 'Configuración', icon: 'admin', permission: 'settings:manage', phase: 3 },
+      { href: '/admin', label: 'Administración', icon: 'admin', permission: 'settings:manage', phase: 3 },
       { href: '/admin/auditoria', label: 'Auditoría', icon: 'auditoria', permission: 'audit:read', phase: 16 },
     ],
   },

@@ -9,6 +9,7 @@ import { ProgressBar } from '@/components/ui/progress-bar';
 import { StatusChip } from '@/components/ui/status-chip';
 import { TrafficLightDot } from '@/components/ui/traffic-light';
 import { findDemoOrder, factsFor } from '@/features/demo/board';
+import { vocabularyFor } from '@/features/equipment/services/equipment-kind';
 import { availableActions } from '@/features/orders/services/state-machine';
 import { STATUS_LABELS } from '@/features/orders/services/order-status';
 import { computeProgress } from '@/features/repairs/services/progress';
@@ -60,9 +61,9 @@ export default async function OrdenPage({
     <>
       <PageHeader
         title={row.order.serviceType}
-        description={`${row.order.code} · ${row.order.vehicle} · ${row.order.machineType} · ${formatNumber(
-          row.order.horometerHours,
-        )} h · ${row.order.customer}`}
+        description={`${row.order.code} · ${row.order.vehicle} ${row.order.modelYear} · ${formatNumber(
+          row.order.usage,
+        )} ${vocabularyFor(row.order.equipmentKind).usageUnit} · ${row.order.customer}`}
         actions={
           <div className="flex items-center gap-2">
             <Plate value={row.order.plate} />

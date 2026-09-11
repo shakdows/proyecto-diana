@@ -8,10 +8,13 @@ import { cn } from '@/lib/utils/cn';
 export function ProgressBar({
   percent,
   label,
+  showValue = true,
   className,
 }: {
   readonly percent: number;
   readonly label?: string;
+  /** Apágalo cuando la pantalla ya muestra la cifra con más peso al lado. */
+  readonly showValue?: boolean;
   readonly className?: string;
 }) {
   const value = Math.min(100, Math.max(0, percent));
@@ -31,9 +34,11 @@ export function ProgressBar({
           style={{ width: `${value}%` }}
         />
       </div>
-      <span data-numeric className="w-11 shrink-0 text-right text-xs font-medium text-fg-muted">
-        {Math.round(value)} %
-      </span>
+      {showValue && (
+        <span data-numeric className="w-11 shrink-0 text-right text-xs font-medium text-fg-muted">
+          {Math.round(value)} %
+        </span>
+      )}
     </div>
   );
 }

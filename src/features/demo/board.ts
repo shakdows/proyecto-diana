@@ -11,6 +11,7 @@
  * fórmula cambia esta pantalla, que es exactamente lo que se quiere.
  */
 
+import type { EquipmentKind } from '@/features/equipment/services/equipment-kind';
 import type { OrderStatus } from '@/features/orders/services/order-status';
 import type { OrderFacts } from '@/features/orders/services/state-machine';
 import type { FinalStage } from '@/features/orders/services/final-stages';
@@ -18,6 +19,7 @@ import { orderCoverage, type PartLine } from '@/features/parts/services/coverage
 import { computeProgress } from '@/features/repairs/services/progress';
 import {
   computeEta,
+  formatMinutes,
   summarizeSessions,
   type EtaResult,
   type TimeSession,
@@ -30,10 +32,11 @@ export interface DemoOrder {
   readonly code: string;
   readonly plate: string;
   readonly vehicle: string;
-  /** Excavadora, tractor oruga, cargador frontal… */
-  readonly machineType: string;
-  /** Horómetro. La maquinaria pesada se mantiene por horas, no por kilómetros. */
-  readonly horometerHours: number;
+  readonly modelYear: number;
+  /** Decide si el contador son kilómetros o horas, y cómo se llama la placa. */
+  readonly equipmentKind: EquipmentKind;
+  /** Kilometraje en un vehículo, horómetro en una máquina. */
+  readonly usage: number;
   readonly customer: string;
   readonly corporateClient: string | null;
   readonly advisor: string;
@@ -164,58 +167,59 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       ...base,
       id: 'os-154',
       code: 'OS-2026-000154',
-      plate: 'EXC014',
-      vehicle: 'CAT 320D',
-      machineType: 'Excavadora',
-      horometerHours: 8420,
-      customer: 'Tierras Andes S.A.C.',
+      plate: 'ABC123',
+      vehicle: 'Toyota Hilux SRV',
+      modelYear: 2023,
+      equipmentKind: 'vehiculo',
+      usage: 38720,
+      customer: 'Juan Pérez',
       advisor: 'Andrea López',
       technician: 'Carlos Mendoza',
-      serviceType: 'REPOSICION MOTOR',
+      serviceType: 'CAMBIO DE PASTILLAS',
       status: 'EN_REPARACION',
-      openedMinutesAgo: 2880,
-      promisedInMinutes: 1560,
-      estimatedMinutes: 1440,
-      startedMinutesAgo: 900,
+      openedMinutesAgo: 300,
+      promisedInMinutes: 150,
+      estimatedMinutes: 180,
+      startedMinutesAgo: 105,
       sessions: sessions(now, [
-        ['trabajo', 900, 540],
-        ['pausa', 540, 420, 'fin_de_turno'],
-        ['trabajo', 420, null],
+        ['trabajo', 105, 40],
+        ['pausa', 40, 28, 'refrigerio'],
+        ['trabajo', 28, null],
       ]),
       parts: [
-        { partId: 'p1', description: 'Culata reparada 3066', required: 1, received: 1 },
-        { partId: 'p2', description: 'Juego de anillos STD', required: 6, received: 6 },
-        { partId: 'p3', description: 'Metales de biela 0.50', required: 6, received: 6 },
+        { partId: 'p1', description: 'Juego de pastillas delanteras', required: 1, received: 1 },
+        { partId: 'p2', description: 'Líquido de frenos DOT 4', required: 1, received: 1 },
       ],
       quotationLineCount: 4,
       decidedItemCount: 4,
       approvedItemCount: 3,
       diagnosticItemCount: 4,
       repairJobsTotal: 4,
-      repairJobsDone: 2,
+      repairJobsDone: 3,
       finalStages: ['lavado'],
     },
     {
       ...base,
       id: 'os-155',
       code: 'OS-2026-000155',
-      plate: 'TRC207',
-      vehicle: 'Komatsu D65EX-16',
-      machineType: 'Tractor oruga',
-      horometerHours: 12760,
-      customer: 'Contratistas Huari S.A.C.',
-      corporateClient: 'Minera Huari',
+      plate: 'V2K481',
+      vehicle: 'Mitsubishi L200',
+      modelYear: 2019,
+      equipmentKind: 'vehiculo',
+      usage: 112450,
+      customer: 'Transportes del Sur S.A.C.',
+      corporateClient: 'Mitsui',
       advisor: 'Andrea López',
       technician: 'Luis Ramírez',
-      serviceType: 'CONTROL VALVULA',
+      serviceType: 'CAMBIO DE EMBRAGUE',
       status: 'ESPERANDO_REPUESTOS',
-      openedMinutesAgo: 5760,
-      promisedInMinutes: -480,
-      estimatedMinutes: 720,
+      openedMinutesAgo: 2880,
+      promisedInMinutes: -120,
+      estimatedMinutes: 300,
       parts: [
-        { partId: 'p1', description: 'Válvula de control principal', required: 1, received: 0 },
-        { partId: 'p2', description: 'Kit de sellos de válvula', required: 2, received: 2 },
-        { partId: 'p3', description: 'Manguera hidráulica 3/4"', required: 4, received: 3 },
+        { partId: 'p1', description: 'Kit de embrague completo', required: 1, received: 0 },
+        { partId: 'p2', description: 'Rodamiento de empuje', required: 1, received: 1 },
+        { partId: 'p3', description: 'Aceite de caja 75W90', required: 3, received: 2 },
       ],
       quotationLineCount: 5,
       decidedItemCount: 5,
@@ -227,16 +231,17 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       ...base,
       id: 'os-156',
       code: 'OS-2026-000156',
-      plate: 'CRG031',
-      vehicle: 'CAT 950H',
-      machineType: 'Cargador frontal',
-      horometerHours: 15340,
-      customer: 'Vega Pacífico E.I.R.L.',
+      plate: 'D9M772',
+      vehicle: 'Hyundai Tucson',
+      modelYear: 2023,
+      equipmentKind: 'vehiculo',
+      usage: 24310,
+      customer: 'María Quispe',
       advisor: 'Diego Salas',
       technician: 'Carlos Mendoza',
-      serviceType: 'TRANSMISION',
+      serviceType: 'PLANCHADO Y PINTURA',
       status: 'ESPERANDO_CLIENTE',
-      openedMinutesAgo: 10080,
+      openedMinutesAgo: 4320,
       promisedInMinutes: null,
       quotationLineCount: 6,
       decidedItemCount: 2,
@@ -246,24 +251,26 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       ...base,
       id: 'os-157',
       code: 'OS-2026-000157',
-      plate: 'EXC022',
-      vehicle: 'Komatsu PC200-8',
-      machineType: 'Excavadora',
-      horometerHours: 6180,
-      customer: 'Vial Sur S.A.',
-      corporateClient: 'Consorcio Vial Sur',
+      plate: 'B4T019',
+      vehicle: 'Kia Sportage',
+      modelYear: 2022,
+      equipmentKind: 'vehiculo',
+      usage: 61905,
+      customer: 'Banco Continental',
+      corporateClient: 'BBVA',
       advisor: 'Andrea López',
       technician: 'Rosa Huamán',
-      serviceType: 'MANDO FINAL',
+      serviceType: 'MANTENIMIENTO 60 000 KM',
       status: 'EN_REPARACION',
-      openedMinutesAgo: 1440,
-      promisedInMinutes: 900,
-      estimatedMinutes: 960,
-      startedMinutesAgo: 420,
-      sessions: sessions(now, [['trabajo', 420, null]]),
+      openedMinutesAgo: 210,
+      promisedInMinutes: 285,
+      estimatedMinutes: 210,
+      startedMinutesAgo: 90,
+      sessions: sessions(now, [['trabajo', 90, null]]),
       parts: [
-        { partId: 'p1', description: 'Mando final completo LH', required: 1, received: 1 },
-        { partId: 'p2', description: 'Aceite 80W90', required: 12, received: 12 },
+        { partId: 'p1', description: 'Filtro de aceite', required: 1, received: 1 },
+        { partId: 'p2', description: 'Filtro de aire', required: 1, received: 1 },
+        { partId: 'p3', description: 'Aceite 5W30 sintético', required: 5, received: 5 },
       ],
       quotationLineCount: 3,
       decidedItemCount: 3,
@@ -271,33 +278,34 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       diagnosticItemCount: 3,
       repairJobsTotal: 3,
       repairJobsDone: 2,
-      finalStages: ['lavado'],
+      finalStages: ['lavado', 'alineamiento'],
     },
     {
       ...base,
       id: 'os-158',
       code: 'OS-2026-000158',
-      plate: 'TRC115',
-      vehicle: 'John Deere 850K',
-      machineType: 'Tractor oruga',
-      horometerHours: 9905,
-      customer: 'Canteras del Norte S.A.C.',
-      corporateClient: 'Agregados Pacífico',
+      plate: 'C7X330',
+      vehicle: 'Toyota Corolla',
+      modelYear: 2020,
+      equipmentKind: 'vehiculo',
+      usage: 88240,
+      customer: 'Renting Andino S.A.',
+      corporateClient: 'Relsa',
       advisor: 'Diego Salas',
       technician: 'Luis Ramírez',
-      serviceType: 'TREN DE RODAJE',
+      serviceType: 'SUSPENSIÓN DELANTERA',
       status: 'REPARACION_PAUSADA',
-      openedMinutesAgo: 4320,
-      promisedInMinutes: 600,
-      estimatedMinutes: 1200,
-      startedMinutesAgo: 1500,
+      openedMinutesAgo: 480,
+      promisedInMinutes: 120,
+      estimatedMinutes: 240,
+      startedMinutesAgo: 200,
       sessions: sessions(now, [
-        ['trabajo', 1500, 480],
-        ['pausa', 480, null, 'espera_autorizacion', true],
+        ['trabajo', 200, 28],
+        ['pausa', 28, null, 'espera_autorizacion', true],
       ]),
       parts: [
-        { partId: 'p1', description: 'Rodillo inferior', required: 8, received: 8 },
-        { partId: 'p2', description: 'Zapata 600 mm', required: 4, received: 4 },
+        { partId: 'p1', description: 'Amortiguadores delanteros', required: 2, received: 2 },
+        { partId: 'p2', description: 'Rótulas de suspensión', required: 2, received: 2 },
       ],
       quotationLineCount: 4,
       decidedItemCount: 4,
@@ -311,40 +319,42 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       ...base,
       id: 'os-159',
       code: 'OS-2026-000159',
-      plate: 'RTR008',
-      vehicle: 'CAT 420F',
-      machineType: 'Retroexcavadora',
-      horometerHours: 4250,
-      customer: 'Agregados Ccahuana E.I.R.L.',
+      plate: 'F1P845',
+      vehicle: 'Nissan Frontier',
+      modelYear: 2018,
+      equipmentKind: 'vehiculo',
+      usage: 143060,
+      customer: 'Inversiones Vega E.I.R.L.',
+      corporateClient: 'Invetsa',
       advisor: 'Andrea López',
       technician: null,
-      serviceType: 'MANTENIMIENTO 500 H',
+      serviceType: 'DIAGNÓSTICO ELECTRÓNICO',
       status: 'PENDIENTE_DIAGNOSTICO',
       openedMinutesAgo: 95,
-      promisedInMinutes: 1200,
+      promisedInMinutes: 400,
     },
     {
       ...base,
       id: 'os-160',
       code: 'OS-2026-000160',
-      plate: 'CAM044',
-      vehicle: 'Volvo A30G',
-      machineType: 'Camión articulado',
-      horometerHours: 18420,
-      customer: 'Mineros Yanac S.A.C.',
-      corporateClient: 'Minera Huari',
+      plate: 'G8R204',
+      vehicle: 'MG ZS',
+      modelYear: 2024,
+      equipmentKind: 'vehiculo',
+      usage: 9180,
+      customer: 'Automotores MG Perú',
+      corporateClient: 'MG',
       advisor: 'Diego Salas',
       technician: 'Rosa Huamán',
-      serviceType: 'SISTEMA DE FRENO',
+      serviceType: 'ALINEAMIENTO Y BALANCEO',
       status: 'EN_LAVADO',
-      openedMinutesAgo: 2160,
-      promisedInMinutes: -90,
-      estimatedMinutes: 480,
-      startedMinutesAgo: 1200,
-      sessions: sessions(now, [['trabajo', 1200, 720]]),
+      openedMinutesAgo: 620,
+      promisedInMinutes: -45,
+      estimatedMinutes: 90,
+      startedMinutesAgo: 400,
+      sessions: sessions(now, [['trabajo', 400, 310]]),
       parts: [
-        { partId: 'p1', description: 'Disco de freno húmedo', required: 6, received: 6 },
-        { partId: 'p2', description: 'Kit de sellos de freno', required: 2, received: 2 },
+        { partId: 'p1', description: 'Contrapesas de balanceo', required: 4, received: 4 },
       ],
       quotationLineCount: 2,
       decidedItemCount: 2,
@@ -355,17 +365,24 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       finalStages: ['lavado'],
     },
     {
+      /*
+       * Flota mixta: el taller también atiende maquinaria. Una sola fila basta
+       * para que se vea que la tabla cambia de vocabulario —código de equipo y
+       * horómetro en vez de placa y kilómetros— sin dejar de ser la misma
+       * tabla. Es lo que resuelve `features/equipment`.
+       */
       ...base,
       id: 'os-161',
       code: 'OS-2026-000161',
-      plate: 'EXC019',
-      vehicle: 'CAT 336D',
-      machineType: 'Excavadora',
-      horometerHours: 11030,
-      customer: 'Pedro Ccahuana',
+      plate: 'EXC014',
+      vehicle: 'CAT 320D',
+      modelYear: 2019,
+      equipmentKind: 'maquinaria',
+      usage: 8420,
+      customer: 'Movimiento de Tierras Andes S.A.C.',
       advisor: 'Andrea López',
       technician: null,
-      serviceType: 'REPOSICION TURBO',
+      serviceType: 'REPOSICIÓN DE MOTOR',
       status: 'RECEPCIONADO',
       openedMinutesAgo: 18,
       promisedInMinutes: 2400,
@@ -474,4 +491,161 @@ export function demoBoard(now: Date): readonly BoardRow[] {
 export function findDemoOrder(id: string, now: Date): BoardRow | undefined {
   const order = demoOrders(now).find((o) => o.id === id);
   return order === undefined ? undefined : toBoardRow(order, now);
+}
+
+/* ------------------------------------------------------------------ *
+ * Bloques del centro de operaciones
+ * ------------------------------------------------------------------ */
+
+export interface AttentionItem {
+  readonly row: BoardRow;
+  /** Por qué pide acción, en las palabras del taller. */
+  readonly reason: string;
+  /** Cuánto lleva así, ya formateado. */
+  readonly elapsed: string;
+  readonly severity: 'crit' | 'warn' | 'wait';
+}
+
+/**
+ * Las órdenes que piden acción HOY, ordenadas por gravedad.
+ *
+ * No es «todo lo que no está verde». Una orden esperando al cliente lleva dos
+ * días parada y no es culpa del taller: sale en gris, al final, porque hay que
+ * llamar a alguien, no correr. Lo rojo es lo que el taller sí controla.
+ *
+ * El orden importa: quien mira este panel tiene treinta segundos y actúa sobre
+ * lo primero. Si lo primero no es lo más grave, el panel hace daño.
+ */
+export function attentionItems(rows: readonly BoardRow[], now: Date): readonly AttentionItem[] {
+  const WEIGHT = { crit: 0, warn: 1, wait: 2 } as const;
+
+  const items = rows.flatMap<AttentionItem>((row) => {
+    const { order, light } = row;
+    const sinceOpened = Math.round((now.getTime() - row.openedAt.getTime()) / 60_000);
+
+    if (order.status === 'REPARACION_PAUSADA') {
+      const pause = order.sessions.find((s) => s.kind === 'pausa' && s.endedAt === null);
+      const minutes =
+        pause === undefined ? 0 : Math.round((now.getTime() - pause.startedAt.getTime()) / 60_000);
+      return [
+        {
+          row,
+          reason: 'Reparación pausada',
+          elapsed: formatMinutes(minutes),
+          severity: 'crit',
+        },
+      ];
+    }
+
+    if (light.color === 'rojo') {
+      return [{ row, reason: 'Entrega retrasada', elapsed: formatMinutes(sinceOpened), severity: 'crit' }];
+    }
+
+    if (order.status === 'ESPERANDO_REPUESTOS') {
+      const coverage = orderCoverage(order.parts);
+      return [
+        {
+          row,
+          reason: `Esperando repuestos · ${coverage.percent} %`,
+          elapsed: formatMinutes(sinceOpened),
+          severity: 'warn',
+        },
+      ];
+    }
+
+    if (light.color === 'amarillo') {
+      return [{ row, reason: 'En riesgo de retraso', elapsed: formatMinutes(sinceOpened), severity: 'warn' }];
+    }
+
+    if (order.status === 'ESPERANDO_CLIENTE') {
+      return [
+        {
+          row,
+          reason: 'Cotización sin respuesta',
+          elapsed: formatMinutes(sinceOpened),
+          severity: 'wait',
+        },
+      ];
+    }
+
+    return [];
+  });
+
+  return [...items].sort((a, b) => WEIGHT[a.severity] - WEIGHT[b.severity]);
+}
+
+export interface ActivityEntry {
+  readonly id: string;
+  readonly minutesAgo: number;
+  readonly orderCode: string;
+  readonly orderId: string;
+  readonly text: string;
+  readonly actor: string;
+  readonly tone: 'neutral' | 'ok' | 'warn' | 'brand';
+}
+
+/**
+ * Lo que ha pasado en el taller, más reciente primero.
+ *
+ * En producción sale de `order_events`, que escribe un disparador y por eso
+ * está completa por construcción. Aquí es fija, pero los desfases son
+ * relativos a «ahora» para que el panel no se congele.
+ */
+export function demoActivity(): readonly ActivityEntry[] {
+  return [
+    {
+      id: 'a1',
+      minutesAgo: 12,
+      orderCode: 'OS-2026-000154',
+      orderId: 'os-154',
+      text: 'Reparación reanudada tras el refrigerio',
+      actor: 'Carlos Mendoza',
+      tone: 'brand',
+    },
+    {
+      id: 'a2',
+      minutesAgo: 26,
+      orderCode: 'OS-2026-000158',
+      orderId: 'os-158',
+      text: 'Reparación pausada · espera de autorización',
+      actor: 'Luis Ramírez',
+      tone: 'warn',
+    },
+    {
+      id: 'a3',
+      minutesAgo: 48,
+      orderCode: 'OS-2026-000157',
+      orderId: 'os-157',
+      text: 'Repuestos completos · 3 de 3 recibidos',
+      actor: 'Compras',
+      tone: 'ok',
+    },
+    {
+      id: 'a4',
+      minutesAgo: 95,
+      orderCode: 'OS-2026-000160',
+      orderId: 'os-160',
+      text: 'Control de calidad aprobado',
+      actor: 'Rosa Huamán',
+      tone: 'ok',
+    },
+    {
+      id: 'a5',
+      minutesAgo: 140,
+      orderCode: 'OS-2026-000159',
+      orderId: 'os-159',
+      text: 'Vehículo recepcionado · checklist firmado',
+      actor: 'Andrea López',
+      tone: 'neutral',
+    },
+    {
+      id: 'a6',
+      minutesAgo: 180,
+      orderCode: 'OS-2026-000155',
+      orderId: 'os-155',
+      text: 'Cliente aprobó 5 de 5 ítems de la cotización',
+      actor: 'Transportes del Sur',
+      tone: 'ok',
+    },
+  ];
 }
