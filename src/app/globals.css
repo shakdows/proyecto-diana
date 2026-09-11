@@ -48,6 +48,20 @@
   /* Cian de la guía de marca. Acompaña al azul en degradados y trazos de
      acento; NUNCA viste texto ni estados, que ya tienen sus colores. */
   --color-accent-400: #22d3ee;
+
+  /*
+   * Rojo de Romero Motors.
+   *
+   * Vive aparte de `crit-*` a propósito, aunque se parezcan. `crit` significa
+   * «retrasado, crítico, parado» y aparece en el tablero; `romero` significa
+   * «la empresa» y solo sale en lo público —portada, documentos del cliente—.
+   * Si compartieran token, cambiar el rojo de marca cambiaría el color de las
+   * alarmas, y al revés.
+   */
+  --color-romero-700: #8f1216;
+  --color-romero-600: #c0161c;
+  --color-romero-500: #e8242b;
+  --color-romero-400: #f2545a;
   --color-brand-300: #9cc3fb;
   --color-brand-200: #c6dcfd;
   --color-brand-100: #e3eefe;
