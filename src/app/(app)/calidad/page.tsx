@@ -15,6 +15,13 @@ export default function Page() {
           'Reintentos numerados, con historial de cada ronda',
           'Evidencia fotográfica del control',
       ]}
+      built={[
+        {
+          href: '/calidad/os-154',
+          label: 'Inspección de la orden 154',
+          detail: 'Checklist por trabajo, con rechazo que exige nota y foto.',
+        },
+      ]}
     />
   );
 }
