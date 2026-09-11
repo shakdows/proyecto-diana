@@ -13,6 +13,28 @@ lavado / alineamiento → entrega → encuesta de satisfacción → panel → in
 > El nombre del sistema es provisional y se cambia desde configuración
 > (`app_settings.system_name`), sin tocar código.
 
+## Verlo funcionando
+
+**https://proyecto-diana-blue.vercel.app** — desplegado desde `main`, en la
+región `gru1`.
+
+| Ruta | Qué muestra |
+| --- | --- |
+| [`/tablero`](https://proyecto-diana-blue.vercel.app/tablero) | Control tower: todas las órdenes vivas con avance, hora estimada y semáforo |
+| [`/ordenes`](https://proyecto-diana-blue.vercel.app/ordenes) | Listado de órdenes |
+| [`/ordenes/os-154`](https://proyecto-diana-blue.vercel.app/ordenes/os-154) | Detalle con el desglose del avance y las acciones que la máquina de estados permite |
+| [`/api/health`](https://proyecto-diana-blue.vercel.app/api/health) | Salud del servicio, sin sesión |
+
+> ⚠️ Las pantallas **todavía no leen de la base de datos**: eso llega en la
+> Fase 3. Muestran su estructura real con datos marcados como de demostración,
+> y el aviso ámbar de la esquina lo dice. Lo que sí es real es el cálculo: el
+> avance, la hora estimada y el semáforo salen de las funciones del dominio,
+> las mismas que la Fase 2 verificó contra SQL.
+>
+> No hay `index.html`: en Next.js con App Router las páginas se renderizan en
+> el servidor. El archivo que hace ese papel es `src/app/(app)/page.tsx`, que
+> redirige a la pantalla de inicio según el rol del usuario.
+
 ## Estado
 
 | Fase | Entrega | Estado |
