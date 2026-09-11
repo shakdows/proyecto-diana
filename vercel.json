@@ -2,12 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "regions": ["gru1"],
-  "functions": {
-    "src/app/api/reports/**/*": {
-      "maxDuration": 60,
-      "memory": 1769
-    }
-  },
   "headers": [
     {
       "source": "/api/(.*)",

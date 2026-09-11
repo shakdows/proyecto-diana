@@ -122,7 +122,7 @@ un **binario** o atender a un **tercero**.
 | `POST` | `/api/storage/signed-url` | nodejs | URL firmada tras comprobar permiso y alcance |
 | `POST` | `/api/webhooks/[proveedor]` | nodejs | Acuses de WhatsApp/email (fase de integración) |
 
-Todos los de `/api/reports/*` llevan `maxDuration: 60` en `vercel.json`, validan
+Todos los de `/api/reports/*` declaran `maxDuration = 60` en la propia ruta, validan
 sus parámetros **con el mismo esquema Zod de la pantalla**, comprueban permiso y
 alcance, y registran la generación en `documents` y `audit_logs`.
 

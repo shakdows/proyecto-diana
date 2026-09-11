@@ -13,9 +13,21 @@
 Los documentos se imprimen y se entregan al cliente en papel. Un PDF vectorial
 no se pixela al imprimir: esa es la razón de fondo.
 
-Ejecución en Route Handlers con `runtime = 'nodejs'`, `maxDuration: 60` y
-1769 MB en `vercel.json`. Si un informe superara ese tiempo, el camino correcto
-es precalcular el periodo en una vista materializada, no subir el límite.
+Ejecución en Route Handlers con `runtime = 'nodejs'` y `maxDuration = 60`
+declarado **en la propia ruta**:
+
+```ts
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+```
+
+No con un patrón `functions` en `vercel.json`: un patrón que no casa con ningún
+archivo hace fallar el despliegue entero, y estas rutas no existen hasta la
+Fase 16. La configuración por segmento vive junto al código que la necesita y
+no puede quedarse huérfana.
+
+Si un informe superara ese tiempo, el camino correcto es precalcular el periodo
+en una vista materializada, no subir el límite.
 
 ## 14.2 Los nueve documentos (§51)
 

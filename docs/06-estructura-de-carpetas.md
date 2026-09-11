@@ -67,9 +67,11 @@ src/
 │   ├── storage/                   rutas, URLs firmadas, validación de archivos
 │   ├── audit/                     escritura en audit_logs
 │   ├── notifications/             despacho + adaptadores de canal
-│   ├── env.ts                     validación Zod del entorno al arrancar
+│   ├── env.ts                     variables públicas (seguro en cliente)
+│   ├── env.server.ts              variables del servidor, perezosas + server-only
 │   └── utils/                     fechas, moneda, placa, formato
 ├── types/
+├── instrumentation.ts             valida el entorno al arrancar el servidor
 └── middleware.ts                  renovación de sesión + barrera de ruta
 ```
 
