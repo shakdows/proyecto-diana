@@ -83,20 +83,34 @@ export function Sidebar({
                     onClick={onNavigate}
                     aria-current={active ? 'page' : undefined}
                     className={cn(
-                      'flex h-11 items-center gap-3 rounded-[0.75rem] px-3.5 text-sm',
+                      'relative flex h-11 items-center gap-3 rounded-[0.75rem] px-3.5 text-sm',
                       // Pantalla baja: 40 px en vez de 44. Son 48 px ganados
                       // sobre doce entradas, que es justo lo que separa un menú
                       // completo de uno que esconde «Auditoría».
                       '[@media(max-height:50rem)]:h-10',
                       'transition-colors duration-150 ease-snap',
                       active
-                        ? 'bg-brand-600 font-semibold text-white shadow-raise'
+                        // Marca de posición, no botón. La pastilla azul llena
+                        // pesaba igual que el botón de acción principal, y en
+                        // una barra con doce entradas el sitio donde estás no
+                        // compite con lo que hay que pulsar.
+                        ? 'bg-white/8 font-semibold text-white'
                         : 'text-graphite-300 hover:bg-white/6 hover:text-white',
                     )}
                   >
+                    {active && (
+                      <span
+                        aria-hidden
+                        className="absolute inset-y-2 left-0 w-[3px] rounded-full bg-brand-500"
+                      />
+                    )}
+
                     <NavIcon
                       name={item.icon}
-                      className={cn('size-5 shrink-0', active ? 'text-white' : 'text-graphite-400')}
+                      className={cn(
+                        'size-5 shrink-0',
+                        active ? 'text-brand-400' : 'text-graphite-400',
+                      )}
                     />
                     <span className="truncate">{item.label}</span>
 
@@ -105,7 +119,7 @@ export function Sidebar({
                         data-numeric
                         className={cn(
                           'ml-auto rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold',
-                          active ? 'bg-white/20 text-white' : 'bg-white/8 text-graphite-300',
+                          active ? 'bg-brand-600 text-white' : 'bg-white/8 text-graphite-300',
                         )}
                       >
                         {badge}

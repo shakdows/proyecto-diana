@@ -2,28 +2,30 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { ArrowRight, Camera, FileText, MoreHorizontal, Phone } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { AssetImage } from '@/components/ui/asset-image';
+import { VehicleDrawer } from './vehicle-drawer';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { StatusChip } from '@/components/ui/status-chip';
-import { TrafficLightDot } from '@/components/ui/traffic-light';
 import { EmptyState } from '@/components/feedback/states';
-import { CorporateBadge } from '@/components/ui/plate';
 import { vocabularyFor } from '@/features/equipment/services/equipment-kind';
 import type { BoardRow } from '@/features/demo/board';
 import { formatDayTime, formatNumber } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
 
 /**
- * Vehículos en proceso, con detalle fijo al costado.
+ * Vehículos en proceso.
  *
- * La fila seleccionada no abre un panel que tape la lista: alimenta la tarjeta
- * de la derecha, que está siempre visible. El asesor recorre la lista con el
- * cliente al teléfono y va viendo el detalle sin perder de vista en qué punto
- * de la lista estaba.
+ * La lista ocupa el ancho entero y el detalle sale en un cajón lateral, solo
+ * cuando alguien lo pide.
  *
- * La primera fila queda seleccionada al cargar, para que la tarjeta nunca
- * aparezca vacía pidiendo que alguien haga algo antes de servir para nada.
+ * Antes había una tarjeta fija al costado. Costaba un tercio de la pantalla
+ * permanente para hablar de UN vehículo, y ese tercio se lo quitaba a los ocho
+ * de la lista: a 1280 px la fila se quedaba sin sitio para el modelo y el
+ * cliente. Un detalle que no se ha pedido no debería cobrar alquiler.
+ *
+ * Nada queda seleccionado al cargar: la pantalla abre mostrando el taller, no
+ * el primer vehículo por orden alfabético del azar.
  */
 export function ControlTower({
   rows,
@@ -32,11 +34,11 @@ export function ControlTower({
   readonly rows: readonly BoardRow[];
   readonly now: Date;
 }) {
-  const [selectedId, setSelectedId] = useState(rows[0]?.order.id ?? '');
-  const selected = rows.find((r) => r.order.id === selectedId) ?? rows[0];
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = rows.find((r) => r.order.id === selectedId) ?? null;
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_21rem]">
+    <>
       {/* ⚠️ `@container`: la fila decide por SU ancho, no por el de la ventana.
           A 1280 px la rejilla ya parte en dos columnas y esta lista se queda
           con 612 px, pero `lg:`/`md:` seguían siendo ciertos y la fila
@@ -71,7 +73,7 @@ export function ControlTower({
                 <VehicleRow
                   row={row}
                   now={now}
-                  selected={row.order.id === selected?.order.id}
+                  selected={row.order.id === selectedId}
                   onSelect={() => setSelectedId(row.order.id)}
                 />
               </li>
@@ -80,11 +82,8 @@ export function ControlTower({
         )}
       </section>
 
-      <div className="min-w-0 space-y-5">
-        {selected !== undefined && <QuickDetail row={selected} />}
-        <ServicePromo />
-      </div>
-    </div>
+      <VehicleDrawer row={selected} now={now} onClose={() => setSelectedId(null)} />
+    </>
   );
 }
 
@@ -115,8 +114,9 @@ function VehicleRow({
       <button
         type="button"
         onClick={onSelect}
-        aria-pressed={selected}
-        aria-label={`Ver el detalle de ${order.plate}, ${order.vehicle}`}
+        aria-haspopup="dialog"
+        aria-expanded={selected}
+        aria-label={`Ver la ficha de ${order.plate}, ${order.vehicle}`}
         className="flex min-w-0 flex-1 items-center gap-3 text-left"
       >
         <AssetImage
@@ -189,107 +189,5 @@ function VehicleRow({
         {order.serviceType} · {formatNumber(order.usage)} {vocab.usageUnit}
       </span>
     </div>
-  );
-}
-
-/** Ficha del vehículo seleccionado, con las tres acciones que más se usan. */
-function QuickDetail({ row }: { readonly row: BoardRow }) {
-  const { order, light } = row;
-
-  return (
-    <section className="rounded-panel border border-border bg-surface-raised p-5">
-      <header className="flex items-center justify-between gap-3">
-        <h2 className="font-display text-base font-semibold tracking-tight text-fg">
-          Detalle rápido
-        </h2>
-        <MoreHorizontal aria-hidden className="size-4 text-fg-subtle" />
-      </header>
-
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <span className="inline-flex rounded-chip border border-border-strong bg-surface px-2.5 py-1 font-mono text-sm font-bold tracking-[0.06em] text-fg">
-          {order.plate.replace(/^(.{3})(.*)$/u, '$1-$2')}
-        </span>
-        <StatusChip status={order.status} />
-      </div>
-
-      <p className="mt-3 text-sm font-medium text-fg">
-        {order.vehicle} · {order.modelYear}
-      </p>
-      <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm text-fg-muted">
-        <span>Cliente: {order.customer}</span>
-        {order.corporateClient !== null && <CorporateBadge name={order.corporateClient} />}
-      </p>
-
-      <div className="mt-4 flex items-center gap-3">
-        <ProgressBar
-          percent={row.progressPercent}
-          label={`Avance de ${order.code}`}
-          showValue={false}
-        />
-        <span data-numeric className="shrink-0 text-sm font-semibold text-fg">
-          {Math.round(row.progressPercent)}%
-        </span>
-      </div>
-
-      <p className="mt-3">
-        <TrafficLightDot color={light.color} reason={light.reason} showLabel />
-      </p>
-
-      <div className="mt-5 grid grid-cols-3 gap-2 border-t border-border pt-4">
-        <QuickAction href={`/ordenes/${order.id}`} icon={<FileText />} label="Ver orden" />
-        <QuickAction href={`/ordenes/${order.id}`} icon={<Camera />} label="Evidencias" />
-        <QuickAction href={`/clientes`} icon={<Phone />} label="Contactar" />
-      </div>
-    </section>
-  );
-}
-
-function QuickAction({
-  href,
-  icon,
-  label,
-}: {
-  readonly href: string;
-  readonly icon: React.ReactNode;
-  readonly label: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex flex-col items-center gap-1.5 rounded-control py-2 text-center transition-colors duration-150 hover:bg-surface-sunken"
-    >
-      <span
-        aria-hidden
-        className="grid size-9 place-items-center rounded-control bg-surface-sunken text-fg-muted [&>svg]:size-4"
-      >
-        {icon}
-      </span>
-      <span className="text-[0.6875rem] text-fg-muted">{label}</span>
-    </Link>
-  );
-}
-
-/** Bloque de marca. Es lo único de la pantalla que no informa de la operación. */
-function ServicePromo() {
-  return (
-    <section className="relative overflow-hidden rounded-panel bg-graphite-950 p-5 text-graphite-200">
-      <div
-        aria-hidden
-        className="absolute inset-y-0 right-0 w-1/2 bg-linear-to-l from-brand-900/50 to-transparent"
-      />
-      <div className="relative">
-        <p className="font-display text-lg font-semibold leading-snug tracking-tight text-white">
-          Un servicio
-          <br />
-          de calidad te lleva
-          <br />
-          más lejos.
-        </p>
-        <span aria-hidden className="mt-3 block h-0.5 w-10 rounded-full bg-brand-500" />
-        <p className="mt-3 text-xs text-graphite-400">
-          Más que un taller, somos tu aliado en el camino.
-        </p>
-      </div>
-    </section>
   );
 }

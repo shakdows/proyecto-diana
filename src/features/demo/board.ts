@@ -598,8 +598,18 @@ export function findDemoOrder(id: string, now: Date): BoardRow | undefined {
  * Bloques del centro de operaciones
  * ------------------------------------------------------------------ */
 
+/**
+ * Qué clase de problema es.
+ *
+ * Va aparte del texto porque `reason` lleva datos dentro —«Esperando repuestos
+ * · 45 %»— y agrupar por esa cadena sería agrupar por un porcentaje: dos
+ * vehículos esperando repuestos contarían como dos problemas distintos.
+ */
+export type AttentionKind = 'pausada' | 'retrasada' | 'repuestos' | 'riesgo' | 'cliente';
+
 export interface AttentionItem {
   readonly row: BoardRow;
+  readonly kind: AttentionKind;
   /** Por qué pide acción, en las palabras del taller. */
   readonly reason: string;
   /** Cuánto lleva así, ya formateado. */
@@ -631,6 +641,7 @@ export function attentionItems(rows: readonly BoardRow[], now: Date): readonly A
       return [
         {
           row,
+          kind: 'pausada',
           reason: 'Reparación pausada',
           elapsed: formatMinutes(minutes),
           severity: 'crit',
@@ -639,7 +650,15 @@ export function attentionItems(rows: readonly BoardRow[], now: Date): readonly A
     }
 
     if (light.color === 'rojo') {
-      return [{ row, reason: 'Entrega retrasada', elapsed: formatMinutes(sinceOpened), severity: 'crit' }];
+      return [
+        {
+          row,
+          kind: 'retrasada',
+          reason: 'Entrega retrasada',
+          elapsed: formatMinutes(sinceOpened),
+          severity: 'crit',
+        },
+      ];
     }
 
     if (order.status === 'ESPERANDO_REPUESTOS') {
@@ -647,6 +666,7 @@ export function attentionItems(rows: readonly BoardRow[], now: Date): readonly A
       return [
         {
           row,
+          kind: 'repuestos',
           reason: `Esperando repuestos · ${coverage.percent} %`,
           elapsed: formatMinutes(sinceOpened),
           severity: 'warn',
@@ -655,13 +675,22 @@ export function attentionItems(rows: readonly BoardRow[], now: Date): readonly A
     }
 
     if (light.color === 'amarillo') {
-      return [{ row, reason: 'En riesgo de retraso', elapsed: formatMinutes(sinceOpened), severity: 'warn' }];
+      return [
+        {
+          row,
+          kind: 'riesgo',
+          reason: 'En riesgo de retraso',
+          elapsed: formatMinutes(sinceOpened),
+          severity: 'warn',
+        },
+      ];
     }
 
     if (order.status === 'ESPERANDO_CLIENTE') {
       return [
         {
           row,
+          kind: 'cliente',
           reason: 'Cotización sin respuesta',
           elapsed: formatMinutes(sinceOpened),
           severity: 'wait',
