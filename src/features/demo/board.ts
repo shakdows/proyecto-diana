@@ -60,6 +60,63 @@ export interface DemoOrder {
   readonly repairJobsTotal: number;
   readonly repairJobsDone: number;
   readonly isDemo: true;
+
+  /* --- Ficha de la orden --- */
+  readonly color: string;
+  readonly vin: string;
+  readonly customerPhone: string;
+  readonly customerEmail: string;
+  readonly customerAddress: string;
+  /** Solo los tres últimos dígitos. El completo exige permiso y deja rastro. */
+  readonly customerDocLast3: string;
+  readonly items: readonly QuotationItem[];
+  readonly notes: readonly OrderNote[];
+  readonly photos: readonly OrderPhoto[];
+  readonly qualityChecks: readonly QualityCheck[];
+}
+
+/** Una línea de la cotización: un trabajo o una pieza. */
+export interface QuotationItem {
+  readonly id: string;
+  readonly description: string;
+  readonly kind: 'servicio' | 'repuesto';
+  readonly quantity: number;
+  readonly unitPrice: number;
+}
+
+export interface OrderNote {
+  readonly id: string;
+  readonly text: string;
+  readonly minutesAgo: number;
+  readonly author: string;
+}
+
+export interface OrderPhoto {
+  readonly id: string;
+  readonly label: string;
+  readonly minutesAgo: number;
+}
+
+export interface QualityCheck {
+  readonly id: string;
+  readonly label: string;
+  readonly done: boolean;
+}
+
+/** Totales de la cotización, separados por naturaleza. */
+export function quotationTotals(items: readonly QuotationItem[]): {
+  readonly services: number;
+  readonly parts: number;
+  readonly total: number;
+} {
+  let services = 0;
+  let parts = 0;
+  for (const item of items) {
+    const line = item.quantity * item.unitPrice;
+    if (item.kind === 'servicio') services += line;
+    else parts += line;
+  }
+  return { services, parts, total: services + parts };
 }
 
 export interface BoardRow {
@@ -160,6 +217,21 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
     finalStages: [] as readonly FinalStage[],
     startedMinutesAgo: null,
     estimatedMinutes: 0,
+    color: 'Blanco perlado',
+    vin: '8AJBA3CD5P1234567',
+    customerPhone: '+51 987 654 321',
+    customerEmail: 'contacto@ejemplo.com',
+    customerAddress: 'Av. Los Álamos 123, Santiago de Surco, Lima',
+    customerDocLast3: '275',
+    items: [] as readonly QuotationItem[],
+    notes: [] as readonly OrderNote[],
+    photos: [] as readonly OrderPhoto[],
+    qualityChecks: [
+      { id: 'q1', label: 'Inspección final', done: false },
+      { id: 'q2', label: 'Prueba de frenado', done: false },
+      { id: 'q3', label: 'Revisión de niveles', done: false },
+      { id: 'q4', label: 'Vehículo limpio', done: false },
+    ] as readonly QualityCheck[],
   };
 
   return [
@@ -197,6 +269,35 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       repairJobsTotal: 4,
       repairJobsDone: 3,
       finalStages: ['lavado'],
+      customerPhone: '+51 987 654 321',
+      customerEmail: 'juan.perez@ejemplo.com',
+      customerAddress: 'Av. Los Álamos 123, Santiago de Surco, Lima',
+      customerDocLast3: '275',
+      items: [
+        { id: 'i1', description: 'Cambio de pastillas delanteras', kind: 'servicio', quantity: 1, unitPrice: 300 },
+        { id: 'i2', description: 'Limpieza y lubricación de frenos', kind: 'servicio', quantity: 1, unitPrice: 50 },
+        { id: 'i3', description: 'Juego de pastillas delanteras', kind: 'repuesto', quantity: 1, unitPrice: 80 },
+        { id: 'i4', description: 'Líquido de frenos DOT 4', kind: 'repuesto', quantity: 1, unitPrice: 20 },
+      ],
+      notes: [
+        {
+          id: 'n1',
+          text: 'Pastillas con desgaste aproximado de 90 %. Se recomienda reemplazo y revisar discos en la próxima visita.',
+          minutesAgo: 240,
+          author: 'Carlos Mendoza',
+        },
+        {
+          id: 'n2',
+          text: 'Cliente indica un leve ruido al frenar en ciudad. Confirmado en la prueba de ruta.',
+          minutesAgo: 295,
+          author: 'Andrea López',
+        },
+      ],
+      photos: [
+        { id: 'f1', label: 'Estado inicial', minutesAgo: 290 },
+        { id: 'f2', label: 'Durante el proceso', minutesAgo: 120 },
+        { id: 'f3', label: 'Resultado final', minutesAgo: 35 },
+      ],
     },
     {
       ...base,

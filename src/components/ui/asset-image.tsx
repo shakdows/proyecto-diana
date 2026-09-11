@@ -1,4 +1,4 @@
-import { Car, ImageOff } from 'lucide-react';
+import { Camera, Car } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -39,7 +39,9 @@ export function AssetImage({
     return <img src={src} alt={alt} className={cn('object-cover', radius, className)} />;
   }
 
-  const Icon = kind === 'vehiculo' ? Car : ImageOff;
+  // Cámara, no «imagen rota»: el hueco está esperando una foto, no ha
+  // fallado al cargarla.
+  const Icon = kind === 'vehiculo' ? Car : Camera;
 
   if (decorative) {
     return <span aria-hidden className={cn('block bg-graphite-900', radius, className)} />;

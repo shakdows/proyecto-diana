@@ -1,22 +1,35 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { PageHeader } from '@/components/layout/page-header';
-import { Panel, PanelBody, PanelHeader } from '@/components/ui/panel';
-import { Badge } from '@/components/ui/badge';
+import {
+  ArrowLeft,
+  CalendarDays,
+  Camera,
+  Car,
+  FileText,
+  Gauge,
+  Hash,
+  Mail,
+  MapPin,
+  Palette,
+  Phone,
+  Plus,
+  User,
+  Wrench,
+} from 'lucide-react';
+import type { ReactNode } from 'react';
+import { AssetImage } from '@/components/ui/asset-image';
 import { Button } from '@/components/ui/button';
-import { Code, Plate } from '@/components/ui/plate';
+import { CorporateBadge } from '@/components/ui/plate';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { StatusChip } from '@/components/ui/status-chip';
 import { TrafficLightDot } from '@/components/ui/traffic-light';
-import { findDemoOrder, factsFor } from '@/features/demo/board';
+import { OrderJourney } from '@/components/order/order-journey';
+import { factsFor, findDemoOrder, quotationTotals } from '@/features/demo/board';
 import { vocabularyFor } from '@/features/equipment/services/equipment-kind';
 import { availableActions } from '@/features/orders/services/state-machine';
-import { STATUS_LABELS } from '@/features/orders/services/order-status';
-import { computeProgress } from '@/features/repairs/services/progress';
-import { formatMinutes } from '@/features/repairs/services/time-tracking';
-import { orderCoverage } from '@/features/parts/services/coverage';
 import { getSessionUser } from '@/lib/auth/session';
-import { formatDayTime, formatNumber } from '@/lib/utils/format';
+import { formatCurrency, formatDateTime, formatNumber, formatTime, maskDocument } from '@/lib/utils/format';
 
 export const metadata: Metadata = { title: 'Orden de servicio' };
 
@@ -30,247 +43,511 @@ export default async function OrdenPage({
   const row = findDemoOrder(id, now);
   if (row === undefined) notFound();
 
+  const { order } = row;
   const user = await getSessionUser();
-  const facts = factsFor(row.order);
+  const vocab = vocabularyFor(order.equipmentKind);
+  const totals = quotationTotals(order.items);
 
-  // Las acciones se calculan contra el usuario real de la sesión: lo que este
-  // rol puede hacer en este estado, ni más ni menos.
-  const actions = availableActions(facts, {
+  /*
+   * Las acciones NO están escritas a mano en la pantalla: las calcula la
+   * máquina de estados contra el estado real y los permisos de quien mira.
+   * Una barra con «Marcar como listo» siempre visible mentiría en las seis
+   * órdenes de cada diez en las que esa transición no es legal.
+   */
+  const actions = availableActions(factsFor(order), {
     profileId: user.profileId,
     permissions: user.permissions,
   });
-  const coverage = orderCoverage(row.order.parts);
+  const ready = actions.filter((a) => a.available);
+  const blocked = actions.filter((a) => !a.available);
 
-  const progress = computeProgress({
-    status: row.order.status,
-    checklistRequired: row.order.checklistRequired,
-    checklistResolved: row.order.checklistResolved,
-    quotationLineCount: row.order.quotationLineCount,
-    decidedItemCount: row.order.decidedItemCount,
-    requiredPartsCount: coverage.totalRequired,
-    partsCoverageRatio: coverage.ratio,
-    repairJobsTotal: row.order.repairJobsTotal,
-    repairJobsDone: row.order.repairJobsDone,
-    estimatedMinutes: row.order.estimatedMinutes,
-    effectiveMinutes: row.totals.effectiveMinutes,
-    finalStagesTotal: row.order.finalStages.length,
-    finalStagesDone: row.order.finalStagesDone,
-  });
+  const ago = (minutes: number): Date => new Date(now.getTime() - minutes * 60_000);
 
   return (
     <>
-      <PageHeader
-        title={row.order.serviceType}
-        description={`${row.order.code} · ${row.order.vehicle} ${row.order.modelYear} · ${formatNumber(
-          row.order.usage,
-        )} ${vocabularyFor(row.order.equipmentKind).usageUnit} · ${row.order.customer}`}
-        actions={
-          <div className="flex items-center gap-2">
-            <Plate value={row.order.plate} />
-            <StatusChip status={row.order.status} />
+      <Link
+        href="/ordenes"
+        className="inline-flex items-center gap-2 text-sm font-medium text-brand-600 transition-colors hover:text-brand-700"
+      >
+        <ArrowLeft aria-hidden className="size-4" />
+        Volver a órdenes
+      </Link>
+
+      {/* Cabecera: quién es este vehículo y por dónde va. */}
+      <section className="rounded-panel border border-border bg-surface-raised p-6">
+        <div className="flex flex-wrap items-start gap-6">
+          <div className="min-w-0 flex-1">
+            <StatusChip status={order.status} />
+            <h1 className="mt-3 font-display text-3xl font-semibold tracking-tight text-fg">
+              {order.code}
+            </h1>
+            <p className="mt-1 text-lg text-fg-muted">{order.serviceType}</p>
+
+            <dl className="mt-4 space-y-2 text-sm">
+              <Meta icon={<CalendarDays />} label="Ingreso">
+                {formatDateTime(row.openedAt)}
+              </Meta>
+              <Meta icon={<User />} label="Asesor">
+                {order.advisor}
+              </Meta>
+              <Meta icon={<Wrench />} label="Técnico">
+                {order.technician ?? 'Sin asignar'}
+              </Meta>
+            </dl>
           </div>
-        }
-      />
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        <div className="space-y-6 xl:col-span-2">
-          <Panel>
-            <PanelHeader
-              title="Avance"
-              description="Suma ponderada de ocho etapas. Ningún valor se escribe a mano."
-              action={<TrafficLightDot color={row.light.color} reason={row.light.reason} showLabel />}
-            />
-            <PanelBody className="space-y-5">
-              <ProgressBar percent={progress.percent} label="Avance total de la orden" />
+          <AssetImage
+            alt={`Fotografía de ${order.vehicle}`}
+            className="hidden h-36 w-72 shrink-0 lg:block"
+          />
 
-              <table className="w-full text-sm">
-                <caption className="sr-only">Desglose del avance por etapa</caption>
-                <thead>
-                  <tr className="text-left text-xs uppercase tracking-wide text-fg-subtle">
-                    <th scope="col" className="pb-2 font-medium">Etapa</th>
-                    <th scope="col" className="pb-2 text-right font-medium">Peso</th>
-                    <th scope="col" className="pb-2 text-right font-medium">Completitud</th>
-                    <th scope="col" className="pb-2 text-right font-medium">Aporte</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {progress.stages.map((stage) => (
-                    <tr key={stage.stage}>
-                      <td className="py-2 text-fg">{stage.label}</td>
-                      <td data-numeric className="py-2 text-right text-fg-subtle">{stage.weight}</td>
-                      <td data-numeric className="py-2 text-right text-fg-muted">
-                        {Math.round(stage.completion * 100)} %
-                      </td>
-                      <td data-numeric className="py-2 text-right font-medium text-fg">
-                        {stage.contribution.toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </PanelBody>
-          </Panel>
-
-          <Panel>
-            <PanelHeader
-              title="Acciones disponibles"
-              description="Las calcula la máquina de estados: origen, permiso y guardas de negocio."
-            />
-            <PanelBody>
-              {actions.length === 0 ? (
-                <p className="text-sm text-fg-subtle">
-                  No hay acciones disponibles para tu rol en el estado «
-                  {STATUS_LABELS[row.order.status]}».
-                </p>
-              ) : (
-                <ul className="space-y-3">
-                  {actions.map((action) => (
-                    <li
-                      key={action.action}
-                      className="flex flex-col gap-2 rounded-control border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-fg">{action.label}</p>
-                        <p className="mt-0.5 text-xs text-fg-subtle">
-                          Lleva a {STATUS_LABELS[action.to]}
-                        </p>
-                        {action.unmet.length > 0 && (
-                          <ul className="mt-2 space-y-1">
-                            {action.unmet.map((requirement) => (
-                              <li key={requirement} className="text-xs text-crit-600">
-                                · {requirement}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                      <Button
-                        size="sm"
-                        variant={action.available ? 'primary' : 'secondary'}
-                        disabled={!action.available}
-                      >
-                        {action.available ? 'Ejecutar' : 'Requisitos pendientes'}
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <p className="mt-4 text-xs text-fg-subtle">
-                Las acciones que tu rol no puede ejecutar no se muestran. Las que fallan por
-                requisitos sí, deshabilitadas y con lo que falta: ahí el usuario sí puede hacer
-                algo al respecto. La ejecución real llega en la Fase 7.
-              </p>
-            </PanelBody>
-          </Panel>
+          <div className="shrink-0">
+            <p className="font-display text-xl font-semibold tracking-tight text-fg">
+              {order.vehicle}
+            </p>
+            <p data-numeric className="mt-1 text-sm text-fg-muted">
+              {order.modelYear} · {formatNumber(order.usage)} {vocab.usageUnit}
+            </p>
+            <p className="text-sm text-fg-muted">{order.color}</p>
+            <p className="mt-3 inline-flex rounded-control border border-border-strong bg-surface px-3.5 py-2 font-mono text-lg font-bold tracking-[0.08em] text-fg">
+              {order.plate.replace(/^(.{3})(.*)$/u, '$1-$2')}
+            </p>
+          </div>
         </div>
 
-        <div className="space-y-6">
-          <Panel>
-            <PanelHeader title="Tiempos" description="Todo se deriva de las sesiones de trabajo." />
-            <PanelBody>
-              <dl className="space-y-3 text-sm">
-                <div className="flex justify-between gap-4">
-                  <dt className="text-fg-muted">Tiempo bruto</dt>
-                  <dd data-numeric className="font-medium text-fg">
-                    {formatMinutes(row.totals.grossMinutes)}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-fg-muted">Pausas</dt>
-                  <dd data-numeric className="font-medium text-fg">
-                    {formatMinutes(row.totals.pausedMinutes)}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-fg-muted">Tiempo efectivo</dt>
-                  <dd data-numeric className="font-medium text-fg">
-                    {formatMinutes(row.totals.effectiveMinutes)}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-4 border-t border-border pt-3">
-                  <dt className="text-fg-muted">Restante</dt>
-                  <dd data-numeric className="font-medium text-fg">
-                    {row.eta.indeterminate ? '—' : formatMinutes(row.eta.remainingMinutes)}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-fg-muted">Entrega estimada</dt>
-                  <dd className="font-medium text-fg">
-                    {row.eta.etaAt === null ? (
-                      <span className="text-fg-subtle">En espera de un tercero</span>
-                    ) : (
-                      <span data-numeric>{formatDayTime(row.eta.etaAt, now)}</span>
-                    )}
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-fg-muted">Entrega prometida</dt>
-                  <dd data-numeric className="font-medium text-fg">
-                    {row.promisedAt === null ? '—' : formatDayTime(row.promisedAt, now)}
-                  </dd>
-                </div>
-              </dl>
-            </PanelBody>
-          </Panel>
+        <div className="mt-7 border-t border-border pt-6">
+          <OrderJourney
+            status={order.status}
+            timestamps={{
+              recepcion: formatTime(row.openedAt),
+              ...(order.diagnosticItemCount > 0
+                ? { diagnostico: formatTime(ago(order.openedMinutesAgo - 60)) }
+                : {}),
+              ...(order.startedMinutesAgo !== null
+                ? { proceso: formatTime(ago(order.startedMinutesAgo)) }
+                : {}),
+            }}
+          />
+        </div>
+      </section>
 
-          <Panel>
-            <PanelHeader
-              title="Repuestos"
-              description="La cantidad requerida sale de los trabajos aprobados."
-              action={
-                <Badge tone={coverage.complete ? 'ok' : 'warn'}>
-                  {coverage.complete ? 'Completos' : `${coverage.percent} %`}
-                </Badge>
-              }
-            />
-            <PanelBody>
-              {coverage.lines.length === 0 ? (
-                <p className="text-sm text-fg-subtle">
-                  Esta orden no requiere repuestos.
-                </p>
-              ) : (
-                <ul className="space-y-3">
-                  {coverage.lines.map((line) => (
-                    <li key={line.partId}>
-                      <div className="flex items-baseline justify-between gap-3 text-sm">
-                        <span className="text-fg">{line.description}</span>
-                        <span data-numeric className="text-fg-muted">
-                          {line.received} / {line.required}
-                        </span>
-                      </div>
-                      <ProgressBar percent={line.percent} label={line.description} />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </PanelBody>
-          </Panel>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_21rem]">
+        <div className="min-w-0 space-y-5">
+          <QuotationPanel items={order.items} totals={totals} />
+          <div className="grid gap-5 lg:grid-cols-2">
+            <PhotosPanel order={order} ago={ago} />
+            <NotesPanel order={order} ago={ago} />
+          </div>
+        </div>
 
-          <Panel>
-            <PanelHeader title="Ficha" />
-            <PanelBody>
-              <dl className="space-y-3 text-sm">
-                <div className="flex justify-between gap-4">
-                  <dt className="text-fg-muted">Asesor</dt>
-                  <dd className="text-fg">{row.order.advisor}</dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-fg-muted">Técnico</dt>
-                  <dd className="text-fg">{row.order.technician ?? 'Sin asignar'}</dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-fg-muted">Cliente corporativo</dt>
-                  <dd className="text-fg">{row.order.corporateClient ?? '—'}</dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-fg-muted">Orden</dt>
-                  <dd><Code value={row.order.code} /></dd>
-                </div>
-              </dl>
-            </PanelBody>
-          </Panel>
+        <div className="min-w-0 space-y-5">
+          <SummaryPanel row={row} totals={totals} />
+          <CustomerPanel order={order} />
+          <VehiclePanel order={order} vocab={vocab} />
+          <QualityPanel order={order} />
         </div>
       </div>
+
+      {/* Barra de acciones. Solo lo que la máquina de estados permite AHORA. */}
+      <section className="sticky bottom-0 -mx-4 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur lg:-mx-6 lg:px-6">
+        <p className="text-xs text-fg-subtle">
+          {ready.length === 0
+            ? 'Ninguna acción disponible para tu rol en este estado.'
+            : `${ready.length} ${ready.length === 1 ? 'acción disponible' : 'acciones disponibles'} según el estado y tu rol.`}
+        </p>
+
+        <div className="flex flex-wrap gap-2">
+          {/*
+            Las bloqueadas también se muestran, deshabilitadas y diciendo QUÉ
+            falta. Ocultarlas deja al asesor preguntándose por qué no puede
+            cerrar la orden; enseñarlas con «Falta la firma del cliente» le
+            dice qué hacer a continuación.
+          */}
+          {blocked.slice(0, 2).map((action) => (
+            <Button
+              key={action.action}
+              type="button"
+              variant="secondary"
+              disabled
+              title={action.unmet.join(' · ')}
+            >
+              {action.label}
+            </Button>
+          ))}
+          {ready.slice(0, 3).map((action, index) => (
+            <Button
+              key={action.action}
+              type="button"
+              variant={index === ready.length - 1 ? 'primary' : 'secondary'}
+            >
+              {action.label}
+            </Button>
+          ))}
+        </div>
+      </section>
     </>
+  );
+}
+
+function Meta({
+  icon,
+  label,
+  children,
+}: {
+  readonly icon: ReactNode;
+  readonly label: string;
+  readonly children: ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span aria-hidden className="shrink-0 text-fg-subtle [&>svg]:size-4">
+        {icon}
+      </span>
+      <dt className="sr-only">{label}</dt>
+      <dd className="min-w-0 truncate text-fg-muted">{children}</dd>
+    </div>
+  );
+}
+
+function Panel({
+  title,
+  action,
+  children,
+}: {
+  readonly title: string;
+  readonly action?: ReactNode;
+  readonly children: ReactNode;
+}) {
+  return (
+    <section className="rounded-panel border border-border bg-surface-raised">
+      <header className="flex items-center justify-between gap-3 px-5 py-4">
+        <h2 className="font-display text-base font-semibold tracking-tight text-fg">{title}</h2>
+        {action}
+      </header>
+      <div className="px-5 pb-5">{children}</div>
+    </section>
+  );
+}
+
+function QuotationPanel({
+  items,
+  totals,
+}: {
+  readonly items: ReturnType<typeof quotationTotals> extends never ? never : readonly {
+    readonly id: string;
+    readonly description: string;
+    readonly kind: 'servicio' | 'repuesto';
+    readonly quantity: number;
+    readonly unitPrice: number;
+  }[];
+  readonly totals: { readonly services: number; readonly parts: number; readonly total: number };
+}) {
+  if (items.length === 0) {
+    return (
+      <Panel title="Trabajos y repuestos">
+        <p className="py-6 text-center text-sm text-fg-subtle">
+          Todavía no hay trabajos cotizados. Se añaden al cerrar el diagnóstico.
+        </p>
+      </Panel>
+    );
+  }
+
+  return (
+    <Panel
+      title="Trabajos y repuestos"
+      action={
+        <Button type="button" variant="secondary" size="sm">
+          <Plus aria-hidden className="size-3.5" />
+          Agregar ítem
+        </Button>
+      }
+    >
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[36rem] text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-[0.06em] text-fg-subtle">
+              <th scope="col" className="w-8 py-2.5 pr-3">#</th>
+              <th scope="col" className="py-2.5 pr-3">Descripción</th>
+              <th scope="col" className="w-24 py-2.5 pr-3">Tipo</th>
+              <th scope="col" className="w-20 py-2.5 pr-3 text-right">Cantidad</th>
+              <th scope="col" className="w-28 py-2.5 pr-3 text-right">Precio unit.</th>
+              <th scope="col" className="w-28 py-2.5 text-right">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {items.map((item, index) => (
+              <tr key={item.id}>
+                <td data-numeric className="py-3 pr-3 text-fg-subtle">{index + 1}</td>
+                <td className="py-3 pr-3 text-fg">{item.description}</td>
+                <td className="py-3 pr-3">
+                  <span className="inline-flex rounded-chip bg-surface-sunken px-2 py-0.5 text-xs text-fg-muted">
+                    {item.kind === 'servicio' ? 'Servicio' : 'Repuesto'}
+                  </span>
+                </td>
+                <td data-numeric className="py-3 pr-3 text-right text-fg-muted">{item.quantity}</td>
+                <td data-numeric className="py-3 pr-3 text-right text-fg-muted">
+                  {formatCurrency(item.unitPrice)}
+                </td>
+                <td data-numeric className="py-3 text-right font-medium text-fg">
+                  {formatCurrency(item.quantity * item.unitPrice)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colSpan={5} className="pt-4 text-right text-sm text-fg-muted">
+                Total estimado
+              </td>
+              <td
+                data-numeric
+                className="pt-4 text-right font-display text-xl font-semibold text-fg"
+              >
+                {formatCurrency(totals.total)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </Panel>
+  );
+}
+
+function PhotosPanel({
+  order,
+  ago,
+}: {
+  readonly order: { readonly photos: readonly { id: string; label: string; minutesAgo: number }[] };
+  readonly ago: (minutes: number) => Date;
+}) {
+  return (
+    <Panel
+      title={`Fotos del servicio (${order.photos.length})`}
+      action={
+        <Button type="button" variant="secondary" size="sm">
+          <Camera aria-hidden className="size-3.5" />
+          Subir
+        </Button>
+      }
+    >
+      {order.photos.length === 0 ? (
+        <p className="py-6 text-center text-sm text-fg-subtle">
+          Sin evidencia cargada todavía.
+        </p>
+      ) : (
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {order.photos.map((photo) => (
+            <li key={photo.id}>
+              <AssetImage
+                alt={photo.label}
+                kind="evidencia"
+                rounded="control"
+                className="aspect-4/3 w-full"
+              />
+              <p className="mt-1.5 truncate text-xs font-medium text-fg">{photo.label}</p>
+              <p data-numeric className="text-[0.625rem] text-fg-subtle">
+                {formatTime(ago(photo.minutesAgo))}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
+function NotesPanel({
+  order,
+  ago,
+}: {
+  readonly order: {
+    readonly notes: readonly { id: string; text: string; minutesAgo: number; author: string }[];
+  };
+  readonly ago: (minutes: number) => Date;
+}) {
+  return (
+    <Panel title="Notas del taller">
+      {order.notes.length === 0 ? (
+        <p className="py-6 text-center text-sm text-fg-subtle">Sin notas registradas.</p>
+      ) : (
+        <ul className="space-y-3">
+          {order.notes.map((note) => (
+            <li key={note.id} className="rounded-control bg-surface-sunken p-3.5">
+              <p className="text-sm leading-relaxed text-fg-muted">{note.text}</p>
+              <p data-numeric className="mt-2 text-xs text-fg-subtle">
+                {formatDateTime(ago(note.minutesAgo))} · {note.author}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Button type="button" variant="secondary" size="sm" block className="mt-3">
+        <Plus aria-hidden className="size-3.5" />
+        Agregar nota
+      </Button>
+    </Panel>
+  );
+}
+
+function SummaryPanel({
+  row,
+  totals,
+}: {
+  readonly row: NonNullable<ReturnType<typeof findDemoOrder>>;
+  readonly totals: { readonly services: number; readonly parts: number; readonly total: number };
+}) {
+  return (
+    <Panel title="Resumen de la orden">
+      <dl className="space-y-2.5 text-sm">
+        <Line label="Total de servicios" value={formatCurrency(totals.services)} />
+        <Line label="Total de repuestos" value={formatCurrency(totals.parts)} />
+      </dl>
+
+      <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">
+        <span className="text-sm text-fg-muted">Total estimado</span>
+        <span data-numeric className="font-display text-2xl font-semibold text-fg">
+          {formatCurrency(totals.total)}
+        </span>
+      </div>
+
+      <div className="mt-5 border-t border-border pt-4">
+        <div className="flex items-baseline justify-between">
+          <span className="text-sm text-fg-muted">Avance</span>
+          <span data-numeric className="text-sm font-semibold text-fg">
+            {Math.round(row.progressPercent)} %
+          </span>
+        </div>
+        <ProgressBar
+          percent={row.progressPercent}
+          label={`Avance de ${row.order.code}`}
+          showValue={false}
+          className="mt-2"
+        />
+        <p className="mt-3">
+          <TrafficLightDot color={row.light.color} reason={row.light.reason} showLabel />
+        </p>
+      </div>
+    </Panel>
+  );
+}
+
+function Line({ label, value }: { readonly label: string; readonly value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-fg-muted">{label}</dt>
+      <dd data-numeric className="font-medium text-fg">{value}</dd>
+    </div>
+  );
+}
+
+function CustomerPanel({
+  order,
+}: {
+  readonly order: {
+    readonly customer: string;
+    readonly corporateClient: string | null;
+    readonly customerPhone: string;
+    readonly customerEmail: string;
+    readonly customerAddress: string;
+    readonly customerDocLast3: string;
+  };
+}) {
+  return (
+    <Panel title="Cliente">
+      <p className="flex flex-wrap items-center gap-2">
+        <span className="font-medium text-fg">{order.customer}</span>
+        {order.corporateClient !== null && <CorporateBadge name={order.corporateClient} />}
+      </p>
+
+      <dl className="mt-3 space-y-2 text-sm">
+        {/*
+          El documento sale ENMASCARADO. El número completo solo se obtiene con
+          `reveal_document_number()`, que exige permiso y deja registro en
+          `audit_logs` (docs/04 §4.9). Pintarlo entero aquí regalaría el dato a
+          cualquiera que pase por delante de la pantalla del asesor.
+        */}
+        <Meta icon={<Hash />} label="Documento">
+          <span data-numeric>{maskDocument(order.customerDocLast3)}</span>
+        </Meta>
+        <Meta icon={<Phone />} label="Teléfono">
+          <span data-numeric>{order.customerPhone}</span>
+        </Meta>
+        <Meta icon={<Mail />} label="Correo">
+          {order.customerEmail}
+        </Meta>
+        <Meta icon={<MapPin />} label="Dirección">
+          {order.customerAddress}
+        </Meta>
+      </dl>
+    </Panel>
+  );
+}
+
+function VehiclePanel({
+  order,
+  vocab,
+}: {
+  readonly order: {
+    readonly vehicle: string;
+    readonly modelYear: number;
+    readonly usage: number;
+    readonly color: string;
+    readonly plate: string;
+    readonly vin: string;
+  };
+  readonly vocab: { readonly usageUnit: string; readonly serialLabel: string };
+}) {
+  return (
+    <Panel title="Información del vehículo">
+      <dl className="space-y-2 text-sm">
+        <Meta icon={<Car />} label="Modelo">{order.vehicle}</Meta>
+        <Meta icon={<CalendarDays />} label="Año">
+          <span data-numeric>{order.modelYear}</span>
+        </Meta>
+        <Meta icon={<Gauge />} label="Uso">
+          <span data-numeric>
+            {formatNumber(order.usage)} {vocab.usageUnit}
+          </span>
+        </Meta>
+        <Meta icon={<Palette />} label="Color">{order.color}</Meta>
+        <Meta icon={<FileText />} label={vocab.serialLabel}>
+          <span data-numeric className="font-mono text-xs">{order.vin}</span>
+        </Meta>
+      </dl>
+    </Panel>
+  );
+}
+
+function QualityPanel({
+  order,
+}: {
+  readonly order: { readonly qualityChecks: readonly { id: string; label: string; done: boolean }[] };
+}) {
+  const done = order.qualityChecks.filter((c) => c.done).length;
+
+  return (
+    <Panel
+      title="Checklist de calidad"
+      action={
+        <span data-numeric className="text-xs text-fg-subtle">
+          {done}/{order.qualityChecks.length}
+        </span>
+      }
+    >
+      <ul className="space-y-2.5">
+        {order.qualityChecks.map((check) => (
+          <li key={check.id} className="flex items-center gap-2.5 text-sm">
+            <span
+              aria-hidden
+              className="size-4 shrink-0 rounded-[0.3rem] border-2 border-border-strong"
+            />
+            <span className="text-fg-muted">{check.label}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-xs text-fg-subtle">
+        Lo marca control de calidad, no el técnico que hizo el trabajo.
+      </p>
+    </Panel>
   );
 }
