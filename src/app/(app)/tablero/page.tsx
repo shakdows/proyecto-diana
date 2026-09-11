@@ -62,8 +62,16 @@ export default function TableroPage() {
             </p>
           </div>
 
+          {/* El de la primera orden, no un coche genérico: la cabecera enseña
+              el taller de hoy, no una ilustración de catálogo. */}
           <AssetImage
-            alt="Vehículo destacado del taller"
+            alt={
+              rows[0] === undefined
+                ? 'Vehículo del taller'
+                : `Ilustración de ${rows[0].order.vehicle}`
+            }
+            subject={rows[0]?.order.vehicle ?? 'sedan'}
+            equipmentKind={rows[0]?.order.equipmentKind ?? 'vehiculo'}
             className="hidden h-32 w-64 shrink-0 lg:block"
           />
 
@@ -79,7 +87,7 @@ export default function TableroPage() {
             </p>
 
             <Link
-              href="/recepcion"
+              href="/recepcion/nueva"
               className="inline-flex h-12 items-center gap-2 rounded-[0.875rem] bg-brand-600 px-5 text-sm font-semibold text-white shadow-raise transition-colors duration-150 hover:bg-brand-700 active:scale-[0.98]"
             >
               <Plus aria-hidden className="size-5" />

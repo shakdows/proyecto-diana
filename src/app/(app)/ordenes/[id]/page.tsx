@@ -98,6 +98,8 @@ export default async function OrdenPage({
 
           <AssetImage
             alt={`Fotografía de ${order.vehicle}`}
+            subject={order.vehicle}
+            equipmentKind={order.equipmentKind}
             className="hidden h-36 w-72 shrink-0 lg:block"
           />
 
@@ -317,9 +319,16 @@ function PhotosPanel({
   order,
   ago,
 }: {
-  readonly order: { readonly photos: readonly { id: string; label: string; minutesAgo: number }[] };
+  readonly order: {
+    readonly serviceType: string;
+    readonly photos: readonly { id: string; label: string; minutesAgo: number }[];
+  };
   readonly ago: (minutes: number) => Date;
 }) {
+  // El dibujo de la evidencia se elige por el TRABAJO, no por el rótulo de la
+  // foto: «Estado inicial» no dice qué pieza hay que dibujar; «CAMBIO DE
+  // PASTILLAS» sí.
+  const orderSubject = order.serviceType;
   return (
     <Panel
       title={`Fotos del servicio (${order.photos.length})`}
@@ -340,6 +349,7 @@ function PhotosPanel({
             <li key={photo.id}>
               <AssetImage
                 alt={photo.label}
+                subject={`${photo.label} ${orderSubject}`}
                 kind="evidencia"
                 rounded="control"
                 className="aspect-4/3 w-full"

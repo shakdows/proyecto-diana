@@ -112,8 +112,11 @@ function VehicleRow({
       >
         <AssetImage
           alt={`Fotografía de ${order.vehicle}`}
+          subject={order.vehicle}
+          equipmentKind={order.equipmentKind}
+          fit="cover"
           rounded="control"
-          className="size-14 shrink-0"
+          className="h-12 w-16 shrink-0"
         />
 
         <span className="w-[5.5rem] shrink-0">

@@ -1,64 +1,81 @@
-import { Camera, Car } from 'lucide-react';
+import { PartArt } from '@/components/art/part-art';
+import { VehicleArt } from '@/components/art/vehicle-art';
 import { cn } from '@/lib/utils/cn';
 
 /**
- * Hueco de fotografía.
+ * Imagen del vehículo o de la evidencia.
  *
- * El diseño pide fotos —el vehículo en la cabecera, la miniatura de cada fila,
- * la evidencia de cada hallazgo— y todavía no hay archivos en el repositorio.
- * Dejar un `<img>` roto se ve como un error; dejar un rectángulo gris se ve
- * como algo sin terminar.
+ * Orden de preferencia:
  *
- * Esto dibuja una superficie intencionada, del color del sistema, con el icono
- * de lo que irá ahí. Cuando exista el archivo se pasa `src` y entra la foto sin
- * tocar la maqueta: el hueco ya tiene su tamaño y su recorte.
+ *   1. `src` — el archivo real, cuando exista en `public/`.
+ *   2. Ilustración dibujada, elegida por carrocería o por tipo de pieza.
+ *   3. Superficie plana, solo para fondos decorativos.
+ *
+ * El nivel 2 NO es un marcador de posición: un dibujo vectorial a 52 px se ve
+ * mejor que una fotografía comprimida al mismo tamaño, escala sin pixelarse y
+ * pesa dos kilobytes. En recepción, además, es lo único posible: la foto real
+ * del vehículo del cliente se toma DESPUÉS de esta pantalla.
+ *
+ * Cuando se suban las fotos a `public/`, se pasa `src` y entran sin tocar la
+ * maqueta: el hueco ya tiene su tamaño y su recorte.
  */
 export function AssetImage({
   src,
   alt,
   kind = 'vehiculo',
+  subject,
+  equipmentKind = 'vehiculo',
   className,
   rounded = 'panel',
   decorative = false,
+  fit = 'contain',
 }: {
   readonly src?: string;
   readonly alt: string;
   readonly kind?: 'vehiculo' | 'evidencia';
+  /** Qué se dibuja: el modelo del vehículo, o el texto del hallazgo. */
+  readonly subject?: string;
+  readonly equipmentKind?: 'vehiculo' | 'maquinaria';
   readonly className?: string;
   readonly rounded?: 'chip' | 'control' | 'panel';
-  /** Fondo a sangre: sin icono. El icono guía en una miniatura, no en un muro. */
+  /** Fondo a sangre: superficie lisa, sin dibujo. */
   readonly decorative?: boolean;
+  readonly fit?: 'contain' | 'cover';
 }) {
   const radius =
-    rounded === 'chip' ? 'rounded-chip' : rounded === 'control' ? 'rounded-control' : 'rounded-panel';
+    rounded === 'chip'
+      ? 'rounded-chip'
+      : rounded === 'control'
+        ? 'rounded-control'
+        : 'rounded-panel';
 
   if (src !== undefined) {
-    /* eslint-disable-next-line @next/next/no-img-element -- las rutas son
-       locales y de tamaño conocido; `next/image` añadiría el optimizador sin
-       ganancia para miniaturas ya recortadas. */
+    /* eslint-disable-next-line @next/next/no-img-element -- rutas locales de
+       tamaño conocido; el optimizador no aporta en miniaturas ya recortadas. */
     return <img src={src} alt={alt} className={cn('object-cover', radius, className)} />;
   }
-
-  // Cámara, no «imagen rota»: el hueco está esperando una foto, no ha
-  // fallado al cargarla.
-  const Icon = kind === 'vehiculo' ? Car : Camera;
 
   if (decorative) {
     return <span aria-hidden className={cn('block bg-graphite-900', radius, className)} />;
   }
 
+  if (kind === 'evidencia') {
+    return (
+      <span className={cn('block overflow-hidden', radius, className)}>
+        <PartArt label={subject ?? alt} />
+      </span>
+    );
+  }
+
   return (
     <span
-      role="img"
-      aria-label={alt}
       className={cn(
-        'grid place-items-center overflow-hidden bg-graphite-100 text-graphite-400',
-        'ring-1 ring-inset ring-black/5',
+        'grid place-items-center overflow-hidden bg-linear-to-b from-surface-sunken to-graphite-100',
         radius,
         className,
       )}
     >
-      <Icon aria-hidden className="size-1/3 max-h-8 min-h-4 max-w-8 min-w-4" />
+      <VehicleArt vehicle={subject ?? alt} kind={equipmentKind} fit={fit} />
     </span>
   );
 }
