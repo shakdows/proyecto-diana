@@ -204,14 +204,29 @@ type Target = OrderStatus | ((facts: OrderFacts) => OrderStatus);
 /** Devuelve la lista de requisitos NO cumplidos. Vacía significa «adelante». */
 type Guard = (facts: OrderFacts, actor: Actor) => readonly string[];
 
-interface TransitionDef {
+interface BaseTransitionDef {
   readonly from: readonly OrderStatus[];
   readonly action: OrderAction;
-  readonly to: Target;
   /** `null` = transición del sistema, sin permiso de usuario. */
   readonly permission: Permission | null;
   readonly guard?: Guard;
 }
+
+/**
+ * Una transición con destino fijo, o una con destino dinámico que DEBE
+ * declarar sus destinos posibles.
+ *
+ * `targets` no es redundante: la tabla `status_transitions` guarda la terna
+ * (origen, acción, destino) y el disparador de PostgreSQL la valida. Sin
+ * enumerar los destinos, la base solo podría comprobar que la acción existe
+ * para el estado actual, no que el estado nuevo sea uno de los legítimos.
+ */
+type TransitionDef =
+  | (BaseTransitionDef & { readonly to: OrderStatus; readonly targets?: undefined })
+  | (BaseTransitionDef & {
+      readonly to: (facts: OrderFacts) => OrderStatus;
+      readonly targets: readonly OrderStatus[];
+    });
 
 /** Acumulador de requisitos incumplidos, para guardas legibles. */
 function unmet(...checks: readonly (readonly [boolean, string])[]): readonly string[] {
@@ -311,6 +326,7 @@ const TRANSITION_DEFS: readonly TransitionDef[] = [
     action: 'registrar_decision',
     to: (f) =>
       f.approvedItemCount === f.quotationLineCount ? 'APROBADO' : 'APROBACION_PARCIAL',
+    targets: ['APROBADO', 'APROBACION_PARCIAL'],
     permission: null,
     guard: (f) =>
       unmet(
@@ -564,6 +580,7 @@ const TRANSITION_DEFS: readonly TransitionDef[] = [
     from: ['EN_LAVADO'],
     action: 'terminar_lavado',
     to: (f) => statusAfterFinalStage(withoutStage(f.pendingFinalStages, 'lavado')),
+    targets: ['PENDIENTE_ALINEAMIENTO', 'LISTO_PARA_ENTREGA'],
     permission: 'washing:execute',
   },
   {
@@ -576,6 +593,7 @@ const TRANSITION_DEFS: readonly TransitionDef[] = [
     from: ['EN_ALINEAMIENTO'],
     action: 'terminar_alineamiento',
     to: (f) => statusAfterFinalStage(withoutStage(f.pendingFinalStages, 'alineamiento')),
+    targets: ['PENDIENTE_LAVADO', 'LISTO_PARA_ENTREGA'],
     permission: 'alignment:execute',
   },
   {
@@ -612,6 +630,8 @@ interface Transition {
   readonly from: OrderStatus;
   readonly action: OrderAction;
   readonly to: Target;
+  /** Todos los estados a los que puede desembocar. */
+  readonly targets: readonly OrderStatus[];
   readonly permission: Permission | null;
   readonly guard?: Guard;
 }
@@ -628,9 +648,11 @@ const TRANSITIONS: ReadonlyMap<string, Transition> = (() => {
       if (map.has(k)) {
         throw new Error(`Transición duplicada en la definición: ${k}`);
       }
+      const targets: readonly OrderStatus[] =
+        typeof def.to === 'function' ? def.targets : [def.to];
       const transition: Transition = def.guard
-        ? { from, action: def.action, to: def.to, permission: def.permission, guard: def.guard }
-        : { from, action: def.action, to: def.to, permission: def.permission };
+        ? { from, action: def.action, to: def.to, targets, permission: def.permission, guard: def.guard }
+        : { from, action: def.action, to: def.to, targets, permission: def.permission };
       map.set(k, transition);
     }
   }
@@ -640,17 +662,24 @@ const TRANSITIONS: ReadonlyMap<string, Transition> = (() => {
 /** Número de pares (estado, acción) declarados. Lo usa el seed de la Fase 2. */
 export const TRANSITION_COUNT = TRANSITIONS.size;
 
-/** El grafo completo, para sembrar la tabla `status_transitions`. */
-export function allTransitions(): readonly {
-  from: OrderStatus;
-  action: OrderAction;
-  permission: Permission | null;
-}[] {
-  return [...TRANSITIONS.values()].map(({ from, action, permission }) => ({
-    from,
-    action,
-    permission,
-  }));
+export interface TransitionRow {
+  readonly from: OrderStatus;
+  readonly action: OrderAction;
+  readonly to: OrderStatus;
+  readonly permission: Permission | null;
+}
+
+/**
+ * El grafo completo, como ternas (origen, acción, destino).
+ *
+ * Siembra la tabla `status_transitions`, que lee el disparador de PostgreSQL.
+ * Así el código y la base no pueden discrepar: la base valida contra lo que el
+ * dominio declara.
+ */
+export function allTransitions(): readonly TransitionRow[] {
+  return [...TRANSITIONS.values()].flatMap(({ from, action, targets, permission }) =>
+    targets.map((to) => ({ from, action, to, permission })),
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

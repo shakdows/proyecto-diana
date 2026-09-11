@@ -3,7 +3,7 @@
 Diseño objetivo. El SQL se genera con `drizzle-kit` en la **Fase 2**; aquí se
 fija el contrato.
 
-**66 tablas** repartidas en ocho módulos. Convenciones de todas ellas:
+**68 tablas** repartidas en ocho módulos. Convenciones de todas ellas:
 
 - `id uuid primary key default gen_random_uuid()`
 - `created_at timestamptz not null default now()` · `updated_at timestamptz`
@@ -297,7 +297,7 @@ en memoria.
 
 ## 4.11 Row Level Security
 
-RLS activa en **las 66 tablas**. Denegar por defecto; abrir solo con permiso
+RLS activa en **las 68 tablas**. Denegar por defecto; abrir solo con permiso
 explícito y pertenencia a la empresa.
 
 ```sql
@@ -325,6 +325,34 @@ que ya está protegido.
 la URL a `/tablero?empresa=<uuid-de-mitsui>`, la consulta devuelve **cero filas**.
 No un error revelador, no datos ajenos: cero. Se demuestra con dos usuarios
 reales en `db/tests/01-aislamiento-corporativo.sql`.
+
+### ⚠️ Trampa verificada: `EXECUTE` se concede a `PUBLIC` por defecto
+
+PostgreSQL concede `EXECUTE` a `PUBLIC` en **toda función que se crea**. Un
+`revoke execute ... from anon` no surte efecto: `anon` sigue heredando el
+permiso a través de `PUBLIC`.
+
+Detectado por `db/tests/03-portal-anonimo.sql` contra la base real: el rol
+anónimo del portal podía ejecutar **todas** las funciones `SECURITY DEFINER`
+del esquema, `reveal_document_number` incluida. Sus guardas internas las hacían
+inofensivas —`auth.uid()` es nulo para `anon`, así que el permiso se niega—,
+pero apoyarse en la segunda línea cuando la primera debería existir no es una
+defensa, es una casualidad.
+
+La forma correcta es revocar de `PUBLIC` y conceder explícitamente:
+
+```sql
+revoke execute on all functions in schema public from public;
+grant  execute on all functions in schema public to authenticated;
+-- El visitante anónimo alcanza EXACTAMENTE una función.
+grant  execute on function public.portal_get_quotation(text) to anon;
+-- Y lo mismo para las que se creen en el futuro.
+alter default privileges in schema public revoke execute on functions from public;
+```
+
+`portal_get_quotation` es `SECURITY DEFINER`, así que lo que llama por dentro
+se ejecuta como propietario: `anon` no necesita —ni recibe— permiso sobre las
+funciones internas.
 
 ### Permisos de objeto que hay que recordar
 

@@ -178,6 +178,19 @@ en JavaScript sería recorrer decenas de miles de filas dentro de la función
 serverless en cada carga del tablero. Por eso existe la versión SQL.
 
 Es el **único punto de duplicación consciente** del sistema, y se protege así:
-un conjunto de casos en `db/tests/03-progreso.sql` se ejecuta contra las dos
-implementaciones y compara los resultados. Si divergen, la prueba falla. La
-duplicación está permitida; la divergencia silenciosa, no.
+`scripts/verify-db.ts` alimenta la versión TypeScript con las MISMAS entradas
+que vio SQL —`fn_order_progress` devuelve sus entradas junto al resultado— y
+compara los porcentajes. Así la prueba mide las dos FÓRMULAS y no dos consultas
+distintas. Si divergen, falla. La duplicación está permitida; la divergencia
+silenciosa, no.
+
+Salida real contra PostgreSQL 16, con órdenes en cinco estados distintos:
+
+```
+orden      estado                     SQL      TS
+6f046d2d   CERRADO                  100.0   100.0  ✓
+fe8a331f   EN_REPARACION             69.8    69.8  ✓
+adad68af   REPUESTOS_PARCIALES       33.8    33.8  ✓
+fa0c916c   ESPERANDO_CLIENTE         24.0    24.0  ✓
+2d48ae51   PENDIENTE_DIAGNOSTICO      5.0     5.0  ✓
+```

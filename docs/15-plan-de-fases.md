@@ -23,7 +23,7 @@ siguiente sin dejar la anterior funcional.
 | # | Entrega | Terminada cuando |
 | :-: | --- | --- |
 | **1** | **Arquitectura, estructura, máquina de estados y dominio puro** | Compila y lint limpio · `/api/health` responde · navegación recorrible con los cuatro estados · máquina de estados y cálculos de progreso/ETA/semáforo probados sin base de datos |
-| 2 | Modelo PostgreSQL: 66 tablas, índices, funciones de seguridad, **RLS**, permisos de objeto, seeds de catálogo y DEMO | Migraciones aplicadas sobre PostgreSQL real · catálogo sembrado · **aislamiento corporativo demostrado con dos usuarios** en `db/tests/` |
+| 2 | Modelo PostgreSQL: 68 tablas, índices, funciones de seguridad, **RLS**, permisos de objeto, seeds de catálogo y DEMO | Migraciones aplicadas sobre PostgreSQL real · catálogo sembrado · **aislamiento corporativo demostrado con dos usuarios** en `db/tests/` |
 | 3 | Autenticación, usuarios, roles y permisos | Cada rol entra y solo ve lo suyo · permisos leídos de `role_permissions` · limitación de intentos · registro en `audit_logs` |
 | 4 | Empresas, sedes, bahías, clientes y vehículos · **búsqueda universal** | Alta, edición y baja lógica con auditoría · placa → ficha · DNI enmascarado · búsqueda por los ocho criterios de §57 |
 | 5 | **Recepción y checklist digital** | Formulario completo en tablet · checklist leído de catálogo · niveles y cocadas · documentos · firmas · orden generada automáticamente |

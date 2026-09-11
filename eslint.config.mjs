@@ -22,6 +22,17 @@ const config = [
   },
   {
     /**
+     * Los scripts de `scripts/` y `db/` son herramientas de línea de comandos:
+     * imprimir en consola es lo que hacen. Prohibírselo obligaría a sembrarlos
+     * de excepciones, que es peor que no tener la regla.
+     */
+    files: ['scripts/**/*.ts', 'db/**/*.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  {
+    /**
      * La frontera del dominio puro SE VERIFICA, no se confía a la disciplina.
      *
      * `features/*​/services/` contiene las reglas de negocio: máquina de

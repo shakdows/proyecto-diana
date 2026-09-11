@@ -15,22 +15,45 @@ lavado / alineamiento → entrega → encuesta de satisfacción → panel → in
 
 ## Estado
 
-**FASE 1 completa** — arquitectura, estructura, sistema de diseño y dominio puro.
+| Fase | Entrega | Estado |
+| :-: | --- | --- |
+| 1 | Arquitectura, estructura, sistema de diseño y dominio puro | **Completa** |
+| 2 | Modelo PostgreSQL: 68 tablas, índices, RLS, funciones, seeds | **Completa** |
+| 3 | Autenticación, usuarios, roles y permisos | Siguiente |
+| 4–16 | Ver [`docs/15-plan-de-fases.md`](docs/15-plan-de-fases.md) | Pendientes |
 
-| Comprobación | Resultado |
+Verificado en esta entrega, contra **PostgreSQL 16 real** (no un esquema en
+papel):
+
+```
+npm run typecheck    sin errores
+npm run lint         sin errores ni advertencias
+npm run test         97 pruebas de dominio, sin base de datos
+npm run build        21 rutas
+
+npm run db:migrate   9 migraciones aplicadas
+npm run db:seed:*    catálogo (72 permisos · 80 transiciones · 50 ítems de checklist)
+                     + demo (5 órdenes en 5 estados distintos)
+npm run db:verify    5 pruebas SQL + paridad TypeScript ↔ SQL
+```
+
+Estado de la base después de migrar:
+
+| | |
 | --- | --- |
-| `npm run typecheck` | sin errores |
-| `npm run lint` | sin errores ni advertencias |
-| `npm run test` | 96 pruebas, 31 suites, 0 fallos |
-| `npm run build` | 21 rutas compiladas |
-| `/api/health` | responde sin sesión |
+| Tablas | 68, **todas con RLS activa** |
+| Políticas | 195, y **ninguna de DELETE** — §60 prohíbe borrar historial |
+| Funciones `SECURITY DEFINER` | 24 |
+| Índices | 191 |
+| Disparadores | 37 |
+| Vistas | 3 |
 
-Lo que la Fase 1 **no** hace: no crea tablas, no conecta con Supabase y no
-autentica. Eso es la Fase 2 y la 3. Las pantallas muestran su estructura real
-con datos marcados como de demostración.
-
-El plan completo y el criterio de cierre de cada fase está en
-[`docs/15-plan-de-fases.md`](docs/15-plan-de-fases.md).
+La orden de demostración recorre el flujo completo —recepción, checklist,
+diagnóstico, cotización, **aprobación parcial**, compras, **recepción parcial y
+total**, cronómetro con pausa, calidad, lavado, entrega y encuesta— usando las
+transiciones reales. No inserta estados a mano: cada cambio pasa por el
+disparador que valida el grafo, así que si la máquina de estados estuviera mal,
+el seed fallaría.
 
 ## Documentación
 
@@ -50,10 +73,24 @@ cp .env.example .env.local     # completar cuando exista el proyecto Supabase
 npm run dev                    # http://localhost:3000
 ```
 
-En la Fase 1 no hace falta base de datos: la aplicación arranca y se recorre
-entera. Las variables se validan al arrancar, así que un despliegue mal
-configurado falla de inmediato y con detalle, en vez de romperse a mitad de una
-recepción. `SKIP_ENV_VALIDATION=true` es el escape para el build de CI.
+Las variables se validan al arrancar, así que un despliegue mal configurado
+falla de inmediato y con detalle, en vez de romperse a mitad de una recepción.
+`SKIP_ENV_VALIDATION=true` es el escape para el build de CI.
+
+### Con base de datos
+
+Funciona con Supabase **y** con un PostgreSQL corriente: `db/local/` contiene
+un sustituto del esquema `auth`, los roles `anon`/`authenticated` y
+`auth.uid()`, de modo que las políticas RLS se pueden probar sin depender de la
+nube. Ese archivo nunca se aplica en Supabase, donde todo eso ya existe.
+
+```bash
+export DATABASE_URL="postgresql://usuario@host:5432/diana"
+npm run db:migrate -- --shim   # --shim solo en local
+npm run db:seed:catalog
+npm run db:seed:demo           # opcional
+npm run db:verify
+```
 
 ## Comandos
 
@@ -65,10 +102,11 @@ recepción. `SKIP_ENV_VALIDATION=true` es el escape para el build de CI.
 | `npm run lint` | ESLint |
 | `npm run test` | Dominio puro, **sin base de datos ni servidor** |
 | `npm run check` | Tipos + lint + pruebas (lo que exige CI) |
-| `npm run db:generate` | Genera migraciones SQL desde `db/schema` *(Fase 2)* |
-| `npm run db:migrate` | Aplica las migraciones pendientes *(Fase 2)* |
-| `npm run db:seed:catalog` | Roles, permisos, checklist, cuestionario, umbrales *(Fase 2)* |
-| `npm run db:seed:demo` | Datos de demostración (`is_demo = true`) *(Fase 2)* |
+| `npm run db:generate` | Genera el SQL del esquema desde `db/schema` (Drizzle) |
+| `npm run db:migrate` | Aplica las migraciones pendientes (`-- --shim` añade el sustituto local de Supabase) |
+| `npm run db:seed:catalog` | Permisos, roles, transiciones, checklist, cuestionario, umbrales |
+| `npm run db:seed:demo` | Datos de demostración (`is_demo = true`) |
+| `npm run db:verify` | Pruebas SQL de aislamiento, reglas de negocio y portal + paridad de fórmulas |
 
 ## Principios que el código respeta
 

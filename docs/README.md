@@ -10,7 +10,7 @@ Plataforma integral de gestión de taller automotriz y experiencia del cliente.
 | 1 | [Arquitectura](01-arquitectura.md) | Arquitectura propuesta · tecnologías · despliegue |
 | 2 | [Flujo operativo](02-flujo-operativo.md) | Diagrama del flujo operativo |
 | 3 | [Máquina de estados](03-maquina-de-estados.md) | 34 estados, 40 acciones, 76 transiciones, guardas |
-| 4 | [Modelo de datos](04-modelo-de-datos.md) | 66 tablas, relaciones, índices, RLS |
+| 4 | [Modelo de datos](04-modelo-de-datos.md) | 68 tablas, relaciones, índices, RLS |
 | 5 | [Roles y permisos](05-roles-y-permisos.md) | Matriz RBAC completa |
 | 6 | [Estructura de carpetas](06-estructura-de-carpetas.md) | Organización del código |
 | 7 | [Rutas y endpoints](07-rutas-y-endpoints.md) | Rutas, Server Actions, API |

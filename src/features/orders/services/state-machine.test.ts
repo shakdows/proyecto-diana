@@ -85,6 +85,41 @@ describe('integridad del grafo', () => {
     );
   });
 
+  it('toda transición dinámica declara sus destinos posibles', () => {
+    // La tabla `status_transitions` guarda ternas (origen, acción, destino) y
+    // el disparador de PostgreSQL las valida. Si un destino alcanzable no
+    // estuviera declarado, la base rechazaría una transición legítima.
+    const declared = new Set(
+      allTransitions().map((t) => `${t.from}|${t.action}|${t.to}`),
+    );
+
+    const variants: readonly Partial<OrderFacts>[] = [
+      { approvedItemCount: 4, quotationLineCount: 4 },
+      { approvedItemCount: 2, quotationLineCount: 4 },
+      { pendingFinalStages: ['lavado', 'alineamiento'] },
+      { pendingFinalStages: ['alineamiento', 'lavado'] },
+      { pendingFinalStages: ['lavado'] },
+      { pendingFinalStages: ['alineamiento'] },
+      { pendingFinalStages: [] },
+      { partsCoverageComplete: false },
+      { requiredPartsCount: 0 },
+    ];
+
+    for (const status of ORDER_STATUSES) {
+      for (const action of ORDER_ACTIONS) {
+        if (!transitionExists(status, action)) continue;
+        for (const variant of variants) {
+          const check = canTransition(facts({ status, ...variant }), action, god);
+          if (!check.allowed) continue;
+          assert.ok(
+            declared.has(`${status}|${action}|${check.to}`),
+            `destino no declarado: ${status} --${action}--> ${check.to}`,
+          );
+        }
+      }
+    }
+  });
+
   it('declara transiciones y todas apuntan a estados válidos', () => {
     assert.ok(TRANSITION_COUNT > 0);
     for (const { from, action } of allTransitions()) {
