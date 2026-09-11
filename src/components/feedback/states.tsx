@@ -23,14 +23,34 @@ function Frame({ children, className }: { children: ReactNode; className?: strin
   );
 }
 
+/**
+ * Carga.
+ *
+ * Un esqueleto con la forma de lo que viene, no un círculo girando en el
+ * centro: el esqueleto dice cuánto va a haber y dónde, así que la pantalla no
+ * salta cuando llegan los datos. El círculo queda para esperas sin forma
+ * conocida —el envío de un formulario—, y para eso está `Spinner`.
+ */
 export function LoadingState({ label = 'Cargando…' }: { readonly label?: string }) {
   return (
-    <Frame>
-      <LoaderCircle aria-hidden className="size-5 animate-spin text-fg-subtle" />
-      <p role="status" className="text-sm text-fg-subtle">
+    <div aria-busy className="space-y-3 p-5">
+      <span role="status" className="sr-only">
         {label}
-      </p>
-    </Frame>
+      </span>
+      <Skeleton className="h-5 w-48" />
+      <Skeleton className="h-4 w-full max-w-lg" />
+      <Skeleton className="h-4 w-full max-w-md" />
+    </div>
+  );
+}
+
+/** Espera sin forma: el envío de un formulario, una acción en curso. */
+export function Spinner({ label }: { readonly label: string }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <LoaderCircle aria-hidden className="size-4 animate-spin" />
+      <span>{label}</span>
+    </span>
   );
 }
 

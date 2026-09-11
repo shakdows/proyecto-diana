@@ -26,17 +26,27 @@
   --color-graphite-100: #dce3ea;
   --color-graphite-50: #f2f5f8;
 
-  /* Azul corporativo: el ÚNICO color de marca */
-  --color-brand-900: #0a2a5e;
-  --color-brand-800: #0e3a7e;
-  --color-brand-700: #12499c;
-  --color-brand-600: #1859bc;
-  --color-brand-500: #2a6fd4;
-  --color-brand-400: #4e8be3;
-  --color-brand-300: #83aeee;
-  --color-brand-200: #b9d2f7;
-  --color-brand-100: #deeafc;
-  --color-brand-50: #eff5fe;
+  /*
+   * Azul corporativo: el ÚNICO color de marca.
+   *
+   * La rampa se profundizó respecto a la primera versión. El azul anterior
+   * (#1859bc en el 600) era claro y saturado: al usarlo en la fila activa del
+   * menú y en cada botón primario, la pantalla se teñía de azul y el color
+   * dejaba de significar «esto es accionable» para significar «esto es una
+   * aplicación». Un azul marino más cerrado aguanta el uso repetido sin gritar
+   * y deja el contraste para lo que de verdad debe destacar: el estado.
+   */
+  --color-brand-950: #07173a;
+  --color-brand-900: #0a2350;
+  --color-brand-800: #0d2f68;
+  --color-brand-700: #113d80;
+  --color-brand-600: #164e9e;
+  --color-brand-500: #2263bd;
+  --color-brand-400: #4483d6;
+  --color-brand-300: #79a7e6;
+  --color-brand-200: #b3cdf2;
+  --color-brand-100: #dbe8fa;
+  --color-brand-50: #eef4fd;
 
   /* Señal: reservado al ESTADO. El color informa, no decora. */
   --color-ok-700: #14664a;
@@ -80,10 +90,53 @@
   --radius-panel: 0.75rem;
   --radius-modal: 1rem;
 
-  /* Jerarquía real de sombras */
+  /* Jerarquía real de sombras, tintadas en grafito y no en negro puro */
   --shadow-raise: 0 1px 2px 0 rgb(9 12 16 / 0.06), 0 1px 3px 0 rgb(9 12 16 / 0.04);
   --shadow-panel: 0 1px 3px 0 rgb(9 12 16 / 0.08), 0 4px 12px -2px rgb(9 12 16 / 0.06);
   --shadow-overlay: 0 8px 24px -4px rgb(9 12 16 / 0.16), 0 2px 8px -2px rgb(9 12 16 / 0.1);
+
+  /*
+   * Movimiento. Una sola curva para todo lo que entra o cambia de estado:
+   * arranca rápido y frena largo, que es como se mueve algo con masa. Las
+   * duraciones son dos, no siete —150 ms para respuesta al puntero, 200 ms
+   * para lo que aparece o desaparece—; más variedad se nota como desorden.
+   */
+  --ease-snap: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /*
+   * Escala de capas. Sin esto aparecen los `z-index: 9999` y el orden pasa a
+   * ser una cuestión de quién grita más fuerte.
+   */
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-drawer: 30;
+  --z-modal: 40;
+  --z-toast: 50;
+
+  /* Entradas: nunca todo a la vez, nunca desde muy lejos. */
+  --animate-fade-in: fade-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-rise-in: rise-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-slide-left: slide-left 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes slide-left {
+  from {
+    transform: translateX(100%);
+  }
 }
 
 :root {
