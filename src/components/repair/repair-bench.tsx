@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { usePersistentState } from '@/lib/demo/store';
 import {
   Camera,
   Check,
@@ -64,29 +65,68 @@ export function RepairBench({
   readonly estimatedSeconds: number;
   readonly initialEvidenceCount: number;
 }) {
-  const [steps, setSteps] = useState<readonly JobStep[]>(initialSteps);
-  const [seconds, setSeconds] = useState(initialEffectiveSeconds);
-  const [running, setRunning] = useState(true);
-  const [pause, setPause] = useState<{ reason?: PauseReason; note: string } | null>(null);
-  const [activePause, setActivePause] = useState<{ reason: PauseReason; note: string } | null>(
-    null,
+  const [steps, setSteps] = usePersistentState<readonly JobStep[]>(
+    `reparacion.${orderCode}.pasos`,
+    initialSteps,
   );
-  const [evidence, setEvidence] = useState(initialEvidenceCount);
-  const [finished, setFinished] = useState(false);
+  const [evidence, setEvidence] = usePersistentState(
+    `reparacion.${orderCode}.evidencia`,
+    initialEvidenceCount,
+  );
+  const [finished, setFinished] = usePersistentState(`reparacion.${orderCode}.terminado`, false);
+  const [activePause, setActivePause] = usePersistentState<{
+    reason: PauseReason;
+    note: string;
+  } | null>(`reparacion.${orderCode}.pausa`, null);
 
   /*
-   * El intervalo se guarda en una ref y se limpia al desmontar. Sin la
-   * limpieza, salir de la pantalla deja un temporizador escribiendo estado de
-   * un componente que ya no existe.
+   * El cronómetro guarda el ANCLA, no el tic.
+   *
+   * Persistir `seconds` cada segundo serían sesenta escrituras por minuto. Se
+   * guarda `{ base, desde }`: los segundos acumulados y el instante en que
+   * arrancó el tramo actual, y el reloj se DERIVA de la hora del sistema. Así
+   * se escribe solo al iniciar, pausar o terminar.
+   *
+   * Efecto secundario buscado: el tiempo sigue corriendo con la pestaña
+   * cerrada, que es como se comportará en producción —las marcas las pone
+   * `now()` de PostgreSQL sobre `repair_time_sessions`, y a esa tabla le da
+   * igual si la tablet se durmió—.
    */
-  const tick = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [clockState, setClockState] = usePersistentState<{
+    base: number;
+    desde: number | null;
+  }>(`reparacion.${orderCode}.reloj`, { base: initialEffectiveSeconds, desde: null });
+
+  const running = clockState.desde !== null;
+
+  /*
+   * `Date.now()` NO se llama durante el renderizado: React puede reejecutar
+   * el cuerpo del componente cuando le convenga, y un reloj leído ahí daría
+   * un valor distinto en cada pasada. El instante vive en estado y solo lo
+   * mueve el intervalo, que sí es un efecto.
+   */
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!running || finished) return undefined;
-    tick.current = setInterval(() => setSeconds((s) => s + 1), 1000);
-    return () => {
-      if (tick.current !== null) clearInterval(tick.current);
-    };
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    // Sin la limpieza, salir de la pantalla deja un temporizador escribiendo
+    // estado de un componente que ya no existe.
+    return () => clearInterval(id);
   }, [running, finished]);
+
+  // El trabajo arranca en marcha la primera vez que se abre la bahía.
+  useEffect(() => {
+    setClockState((c) => (c.desde === null && !finished ? { ...c, desde: Date.now() } : c));
+    // Solo al montar: reanudar después es decisión explícita del técnico.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const seconds =
+    clockState.desde === null
+      ? clockState.base
+      : clockState.base + Math.max(0, Math.floor((now - clockState.desde) / 1000));
+
+  const [pause, setPause] = useState<{ reason?: PauseReason; note: string } | null>(null);
 
   const clock = useMemo(() => clockView(seconds, estimatedSeconds), [seconds, estimatedSeconds]);
   const done = doneCount(steps);
@@ -95,13 +135,20 @@ export function RepairBench({
   const confirmPause = (): void => {
     if (pause?.reason === undefined || !canPause(pause.reason, pause.note)) return;
     setActivePause({ reason: pause.reason, note: pause.note });
-    setRunning(false);
+    // Al pausar se congela lo acumulado hasta AHORA y se suelta el ancla.
+    setClockState((c) => ({
+      base:
+        c.desde === null
+          ? c.base
+          : c.base + Math.max(0, Math.floor((Date.now() - c.desde) / 1000)),
+      desde: null,
+    }));
     setPause(null);
   };
 
   const resume = (): void => {
     setActivePause(null);
-    setRunning(true);
+    setClockState((c) => (c.desde === null ? { base: c.base, desde: Date.now() } : c));
   };
 
   if (finished) {
@@ -342,7 +389,16 @@ export function RepairBench({
           <BigButton
             tone="primary"
             disabled={!ready.canFinish}
-            onClick={() => setFinished(true)}
+            onClick={() => {
+              setClockState((c) => ({
+                base:
+                  c.desde === null
+                    ? c.base
+                    : c.base + Math.max(0, Math.floor((Date.now() - c.desde) / 1000)),
+                desde: null,
+              }));
+              setFinished(true);
+            }}
           >
             <Flag aria-hidden className="size-5" />
             <span className="hidden sm:inline">Finalizar trabajo</span>

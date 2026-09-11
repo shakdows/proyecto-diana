@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { usePersistentState } from '@/lib/demo/store';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -61,8 +62,8 @@ export function PartsReception({
   readonly orderId: string;
   readonly customer: string;
 }) {
-  const [entries, setEntries] = useState<Entries>({});
-  const [confirmed, setConfirmed] = useState(false);
+  const [entries, setEntries] = usePersistentState<Entries>(`recepcion-repuestos.${orderId}`, {});
+  const [confirmed, setConfirmed] = usePersistentState(`recepcion-repuestos.${orderId}.confirmada`, false);
 
   const totals = useMemo(() => summarize(lines, entries), [lines, entries]);
   const state = useMemo(() => readiness(lines, entries), [lines, entries]);

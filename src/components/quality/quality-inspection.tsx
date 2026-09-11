@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { usePersistentState } from '@/lib/demo/store';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -65,8 +66,8 @@ export function QualityInspection({
   readonly inspectorName: string;
   readonly inspectorId: string;
 }) {
-  const [rulings, setRulings] = useState<Rulings>({});
-  const [resolved, setResolved] = useState(false);
+  const [rulings, setRulings] = usePersistentState<Rulings>(`calidad.${orderId}`, {});
+  const [resolved, setResolved] = usePersistentState(`calidad.${orderId}.resuelta`, false);
 
   const groups = useMemo(() => groupByWork(checks), [checks]);
   const state = useMemo(

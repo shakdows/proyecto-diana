@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { usePersistentState } from '@/lib/demo/store';
 import { ArrowLeft, Eye, Save, Send } from 'lucide-react';
 import { AssetImage } from '@/components/ui/asset-image';
 import { Button } from '@/components/ui/button';
@@ -44,20 +45,27 @@ export function QuotationBuilder({
   readonly corporateClient: string | null;
   readonly authHref: string;
 }) {
-  const [included, setIncluded] = useState<ReadonlySet<string>>(
-    () => new Set(lines.map((l) => l.id)),
+  /*
+   * Esto era un `Set`, y al persistirlo se perdía entero: `JSON.stringify` de
+   * un Set devuelve `{}`, sin error y sin aviso. Al recargar, la cotización
+   * aparecía con TODAS las líneas desmarcadas y un total de cero.
+   *
+   * Se guarda como lista de identificadores —que sí sobrevive— y el `Set` se
+   * deriva para las comprobaciones de pertenencia.
+   */
+  const [includedIds, setIncludedIds] = usePersistentState<readonly string[]>(
+    `cotizacion.${orderId}`,
+    lines.map((l) => l.id),
   );
 
+  const included = useMemo(() => new Set(includedIds), [includedIds]);
   const selected = useMemo(() => lines.filter((l) => included.has(l.id)), [lines, included]);
   const totals = useMemo(() => totalsOf(selected), [selected]);
 
   const toggle = (id: string): void =>
-    setIncluded((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    setIncludedIds((current) =>
+      current.includes(id) ? current.filter((x) => x !== id) : [...current, id],
+    );
 
   return (
     <>

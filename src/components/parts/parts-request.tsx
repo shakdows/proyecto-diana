@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { usePersistentState } from '@/lib/demo/store';
 import { Boxes, Check, Plus, Send, ShoppingCart, Trash2, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
@@ -47,8 +48,11 @@ export function PartsRequest({
   /** Trabajos que el cliente autorizó. Solo se pide repuesto para estos. */
   readonly works: readonly { readonly id: string; readonly title: string }[];
 }) {
-  const [lines, setLines] = useState<readonly RequestLine[]>(initialLines);
-  const [sent, setSent] = useState(false);
+  const [lines, setLines] = usePersistentState<readonly RequestLine[]>(
+    `solicitud-repuestos.${orderCode}`,
+    initialLines,
+  );
+  const [sent, setSent] = usePersistentState(`solicitud-repuestos.${orderCode}.enviada`, false);
 
   const groups = useMemo(() => groupByWork(lines), [lines]);
   const totals = useMemo(() => summarize(lines), [lines]);

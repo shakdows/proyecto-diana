@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { usePersistentState } from '@/lib/demo/store';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -49,7 +50,10 @@ export function ServiceStation({
   readonly kind: ServiceKind;
   readonly initialQueue: readonly QueueEntry[];
 }) {
-  const [queue, setQueue] = useState<readonly QueueEntry[]>(initialQueue);
+  const [queue, setQueue] = usePersistentState<readonly QueueEntry[]>(
+    `estacion.${kind}`,
+    initialQueue,
+  );
 
   const current = inProgress(queue);
   const pendientes = useMemo(() => byUrgency(waiting(queue)), [queue]);

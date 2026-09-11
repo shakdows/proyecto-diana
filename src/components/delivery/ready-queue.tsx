@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { usePersistentState } from '@/lib/demo/store';
 import Link from 'next/link';
 import {
   BellRing,
@@ -44,7 +45,10 @@ export interface ReadyVehicle {
  * se le avise a nadie**.
  */
 export function ReadyQueue({ initial }: { readonly initial: readonly ReadyVehicle[] }) {
-  const [vehicles, setVehicles] = useState<readonly ReadyVehicle[]>(initial);
+  const [vehicles, setVehicles] = usePersistentState<readonly ReadyVehicle[]>(
+    'vehiculos-listos',
+    initial,
+  );
 
   /*
    * Arriba lo que lleva más tiempo listo SIN avisar. Ordenar por antigüedad a

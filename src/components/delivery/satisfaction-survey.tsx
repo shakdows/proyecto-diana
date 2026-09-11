@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { usePersistentState } from '@/lib/demo/store';
 import { CircleCheckBig, Star, TriangleAlert } from 'lucide-react';
 import { RomeroMark } from '@/components/brand/romero-logo';
 import { Field } from '@/components/ui/field';
@@ -38,10 +39,10 @@ export function SatisfactionSurvey({
   readonly plate: string;
   readonly orderCode: string;
 }) {
-  const [score, setScore] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<CsatAnswers>({});
-  const [comment, setComment] = useState('');
-  const [sent, setSent] = useState(false);
+  const [score, setScore] = usePersistentState<number | null>(`encuesta.${orderCode}.nps`, null);
+  const [answers, setAnswers] = usePersistentState<CsatAnswers>(`encuesta.${orderCode}.csat`, {});
+  const [comment, setComment] = usePersistentState(`encuesta.${orderCode}.comentario`, '');
+  const [sent, setSent] = usePersistentState(`encuesta.${orderCode}.enviada`, false);
 
   const state = useMemo(() => readiness(score, answers, comment), [score, answers, comment]);
   const bucket = score === null ? null : bucketOf(score);

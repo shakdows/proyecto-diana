@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { usePersistentState } from '@/lib/demo/store';
 import { Check, CircleCheckBig, Images, ShieldCheck, X } from 'lucide-react';
 import { AssetImage } from '@/components/ui/asset-image';
 import { RomeroMark } from '@/components/brand/romero-logo';
@@ -51,8 +52,8 @@ export function CustomerAuthorization({
   readonly vehicle: string;
   readonly plate: string;
 }) {
-  const [decisions, setDecisions] = useState<Decisions>({});
-  const [confirmed, setConfirmed] = useState(false);
+  const [decisions, setDecisions] = usePersistentState<Decisions>(`autorizacion.${plate}`, {});
+  const [confirmed, setConfirmed] = usePersistentState(`autorizacion.${plate}.confirmada`, false);
 
   const approved = useMemo(() => approvedLines(lines, decisions), [lines, decisions]);
   const totals = useMemo(() => approvedTotals(lines, decisions), [lines, decisions]);

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Bell, LogOut, Menu } from 'lucide-react';
 import { useState } from 'react';
 import { Avatar } from '@/components/ui/avatar';
+import { ResetDemo, SavedHint } from './reset-demo';
 import { Tooltip } from '@/components/ui/tooltip';
 import { Drawer } from '@/components/overlay/modal';
 import { Sidebar } from './sidebar';
@@ -92,6 +93,12 @@ export function Topbar({
             </span>
           </Tooltip>
         )}
+
+        {/* Borrar lo guardado vive junto al distintivo de demostración, no
+            enterrado en ajustes: es la contrapartida de que el trabajo
+            persista, y quien lo necesita lo necesita ahora. */}
+        {isDemo && <SavedHint />}
+        {isDemo && <ResetDemo />}
 
         {/* Salir devuelve a la pantalla de entrada, que es donde se cambia de
             puesto. Sin esto, probar la demostración con otro rol obligaba a

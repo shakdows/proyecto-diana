@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { usePersistentState } from '@/lib/demo/store';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -68,7 +69,7 @@ export function HandoverForm({
   readonly usageUnit: string;
   readonly surveyHref: string;
 }) {
-  const [facts, setFacts] = useState<HandoverFacts>({
+  const [facts, setFacts] = usePersistentState<HandoverFacts>(`entrega.${orderId}`, {
     totalCents,
     paidCents,
     method: null,
@@ -82,7 +83,7 @@ export function HandoverForm({
     usageAtReception,
     usageAtDelivery: null,
   });
-  const [delivered, setDelivered] = useState(false);
+  const [delivered, setDelivered] = usePersistentState(`entrega.${orderId}.entregado`, false);
 
   const state = useMemo(() => readiness(facts), [facts]);
   const saldo = balanceCents(facts);

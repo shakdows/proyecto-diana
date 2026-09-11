@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { usePersistentState } from '@/lib/demo/store';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -61,8 +62,8 @@ export function SupplierComparison({
   readonly orderId: string;
   readonly customer: string;
 }) {
-  const [selection, setSelection] = useState<Selection>({});
-  const [sent, setSent] = useState(false);
+  const [selection, setSelection] = usePersistentState<Selection>(`compras.${orderId}`, {});
+  const [sent, setSent] = usePersistentState(`compras.${orderId}.enviada`, false);
 
   const totals = useMemo(() => totalsOf(lines, selection), [lines, selection]);
   const state = useMemo(() => readiness(lines, selection), [lines, selection]);

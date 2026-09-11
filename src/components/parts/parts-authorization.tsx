@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { usePersistentState } from '@/lib/demo/store';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -59,8 +60,8 @@ export function PartsAuthorization({
   readonly customer: string;
   readonly requestedBy: string;
 }) {
-  const [rulings, setRulings] = useState<Rulings>({});
-  const [done, setDone] = useState(false);
+  const [rulings, setRulings] = usePersistentState<Rulings>(`repuestos-auth.${orderId}`, {});
+  const [done, setDone] = usePersistentState(`repuestos-auth.${orderId}.resuelta`, false);
 
   const groups = useMemo(() => groupByWork(lines), [lines]);
   const state = useMemo(() => readiness(lines, rulings), [lines, rulings]);

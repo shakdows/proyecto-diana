@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { usePersistentState } from '@/lib/demo/store';
 import {
   ArrowLeft,
   ChevronRight,
@@ -84,7 +85,7 @@ export function TechnicalDiagnosis({
 }) {
   const [findings] = useState<readonly Finding[]>(initialFindings);
   const [system, setSystem] = useState<FindingSystem | 'todos'>('todos');
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = usePersistentState(`diagnostico.${orderCode}.notas`, '');
 
   const bySystem = useMemo(() => countBySystem(findings), [findings]);
   const byPriority = useMemo(() => countByPriority(findings), [findings]);
