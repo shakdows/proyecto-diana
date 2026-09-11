@@ -26,7 +26,7 @@ const config = [
      * imprimir en consola es lo que hacen. Prohibírselo obligaría a sembrarlos
      * de excepciones, que es peor que no tener la regla.
      */
-    files: ['scripts/**/*.ts', 'db/**/*.ts'],
+    files: ['scripts/**/*.{ts,mjs}', 'db/**/*.ts'],
     rules: {
       'no-console': 'off',
     },

@@ -130,6 +130,8 @@ export default async function OrdenPage({
             { href: `/compras/${order.id}/recepcion`, label: 'Recepción de repuestos' },
             { href: `/calidad/${order.id}`, label: 'Control de calidad' },
             { href: `/ordenes/${order.id}/entrega`, label: 'Entrega' },
+            { href: `/api/documentos/cotizacion/${order.id}`, label: 'Cotización en PDF' },
+            { href: `/api/documentos/entrega/${order.id}`, label: 'Acta de entrega en PDF' },
           ].map((item) => (
             <Link
               key={item.href}
