@@ -5,7 +5,6 @@ import { ToastProvider } from '@/components/feedback/toast';
 import { attentionItems, demoBoard } from '@/features/demo/board';
 import { visibleNavigation } from '@/lib/auth/navigation';
 import { getSessionUser } from '@/lib/auth/session';
-import { clientEnv } from '@/lib/env';
 
 /*
  * El armazón lee el tablero de demostración para alimentar tres cosas que
@@ -64,13 +63,12 @@ export default function AppLayout({ children }: { readonly children: React.React
         {/* Por debajo de xl la barra vive en un panel lateral que abre la
             barra superior, no desaparece sin sustituto. */}
         <div className="hidden xl:block">
-          <Sidebar groups={groups} appName={clientEnv.NEXT_PUBLIC_APP_NAME} badges={badges} />
+          <Sidebar groups={groups} badges={badges} />
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar
             groups={groups}
-            appName={clientEnv.NEXT_PUBLIC_APP_NAME}
             badges={badges}
             targets={targets}
             userName={user.fullName}

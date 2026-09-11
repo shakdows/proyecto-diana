@@ -20,7 +20,12 @@ export function ProgressBar({
   const value = Math.min(100, Math.max(0, percent));
 
   return (
-    <div className={cn('flex items-center gap-2', className)}>
+    /*
+     * `min-w-0 flex-1`: sin esto, dentro de un contenedor flex la barra se
+     * encoge a su contenido —que no tiene ancho propio— y desaparece. Se veía
+     * el porcentaje flotando sin barra al lado, que es peor que no ponerla.
+     */
+    <div className={cn('flex min-w-0 flex-1 items-center gap-2', className)}>
       <div
         role="progressbar"
         aria-valuenow={Math.round(value)}

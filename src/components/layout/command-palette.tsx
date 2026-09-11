@@ -95,15 +95,19 @@ export function CommandPalette({ targets }: { readonly targets: readonly Command
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          'flex h-9 w-full max-w-md items-center gap-2.5 rounded-control border border-border',
-          'bg-surface-sunken px-3 text-sm text-fg-subtle',
+          // `min-w-0 flex-1`, no `w-full`: dentro de la barra superior, un
+          // ancho del 100 % se mide contra el contenedor y empuja fuera de
+          // pantalla al grupo de la derecha. A 390 px el documento desbordaba
+          // 21 px de lado.
+          'flex h-11 min-w-0 flex-1 max-w-lg items-center gap-3 rounded-[0.875rem] border border-border',
+          'bg-surface-sunken px-4 text-sm text-fg-subtle',
           'transition-colors duration-150 hover:border-border-strong hover:text-fg-muted',
         )}
       >
-        <Search aria-hidden className="size-4 shrink-0" />
-        <span className="truncate">Buscar placa, orden, VIN o cliente…</span>
-        <kbd className="ml-auto hidden shrink-0 rounded-chip border border-border bg-surface px-1.5 py-0.5 font-mono text-[0.625rem] text-fg-subtle sm:block">
-          ⌘K
+        <Search aria-hidden className="size-[1.125rem] shrink-0" />
+        <span className="truncate">Buscar placa, orden o cliente…</span>
+        <kbd className="ml-auto hidden shrink-0 rounded-chip border border-border bg-surface px-2 py-1 text-[0.6875rem] font-medium text-fg-subtle sm:block">
+          Ctrl K
         </kbd>
       </button>
 
@@ -137,7 +141,7 @@ export function CommandPalette({ targets }: { readonly targets: readonly Command
                 if (target !== undefined) go(target.href);
               }
             }}
-            placeholder="Buscar placa, orden, VIN o cliente…"
+            placeholder="Buscar placa, orden o cliente…"
             aria-label="Buscar"
             className="h-14 w-full bg-transparent text-base text-fg outline-none placeholder:text-fg-subtle"
           />

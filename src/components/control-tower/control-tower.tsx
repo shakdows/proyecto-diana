@@ -1,35 +1,30 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
-import { ArrowRight, SlidersHorizontal } from 'lucide-react';
-import { Avatar } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { CorporateBadge, Plate } from '@/components/ui/plate';
+import { useState } from 'react';
+import { ArrowRight, Camera, FileText, MoreHorizontal, Phone } from 'lucide-react';
+import { AssetImage } from '@/components/ui/asset-image';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { StatusChip } from '@/components/ui/status-chip';
 import { TrafficLightDot } from '@/components/ui/traffic-light';
-import { Drawer } from '@/components/overlay/modal';
 import { EmptyState } from '@/components/feedback/states';
-import { Timeline, type TimelineEvent } from '@/components/ui/timeline';
+import { CorporateBadge } from '@/components/ui/plate';
 import { vocabularyFor } from '@/features/equipment/services/equipment-kind';
 import type { BoardRow } from '@/features/demo/board';
-import { formatMinutes } from '@/features/repairs/services/time-tracking';
-import { formatDayTime, formatNumber, formatTime } from '@/lib/utils/format';
+import { formatDayTime, formatNumber } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
-import { OrderCard, OrderRow, OrderRowHeader } from './order-row';
 
 /**
- * Torre de control.
+ * Vehículos en proceso, con detalle fijo al costado.
  *
- * Los tres filtros de arriba no son decoración: son las tres preguntas que un
- * asesor se hace al llegar —«qué hay», «qué se me está yendo de las manos»,
- * «qué ya llegó tarde»—. Cada uno lleva su recuento, de modo que el filtro
- * informa aunque no se pulse.
+ * La fila seleccionada no abre un panel que tape la lista: alimenta la tarjeta
+ * de la derecha, que está siempre visible. El asesor recorre la lista con el
+ * cliente al teléfono y va viendo el detalle sin perder de vista en qué punto
+ * de la lista estaba.
+ *
+ * La primera fila queda seleccionada al cargar, para que la tarjeta nunca
+ * aparezca vacía pidiendo que alguien haga algo antes de servir para nada.
  */
-
-type Filter = 'todos' | 'atencion' | 'retrasados';
-
 export function ControlTower({
   rows,
   now,
@@ -37,259 +32,252 @@ export function ControlTower({
   readonly rows: readonly BoardRow[];
   readonly now: Date;
 }) {
-  const [filter, setFilter] = useState<Filter>('todos');
-  const [selected, setSelected] = useState<BoardRow | null>(null);
-
-  const counts = useMemo(
-    () => ({
-      todos: rows.length,
-      // «Atención» incluye lo rojo y lo ámbar, pero NO el gris: una orden que
-      // espera al cliente no se arregla corriendo, se arregla llamando.
-      atencion: rows.filter((r) => r.light.color === 'rojo' || r.light.color === 'amarillo').length,
-      retrasados: rows.filter((r) => r.light.color === 'rojo').length,
-    }),
-    [rows],
-  );
-
-  const visible = useMemo(() => {
-    if (filter === 'atencion') {
-      return rows.filter((r) => r.light.color === 'rojo' || r.light.color === 'amarillo');
-    }
-    if (filter === 'retrasados') return rows.filter((r) => r.light.color === 'rojo');
-    return rows;
-  }, [rows, filter]);
-
-  const tabs: readonly { id: Filter; label: string }[] = [
-    { id: 'todos', label: 'Todos' },
-    { id: 'atencion', label: 'Requieren atención' },
-    { id: 'retrasados', label: 'Retrasados' },
-  ];
+  const [selectedId, setSelectedId] = useState(rows[0]?.order.id ?? '');
+  const selected = rows.find((r) => r.order.id === selectedId) ?? rows[0];
 
   return (
-    <section className="overflow-hidden rounded-panel border border-border bg-surface-raised">
-      <header className="flex flex-wrap items-start justify-between gap-4 px-5 py-4">
-        <div>
-          <h2 className="font-display text-base font-semibold tracking-tight text-fg">
-            Control Tower
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_21rem]">
+      <section className="min-w-0 rounded-panel border border-border bg-surface-raised">
+        <header className="flex items-center justify-between gap-4 px-5 py-4">
+          <h2 className="font-display text-lg font-semibold tracking-tight text-fg">
+            Vehículos en proceso
           </h2>
-          <p className="mt-0.5 text-sm text-fg-muted">
-            Seguimiento en tiempo real de los vehículos en proceso.
-          </p>
-        </div>
+          <Link
+            href="/ordenes"
+            className="shrink-0 text-sm font-medium text-brand-600 transition-colors hover:text-brand-700"
+          >
+            Ver todos
+          </Link>
+        </header>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <div role="tablist" aria-label="Filtrar órdenes" className="flex rounded-control bg-surface-sunken p-0.5">
-            {tabs.map((tab) => {
-              const active = tab.id === filter;
-              return (
-                <button
-                  key={tab.id}
-                  role="tab"
-                  type="button"
-                  aria-selected={active}
-                  onClick={() => setFilter(tab.id)}
-                  className={cn(
-                    'flex items-center gap-1.5 rounded-[0.4rem] px-3 py-1.5 text-xs font-medium',
-                    'transition-colors duration-150 ease-snap',
-                    active
-                      ? 'bg-surface text-fg shadow-raise'
-                      : 'text-fg-muted hover:text-fg',
-                  )}
-                >
-                  {tab.label}
-                  <span
-                    data-numeric
-                    className={cn(
-                      'rounded-chip px-1.5 py-0.5 text-[0.625rem] font-semibold',
-                      active ? 'bg-brand-50 text-brand-700' : 'bg-graphite-100 text-fg-subtle',
-                    )}
-                  >
-                    {counts[tab.id]}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+        {rows.length === 0 ? (
+          <EmptyState
+            title="No hay vehículos en proceso"
+            hint="Registra una recepción para abrir la primera orden."
+          />
+        ) : (
+          <ul className="space-y-2 px-3 pb-3">
+            {rows.map((row) => (
+              <li key={row.order.id}>
+                <VehicleRow
+                  row={row}
+                  now={now}
+                  selected={row.order.id === selected?.order.id}
+                  onSelect={() => setSelectedId(row.order.id)}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
-          <Button variant="secondary" size="sm" type="button">
-            <SlidersHorizontal aria-hidden className="size-3.5" />
-            Filtros
-          </Button>
-        </div>
+      <div className="min-w-0 space-y-5">
+        {selected !== undefined && <QuickDetail row={selected} />}
+        <ServicePromo />
+      </div>
+    </div>
+  );
+}
+
+function VehicleRow({
+  row,
+  now,
+  selected,
+  onSelect,
+}: {
+  readonly row: BoardRow;
+  readonly now: Date;
+  readonly selected: boolean;
+  readonly onSelect: () => void;
+}) {
+  const { order, eta } = row;
+  const vocab = vocabularyFor(order.equipmentKind);
+
+  return (
+    <div
+      className={cn(
+        'group relative flex items-center gap-3 rounded-panel border px-3 py-3',
+        'transition-colors duration-150 ease-snap',
+        selected
+          ? 'border-brand-200 bg-brand-50'
+          : 'border-border bg-surface-raised hover:bg-surface-sunken',
+      )}
+    >
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-pressed={selected}
+        aria-label={`Ver el detalle de ${order.plate}, ${order.vehicle}`}
+        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+      >
+        <AssetImage
+          alt={`Fotografía de ${order.vehicle}`}
+          rounded="control"
+          className="size-14 shrink-0"
+        />
+
+        <span className="w-[5.5rem] shrink-0">
+          <span className="inline-flex rounded-chip border border-border-strong bg-surface px-2 py-1 font-mono text-xs font-bold tracking-[0.06em] text-fg">
+            {order.plate.replace(/^(.{3})(.*)$/u, '$1-$2')}
+          </span>
+        </span>
+
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold text-fg">{order.vehicle}</span>
+          <span className="block truncate text-xs text-fg-subtle">
+            {order.modelYear} · {order.customer}
+          </span>
+        </span>
+
+        <span className="hidden w-32 shrink-0 sm:block">
+          <StatusChip status={order.status} />
+        </span>
+
+        <span className="hidden w-36 shrink-0 items-center gap-2 md:flex">
+          <ProgressBar
+            percent={row.progressPercent}
+            label={`Avance de ${order.code}`}
+            showValue={false}
+          />
+          <span data-numeric className="shrink-0 text-xs font-semibold text-fg">
+            {Math.round(row.progressPercent)}%
+          </span>
+        </span>
+
+        <span className="hidden w-20 shrink-0 text-right lg:block">
+          {eta.etaAt === null ? (
+            <span className="text-xs text-fg-subtle">Sin ETA</span>
+          ) : (
+            <>
+              <span className="block text-[0.625rem] uppercase tracking-wide text-fg-subtle">
+                ETA
+              </span>
+              <span data-numeric className="block text-sm font-semibold text-fg">
+                {formatDayTime(eta.etaAt, now)}
+              </span>
+            </>
+          )}
+        </span>
+      </button>
+
+      <Link
+        href={`/ordenes/${order.id}`}
+        aria-label={`Abrir la orden ${order.code}`}
+        className={cn(
+          'grid size-9 shrink-0 place-items-center rounded-control transition-colors duration-150',
+          selected
+            ? 'bg-brand-600 text-white hover:bg-brand-700'
+            : 'bg-surface-sunken text-fg-muted hover:bg-graphite-200 hover:text-fg',
+        )}
+      >
+        <ArrowRight aria-hidden className="size-4" />
+      </Link>
+
+      <span className="sr-only">
+        {order.serviceType} · {formatNumber(order.usage)} {vocab.usageUnit}
+      </span>
+    </div>
+  );
+}
+
+/** Ficha del vehículo seleccionado, con las tres acciones que más se usan. */
+function QuickDetail({ row }: { readonly row: BoardRow }) {
+  const { order, light } = row;
+
+  return (
+    <section className="rounded-panel border border-border bg-surface-raised p-5">
+      <header className="flex items-center justify-between gap-3">
+        <h2 className="font-display text-base font-semibold tracking-tight text-fg">
+          Detalle rápido
+        </h2>
+        <MoreHorizontal aria-hidden className="size-4 text-fg-subtle" />
       </header>
 
-      {visible.length === 0 ? (
-        <EmptyState
-          title={
-            filter === 'retrasados'
-              ? 'Ninguna orden va retrasada'
-              : 'Ninguna orden requiere atención'
-          }
-          hint="Todo el taller está dentro de los tiempos previstos."
-          action={
-            <Button variant="secondary" size="sm" type="button" onClick={() => setFilter('todos')}>
-              Ver todas las órdenes
-            </Button>
-          }
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <span className="inline-flex rounded-chip border border-border-strong bg-surface px-2.5 py-1 font-mono text-sm font-bold tracking-[0.06em] text-fg">
+          {order.plate.replace(/^(.{3})(.*)$/u, '$1-$2')}
+        </span>
+        <StatusChip status={order.status} />
+      </div>
+
+      <p className="mt-3 text-sm font-medium text-fg">
+        {order.vehicle} · {order.modelYear}
+      </p>
+      <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm text-fg-muted">
+        <span>Cliente: {order.customer}</span>
+        {order.corporateClient !== null && <CorporateBadge name={order.corporateClient} />}
+      </p>
+
+      <div className="mt-4 flex items-center gap-3">
+        <ProgressBar
+          percent={row.progressPercent}
+          label={`Avance de ${order.code}`}
+          showValue={false}
         />
-      ) : (
-        <>
-          <div className="hidden overflow-x-auto xl:block">
-            <div className="min-w-[72rem]">
-              <OrderRowHeader />
-              {visible.map((row) => (
-                <OrderRow key={row.order.id} row={row} now={now} onOpen={setSelected} />
-              ))}
-            </div>
-          </div>
+        <span data-numeric className="shrink-0 text-sm font-semibold text-fg">
+          {Math.round(row.progressPercent)}%
+        </span>
+      </div>
 
-          <div className="border-t border-border xl:hidden">
-            {visible.map((row) => (
-              <OrderCard key={row.order.id} row={row} now={now} onOpen={setSelected} />
-            ))}
-          </div>
-        </>
-      )}
+      <p className="mt-3">
+        <TrafficLightDot color={light.color} reason={light.reason} showLabel />
+      </p>
 
-      <OrderDrawer row={selected} now={now} onClose={() => setSelected(null)} />
+      <div className="mt-5 grid grid-cols-3 gap-2 border-t border-border pt-4">
+        <QuickAction href={`/ordenes/${order.id}`} icon={<FileText />} label="Ver orden" />
+        <QuickAction href={`/ordenes/${order.id}`} icon={<Camera />} label="Evidencias" />
+        <QuickAction href={`/clientes`} icon={<Phone />} label="Contactar" />
+      </div>
     </section>
   );
 }
 
-/**
- * Detalle rápido.
- *
- * Existe para no navegar cuando solo hay que mirar. El asesor tiene al cliente
- * al teléfono preguntando por su camioneta: abre, lee, cierra y sigue en la
- * lista donde estaba. Ir a la ficha completa y volver le cuesta el sitio.
- */
-function OrderDrawer({
-  row,
-  now,
-  onClose,
+function QuickAction({
+  href,
+  icon,
+  label,
 }: {
-  readonly row: BoardRow | null;
-  readonly now: Date;
-  readonly onClose: () => void;
+  readonly href: string;
+  readonly icon: React.ReactNode;
+  readonly label: string;
 }) {
-  if (row === null) {
-    // El diálogo sigue montado y cerrado: desmontarlo se salta la animación de
-    // salida y el navegador pierde el foco que tenía que devolver a la fila.
-    return (
-      <Drawer open={false} onClose={onClose} title="">
-        {null}
-      </Drawer>
-    );
-  }
-
-  const { order, light, eta, totals } = row;
-  const vocab = vocabularyFor(order.equipmentKind);
-
-  const events: readonly TimelineEvent[] = order.sessions.map((session, i) => ({
-    id: `s${i}`,
-    at: formatTime(session.startedAt),
-    title: session.kind === 'trabajo' ? 'Trabajo iniciado' : 'Pausa registrada',
-    detail: session.pauseReason,
-    tone: session.kind === 'trabajo' ? 'brand' : 'warn',
-  }));
-
   return (
-    <Drawer
-      open
-      onClose={onClose}
-      title={order.serviceType}
-      description={`${order.code} · ${order.vehicle}`}
-      footer={
-        <Link
-          href={`/ordenes/${order.id}`}
-          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-control bg-brand-600 px-4 text-sm font-medium text-white transition-colors duration-150 hover:bg-brand-700"
-        >
-          Abrir la orden completa
-          <ArrowRight aria-hidden className="size-4" />
-        </Link>
-      }
+    <Link
+      href={href}
+      className="flex flex-col items-center gap-1.5 rounded-control py-2 text-center transition-colors duration-150 hover:bg-surface-sunken"
     >
-      <div className="flex items-center gap-3">
-        <Plate value={order.plate} size="lg" />
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-fg">{order.vehicle}</p>
-          <p data-numeric className="text-xs text-fg-subtle">
-            {order.modelYear} · {formatNumber(order.usage)} {vocab.usageUnit}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-5 flex flex-wrap items-center gap-2">
-        <StatusChip status={order.status} />
-        <TrafficLightDot color={light.color} reason={light.reason} showLabel />
-      </div>
-
-      <div className="mt-5">
-        <div className="flex items-baseline justify-between">
-          <span className="text-sm text-fg-muted">Avance</span>
-          <span data-numeric className="font-display text-2xl font-semibold text-fg">
-            {row.progressPercent} %
-          </span>
-        </div>
-        <ProgressBar percent={row.progressPercent} label={`Avance de ${order.code}`} className="mt-2" />
-      </div>
-
-      <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-5 text-sm">
-        <Detail label="Cliente">
-          <span className="text-fg">{order.customer}</span>
-          {order.corporateClient !== null && (
-            <CorporateBadge name={order.corporateClient} className="ml-1.5" />
-          )}
-        </Detail>
-        <Detail label="Asesor">{order.advisor}</Detail>
-        <Detail label="Técnico">
-          {order.technician === null ? (
-            <span className="text-fg-subtle">Sin asignar</span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5">
-              <Avatar name={order.technician} size="sm" />
-              {order.technician}
-            </span>
-          )}
-        </Detail>
-        <Detail label="Tiempo efectivo">
-          <span data-numeric>{formatMinutes(totals.effectiveMinutes)}</span>
-        </Detail>
-        <Detail label="Entrega estimada">
-          <span data-numeric>
-            {eta.etaAt === null ? 'En espera de un tercero' : formatDayTime(eta.etaAt, now)}
-          </span>
-        </Detail>
-        <Detail label="Entrega prometida">
-          <span data-numeric>
-            {row.promisedAt === null ? '—' : formatDayTime(row.promisedAt, now)}
-          </span>
-        </Detail>
-      </dl>
-
-      {events.length > 0 && (
-        <div className="mt-5 border-t border-border pt-5">
-          <h3 className="mb-3 text-xs font-medium uppercase tracking-[0.06em] text-fg-subtle">
-            Sesiones de trabajo
-          </h3>
-          <Timeline events={events} />
-        </div>
-      )}
-    </Drawer>
+      <span
+        aria-hidden
+        className="grid size-9 place-items-center rounded-control bg-surface-sunken text-fg-muted [&>svg]:size-4"
+      >
+        {icon}
+      </span>
+      <span className="text-[0.6875rem] text-fg-muted">{label}</span>
+    </Link>
   );
 }
 
-function Detail({
-  label,
-  children,
-}: {
-  readonly label: string;
-  readonly children: React.ReactNode;
-}) {
+/** Bloque de marca. Es lo único de la pantalla que no informa de la operación. */
+function ServicePromo() {
   return (
-    <div className="min-w-0">
-      <dt className="text-xs text-fg-subtle">{label}</dt>
-      <dd className="mt-0.5 truncate text-sm text-fg-muted">{children}</dd>
-    </div>
+    <section className="relative overflow-hidden rounded-panel bg-graphite-950 p-5 text-graphite-200">
+      <div
+        aria-hidden
+        className="absolute inset-y-0 right-0 w-1/2 bg-linear-to-l from-brand-900/50 to-transparent"
+      />
+      <div className="relative">
+        <p className="font-display text-lg font-semibold leading-snug tracking-tight text-white">
+          Un servicio
+          <br />
+          de calidad te lleva
+          <br />
+          más lejos.
+        </p>
+        <span aria-hidden className="mt-3 block h-0.5 w-10 rounded-full bg-brand-500" />
+        <p className="mt-3 text-xs text-graphite-400">
+          Más que un taller, somos tu aliado en el camino.
+        </p>
+      </div>
+    </section>
   );
 }

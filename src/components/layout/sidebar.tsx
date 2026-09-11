@@ -2,69 +2,23 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import { useCallback, useSyncExternalStore } from 'react';
 import type { NavGroup } from '@/lib/auth/navigation';
-import { Tooltip } from '@/components/ui/tooltip';
+import { RomeroLockup } from '@/components/brand/romero-logo';
 import { cn } from '@/lib/utils/cn';
 import { NavIcon } from './nav-icon';
 
 /**
- * Barra lateral del centro de operaciones.
+ * Barra lateral.
  *
- * Dos decisiones que no son de estilo:
+ * Lista plana sin encabezados de sección, con el elemento activo como pastilla
+ * azul llena y la línea única que separa operación de sistema. Al pie, la
+ * ilustración, la frase de marca y el estado del servicio.
  *
- * 1. El elemento activo NO es un rectángulo azul lleno. Con veinte entradas y
- *    una siempre encendida, ese bloque saturado se convierte en el objeto más
- *    llamativo de la pantalla y compite con los datos, que es lo que hay que
- *    mirar. Aquí se marca con una barra vertical, un fondo apenas teñido y el
- *    icono en azul: se reconoce de un vistazo y no grita.
- *
- * 2. Colapsable a 72 px. En un portátil de 1366 px, 260 px de menú son el 19 %
- *    del ancho gastado en algo que se usa una vez cada diez minutos. Colapsada
- *    quedan los iconos, y cada uno conserva su nombre en `aria-label` más una
- *    etiqueta emergente para el puntero.
+ * La ilustración del vehículo es SVG y no una fotografía: ocupa el ancho
+ * completo de una barra oscura, y una foto ahí obliga a tener recorte propio,
+ * versión para cada densidad y un peso que se descarga en cada visita para
+ * algo que nadie mira dos veces.
  */
-
-const STORAGE_KEY = 'diana:sidebar-collapsed';
-
-/*
- * La preferencia vive en `localStorage`, que es un almacén EXTERNO a React.
- * Leerlo en un efecto y llamar a `setState` funciona, pero renderiza dos veces
- * y la barra se ve saltar de ancho en cada carga. `useSyncExternalStore` está
- * hecho justo para esto: el servidor renderiza siempre expandida y el cliente
- * corrige en el mismo paso de hidratación, sin parpadeo ni desajuste de HTML.
- */
-const listeners = new Set<() => void>();
-/** Si el navegador bloquea el almacenamiento, la preferencia dura la sesión. */
-let fallback = false;
-
-function subscribe(notify: () => void): () => void {
-  listeners.add(notify);
-  window.addEventListener('storage', notify);
-  return () => {
-    listeners.delete(notify);
-    window.removeEventListener('storage', notify);
-  };
-}
-
-function readCollapsed(): boolean {
-  try {
-    return window.localStorage.getItem(STORAGE_KEY) === '1';
-  } catch {
-    return fallback;
-  }
-}
-
-function writeCollapsed(value: boolean): void {
-  fallback = value;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, value ? '1' : '0');
-  } catch {
-    /* Sin almacenamiento la barra sigue plegándose; solo no se recuerda. */
-  }
-  for (const notify of listeners) notify();
-}
 
 function isActive(pathname: string, href: string): boolean {
   if (href === '/admin') return pathname === '/admin';
@@ -73,177 +27,121 @@ function isActive(pathname: string, href: string): boolean {
 
 export function Sidebar({
   groups,
-  appName,
   badges = {},
-  collapsible = true,
   onNavigate,
 }: {
   readonly groups: readonly NavGroup[];
-  readonly appName: string;
   readonly badges?: Readonly<Record<string, number>>;
-  readonly collapsible?: boolean;
   readonly onNavigate?: () => void;
 }) {
   const pathname = usePathname();
-  const stored = useSyncExternalStore(subscribe, readCollapsed, () => false);
-  // En el panel lateral de tablet la barra ocupa todo el ancho disponible:
-  // plegarla ahí no ahorra nada y deja un menú de iconos sin motivo.
-  const collapsed = collapsible && stored;
-
-  const toggle = useCallback((): void => {
-    writeCollapsed(!readCollapsed());
-  }, []);
 
   return (
     <nav
       aria-label="Navegación principal"
-      data-collapsed={collapsed ? '' : undefined}
-      className={cn(
-        'flex h-full shrink-0 flex-col bg-graphite-950 text-graphite-200',
-        'transition-[width] duration-200 ease-snap',
-        collapsed ? 'w-[4.5rem]' : 'w-[16.25rem]',
-      )}
+      className="flex h-full w-[16.5rem] shrink-0 flex-col bg-graphite-950 text-graphite-300"
     >
-      <header
-        className={cn(
-          'flex shrink-0 items-center gap-2.5 border-b border-white/5 px-4 py-4',
-          collapsed && 'justify-center px-0',
-        )}
-      >
-        <Link
-          href="/"
-          onClick={onNavigate}
-          className="flex min-w-0 items-center gap-2.5 rounded-control"
-        >
-          <span
-            aria-hidden
-            className="grid size-9 shrink-0 place-items-center rounded-control bg-brand-600 font-display text-base font-bold text-white"
-          >
-            D
-          </span>
-          {!collapsed && (
-            <span className="min-w-0">
-              <span className="block truncate font-display text-sm font-semibold tracking-tight text-white">
-                {appName}
-              </span>
-              <span className="block truncate text-[0.6875rem] tracking-wide text-graphite-400">
-                Automotive Operations
-              </span>
-            </span>
-          )}
+      <header className="shrink-0 px-5 py-5">
+        <Link href="/" onClick={onNavigate} className="inline-flex rounded-control">
+          <RomeroLockup />
         </Link>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-        <div className="flex flex-col gap-5">
-          {groups.map((group) => (
-            <div key={group.label}>
-              {!collapsed && (
-                <h2 className="px-2 pb-1.5 text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-graphite-500">
-                  {group.label}
-                </h2>
-              )}
-              {collapsed && <div aria-hidden className="mx-2 mb-2 h-px bg-white/5" />}
-
-              <ul className="space-y-0.5">
-                {group.items.map((item) => {
-                  const active = isActive(pathname, item.href);
-                  const badge = badges[item.href];
-
-                  const link = (
-                    <Link
-                      href={item.href}
-                      onClick={onNavigate}
-                      aria-current={active ? 'page' : undefined}
-                      aria-label={collapsed ? item.label : undefined}
-                      className={cn(
-                        'relative flex h-10 items-center rounded-control text-sm',
-                        'transition-colors duration-150 ease-snap',
-                        collapsed ? 'w-11 justify-center' : 'gap-2.5 px-2.5',
-                        active
-                          ? 'bg-brand-600/15 font-medium text-white'
-                          : 'text-graphite-300 hover:bg-white/5 hover:text-white',
-                      )}
-                    >
-                      {/* La barra vertical hace el trabajo que hacía el bloque azul. */}
-                      {active && (
-                        <span
-                          aria-hidden
-                          className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-brand-400"
-                        />
-                      )}
-                      <NavIcon
-                        name={item.icon}
-                        className={cn(
-                          'size-[1.125rem] shrink-0',
-                          active ? 'text-brand-400' : 'text-graphite-400',
-                        )}
-                      />
-                      {!collapsed && <span className="truncate">{item.label}</span>}
-                      {!collapsed && badge !== undefined && badge > 0 && (
-                        <span
-                          data-numeric
-                          className={cn(
-                            'ml-auto rounded-chip px-1.5 py-0.5 text-[0.625rem] font-semibold',
-                            active
-                              ? 'bg-brand-500/25 text-brand-200'
-                              : 'bg-white/8 text-graphite-300',
-                          )}
-                        >
-                          {badge}
-                        </span>
-                      )}
-                      {collapsed && badge !== undefined && badge > 0 && (
-                        <span
-                          aria-hidden
-                          className="absolute right-1 top-1 size-1.5 rounded-full bg-brand-400"
-                        />
-                      )}
-                    </Link>
-                  );
-
-                  return (
-                    <li key={item.href}>
-                      {collapsed ? <Tooltip label={item.label}>{link}</Tooltip> : link}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <footer className="shrink-0 border-t border-white/5 px-3 py-3">
-        {!collapsed && (
-          <p className="mb-2 flex items-center gap-2 px-2 text-[0.6875rem] text-graphite-400">
-            <span aria-hidden className="size-1.5 rounded-full bg-ok-500" />
-            Sistema operativo
-          </p>
-        )}
-
-        {collapsible && (
-          <button
-            type="button"
-            onClick={toggle}
-            aria-label={collapsed ? 'Expandir el menú' : 'Contraer el menú'}
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
+        {groups.map((group, groupIndex) => (
+          <ul
+            key={group.label}
             className={cn(
-              'flex h-9 items-center rounded-control text-xs text-graphite-400',
-              'transition-colors duration-150 hover:bg-white/5 hover:text-white',
-              collapsed ? 'w-11 justify-center' : 'w-full gap-2.5 px-2.5',
+              'space-y-1',
+              groupIndex > 0 && 'mt-4 border-t border-white/8 pt-4',
             )}
           >
-            {collapsed ? (
-              <PanelLeftOpen aria-hidden className="size-4" />
-            ) : (
-              <>
-                <PanelLeftClose aria-hidden className="size-4" />
-                <span>Contraer</span>
-              </>
-            )}
-          </button>
-        )}
+            {group.items.map((item) => {
+              const active = isActive(pathname, item.href);
+              const badge = badges[item.href];
+
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={onNavigate}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      'flex h-11 items-center gap-3 rounded-[0.75rem] px-3.5 text-sm',
+                      'transition-colors duration-150 ease-snap',
+                      active
+                        ? 'bg-brand-600 font-semibold text-white shadow-raise'
+                        : 'text-graphite-300 hover:bg-white/6 hover:text-white',
+                    )}
+                  >
+                    <NavIcon
+                      name={item.icon}
+                      className={cn('size-5 shrink-0', active ? 'text-white' : 'text-graphite-400')}
+                    />
+                    <span className="truncate">{item.label}</span>
+
+                    {badge !== undefined && badge > 0 && (
+                      <span
+                        data-numeric
+                        className={cn(
+                          'ml-auto rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold',
+                          active ? 'bg-white/20 text-white' : 'bg-white/8 text-graphite-300',
+                        )}
+                      >
+                        {badge}
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        ))}
+      </div>
+
+      <footer className="shrink-0 px-5 pb-5">
+        <CarSilhouette />
+
+        <p className="mt-3 text-[0.9375rem] leading-snug text-graphite-300">
+          La tecnología también
+          <br />
+          mueve confianza.
+        </p>
+
+        <p className="mt-4 flex items-center gap-2.5 rounded-panel bg-white/5 px-3.5 py-3">
+          <span aria-hidden className="size-2.5 shrink-0 rounded-full bg-ok-500" />
+          <span className="min-w-0 leading-tight">
+            <span className="block text-xs font-medium text-graphite-100">Sistema operativo</span>
+            <span data-numeric className="block text-[0.6875rem] text-graphite-500">
+              v1.0.0
+            </span>
+          </span>
+        </p>
       </footer>
     </nav>
+  );
+}
+
+/** Silueta de vehículo, apenas insinuada: es textura de marca, no información. */
+function CarSilhouette() {
+  return (
+    <svg viewBox="0 0 240 96" aria-hidden className="w-full text-graphite-800">
+      <defs>
+        <linearGradient id="car-fade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="currentColor" stopOpacity="0.95" />
+          <stop offset="100%" stopColor="currentColor" stopOpacity="0.15" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M14 72c0-6 4-11 10-12l14-2 18-22c5-6 12-9 20-9h56c9 0 17 4 23 11l16 19 24 4c7 1 12 6 12 13v6c0 3-2 5-5 5h-16a20 20 0 0 0-40 0H82a20 20 0 0 0-40 0H19c-3 0-5-2-5-5v-8z"
+        fill="url(#car-fade)"
+      />
+      <circle cx="62" cy="78" r="12" className="fill-graphite-900" />
+      <circle cx="62" cy="78" r="5" className="fill-graphite-700" />
+      <circle cx="162" cy="78" r="12" className="fill-graphite-900" />
+      <circle cx="162" cy="78" r="5" className="fill-graphite-700" />
+      {/* Faro encendido: el único punto de luz, como en el original. */}
+      <path d="M214 60h14c4 0 6 3 5 6l-1 3h-18z" className="fill-brand-500/70" />
+    </svg>
   );
 }
