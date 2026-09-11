@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PageHeader } from '@/components/layout/page-header';
 import { Panel, PanelHeader } from '@/components/ui/panel';
-import { Badge } from '@/components/ui/badge';
 import { Plate } from '@/components/ui/plate';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { StatusChip } from '@/components/ui/status-chip';
@@ -24,7 +23,6 @@ export default function OrdenesPage() {
       <PageHeader
         title="Órdenes de servicio"
         description="Todo el recorrido del vehículo queda registrado en una única orden."
-        actions={<Badge tone="warn">Datos de demostración · Fase 1</Badge>}
       />
 
       <Panel>

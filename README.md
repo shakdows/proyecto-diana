@@ -20,10 +20,12 @@ región `gru1`.
 
 | Ruta | Qué muestra |
 | --- | --- |
+| [`/presentacion`](https://proyecto-diana-blue.vercel.app/presentacion) | Página de presentación del producto, sin login ni datos |
 | [`/tablero`](https://proyecto-diana-blue.vercel.app/tablero) | Control tower: todas las órdenes vivas con avance, hora estimada y semáforo |
 | [`/ordenes`](https://proyecto-diana-blue.vercel.app/ordenes) | Listado de órdenes |
 | [`/ordenes/os-154`](https://proyecto-diana-blue.vercel.app/ordenes/os-154) | Detalle con el desglose del avance y las acciones que la máquina de estados permite |
 | [`/api/health`](https://proyecto-diana-blue.vercel.app/api/health) | Salud del servicio, sin sesión |
+| [`/vista-previa/index.html`](https://proyecto-diana-blue.vercel.app/vista-previa/index.html) | Las 25 pantallas congeladas como HTML estático |
 
 > ⚠️ Las pantallas **todavía no leen de la base de datos**: eso llega en la
 > Fase 3. Muestran su estructura real con datos marcados como de demostración,
