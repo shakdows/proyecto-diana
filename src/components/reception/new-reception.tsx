@@ -287,7 +287,7 @@ export function NewReception({ known }: { readonly known: readonly KnownVehicle[
               <div className="lg:col-span-2">
                 <section className="flex flex-wrap items-center gap-5 rounded-panel border border-border bg-surface-raised p-5">
                   <AssetImage
-                    alt={`Fotografía de ${found.vehicle}`}
+                    alt={found.vehicle}
                     subject={found.vehicle}
                     className="h-28 w-52 shrink-0"
                   />

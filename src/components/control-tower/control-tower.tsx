@@ -37,7 +37,16 @@ export function ControlTower({
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_21rem]">
-      <section className="min-w-0 rounded-panel border border-border bg-surface-raised">
+      {/* ⚠️ `@container`: la fila decide por SU ancho, no por el de la ventana.
+          A 1280 px la rejilla ya parte en dos columnas y esta lista se queda
+          con 612 px, pero `lg:`/`md:` seguían siendo ciertos y la fila
+          mostraba avance y hora estimada como si tuviera la pantalla entera.
+          Las columnas fijas sumaban más que el ancho disponible, así que la
+          única elástica —el modelo y el cliente— se aplastaba a cero: la fila
+          decía «ABC-123» y nada más, y la hora estimada se montaba encima del
+          botón. Con consultas de contenedor eso no puede volver a pasar en
+          ningún ancho, ni aquí ni donde se reutilice la lista. */}
+      <section className="@container min-w-0 rounded-panel border border-border bg-surface-raised">
         <header className="flex items-center justify-between gap-4 px-5 py-4">
           <h2 className="font-display text-lg font-semibold tracking-tight text-fg">
             Vehículos en proceso
@@ -111,7 +120,7 @@ function VehicleRow({
         className="flex min-w-0 flex-1 items-center gap-3 text-left"
       >
         <AssetImage
-          alt={`Fotografía de ${order.vehicle}`}
+          alt={order.vehicle}
           subject={order.vehicle}
           equipmentKind={order.equipmentKind}
           fit="cover"
@@ -125,18 +134,18 @@ function VehicleRow({
           </span>
         </span>
 
-        <span className="min-w-0 flex-1">
+        <span className="min-w-[7rem] flex-1">
           <span className="block truncate text-sm font-semibold text-fg">{order.vehicle}</span>
           <span className="block truncate text-xs text-fg-subtle">
             {order.modelYear} · {order.customer}
           </span>
         </span>
 
-        <span className="hidden w-32 shrink-0 sm:block">
+        <span className="hidden w-32 shrink-0 @xl:block">
           <StatusChip status={order.status} />
         </span>
 
-        <span className="hidden w-36 shrink-0 items-center gap-2 md:flex">
+        <span className="hidden w-36 shrink-0 items-center gap-2 @3xl:flex">
           <ProgressBar
             percent={row.progressPercent}
             label={`Avance de ${order.code}`}
@@ -147,7 +156,7 @@ function VehicleRow({
           </span>
         </span>
 
-        <span className="hidden w-20 shrink-0 text-right lg:block">
+        <span className="hidden w-20 shrink-0 text-right @4xl:block">
           {eta.etaAt === null ? (
             <span className="text-xs text-fg-subtle">Sin ETA</span>
           ) : (

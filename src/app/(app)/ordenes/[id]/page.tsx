@@ -98,7 +98,7 @@ export default async function OrdenPage({
           </div>
 
           <AssetImage
-            alt={`Fotografía de ${order.vehicle}`}
+            alt={order.vehicle}
             subject={order.vehicle}
             equipmentKind={order.equipmentKind}
             className="hidden h-36 w-72 shrink-0 lg:block"

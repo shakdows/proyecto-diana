@@ -18,6 +18,21 @@ import { NavIcon } from './nav-icon';
  * completo de una barra oscura, y una foto ahí obliga a tener recorte propio,
  * versión para cada densidad y un peso que se descarga en cada visita para
  * algo que nadie mira dos veces.
+ *
+ * ⚠️ LA DECORACIÓN CEDE, LA NAVEGACIÓN NO.
+ *
+ * La ilustración y la frase van DENTRO del área que se desplaza, empujadas
+ * abajo con `mt-auto`. En una pantalla alta se ven exactamente donde se veían
+ * —pegadas al pie—, pero cuando falta alto son ellas las que se salen, no los
+ * enlaces.
+ *
+ * Antes estaban fijas en el pie y se llevaban 233 px pasara lo que pasara. Con
+ * el rol de administrador —doce entradas— en un portátil de 862 px, eso dejaba
+ * 542 px para 617 px de enlaces: «Configuración» salía partida por la mitad y
+ * «Auditoría» no se veía en absoluto. Un menú que esconde entradas sin avisar
+ * es peor que uno feo.
+ *
+ * El estado del servicio sí sigue anclado: es información, no adorno.
  */
 
 function isActive(pathname: string, href: string): boolean {
@@ -41,19 +56,20 @@ export function Sidebar({
       aria-label="Navegación principal"
       className="flex h-full w-[16.5rem] shrink-0 flex-col bg-graphite-950 text-graphite-300"
     >
-      <header className="shrink-0 px-5 py-5">
+      <header className="shrink-0 px-5 py-5 [@media(max-height:50rem)]:py-4">
         <Link href="/" onClick={onNavigate} className="inline-flex rounded-control">
           <RomeroLockup />
         </Link>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 pb-4">
         {groups.map((group, groupIndex) => (
           <ul
             key={group.label}
             className={cn(
-              'space-y-1',
-              groupIndex > 0 && 'mt-4 border-t border-white/8 pt-4',
+              'space-y-1 [@media(max-height:50rem)]:space-y-0.5',
+              groupIndex > 0 &&
+                'mt-4 border-t border-white/8 pt-4 [@media(max-height:50rem)]:mt-3 [@media(max-height:50rem)]:pt-3',
             )}
           >
             {group.items.map((item) => {
@@ -68,6 +84,10 @@ export function Sidebar({
                     aria-current={active ? 'page' : undefined}
                     className={cn(
                       'flex h-11 items-center gap-3 rounded-[0.75rem] px-3.5 text-sm',
+                      // Pantalla baja: 40 px en vez de 44. Son 48 px ganados
+                      // sobre doce entradas, que es justo lo que separa un menú
+                      // completo de uno que esconde «Auditoría».
+                      '[@media(max-height:50rem)]:h-10',
                       'transition-colors duration-150 ease-snap',
                       active
                         ? 'bg-brand-600 font-semibold text-white shadow-raise'
@@ -97,18 +117,19 @@ export function Sidebar({
             })}
           </ul>
         ))}
+        <div className="mt-auto shrink-0 px-2 pt-8">
+          <CarSilhouette />
+
+          <p className="mt-3 text-[0.9375rem] leading-snug text-graphite-300">
+            La tecnología también
+            <br />
+            mueve confianza.
+          </p>
+        </div>
       </div>
 
-      <footer className="shrink-0 px-5 pb-5">
-        <CarSilhouette />
-
-        <p className="mt-3 text-[0.9375rem] leading-snug text-graphite-300">
-          La tecnología también
-          <br />
-          mueve confianza.
-        </p>
-
-        <p className="mt-4 flex items-center gap-2.5 rounded-panel bg-white/5 px-3.5 py-3">
+      <footer className="shrink-0 px-5 pb-5 pt-4">
+        <p className="flex items-center gap-2.5 rounded-panel bg-white/5 px-3.5 py-3">
           <span aria-hidden className="size-2.5 shrink-0 rounded-full bg-ok-500" />
           <span className="min-w-0 leading-tight">
             <span className="block text-xs font-medium text-graphite-100">Sistema operativo</span>
