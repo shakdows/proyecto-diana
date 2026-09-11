@@ -373,15 +373,21 @@ export function NewReception({ known }: { readonly known: readonly KnownVehicle[
         >
           Cancelar
         </Link>
-        <Button
-          type="button"
-          disabled={found === null}
-          title={found === null ? 'Busca primero la placa del vehículo' : undefined}
-          onClick={() => setDraft((d) => ({ ...d, vehicleConfirmed: true }))}
-        >
-          Continuar
-          <ArrowRight aria-hidden className="size-4" />
-        </Button>
+        {found === null ? (
+          <Button type="button" disabled title="Busca primero la placa del vehículo">
+            Continuar
+            <ArrowRight aria-hidden className="size-4" />
+          </Button>
+        ) : (
+          <Link
+            href="/recepcion/nueva/checklist"
+            onClick={() => setDraft((d) => ({ ...d, vehicleConfirmed: true }))}
+            className="inline-flex h-11 items-center gap-2 rounded-control bg-brand-600 px-4 text-sm font-medium text-white transition-colors duration-150 hover:bg-brand-700 active:scale-[0.98]"
+          >
+            Continuar
+            <ArrowRight aria-hidden className="size-4" />
+          </Link>
+        )}
       </section>
     </>
   );
