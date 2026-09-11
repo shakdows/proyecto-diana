@@ -23,6 +23,9 @@ import {
   type ChecklistState,
   type ItemResult,
 } from '@/features/reception/services/checklist';
+import type { DamageMark } from '@/features/reception/services/damage-map';
+import { usePersistentState } from '@/lib/demo/store';
+import { DamageDiagram } from './damage-diagram';
 import { cn } from '@/lib/utils/cn';
 
 const STORAGE_KEY = 'diana:recepcion-checklist';
@@ -45,6 +48,12 @@ export function VehicleChecklist({
   readonly plate: string;
 }) {
   const [state, setState] = useState<ChecklistState>({});
+  /* Los daños se guardan igual que el resto del trabajo de la demostración:
+     quien deja la recepción a medias y vuelve, la encuentra como estaba. */
+  const [damage, setDamage] = usePersistentState<readonly DamageMark[]>(
+    `recepcion.${plate}.danos`,
+    [],
+  );
   const [open, setOpen] = useState<string>(CHECKLIST[0]?.id ?? '');
   const [restored, setRestored] = useState(false);
 
@@ -121,6 +130,11 @@ export function VehicleChecklist({
           </span>
         </p>
       )}
+
+      {/* Antes de las 42 comprobaciones: el estado en que llega la carrocería.
+          Va primero porque es lo que se mira dando una vuelta al vehículo, que
+          es lo primero que hace el asesor al recibirlo. */}
+      <DamageDiagram marks={damage} onChange={setDamage} />
 
       <div className="space-y-3">
         {CHECKLIST.map((section) => {
