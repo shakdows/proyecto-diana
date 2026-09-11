@@ -52,22 +52,36 @@ sobre el genérico sin tocar código.
 
 Extensiones aceptadas: `.jpg`, `.jpeg`, `.png`, `.webp`, `.avif`.
 
-Formato recomendado: **WebP, 1200 px de ancho, calidad 80** (unos 80–150 kB).
-Recorte apaisado 16:9 o 3:2, el vehículo de tres cuartos y centrado; los huecos
-de la interfaz recortan al centro (`object-cover`).
+Formato recomendado: **PNG con fondo transparente**, o WebP con transparencia,
+1200 px de ancho. Los recortes de la guía de marca —«VEHÍCULOS (PNG CON FONDO
+TRANSPARENTE)»— son exactamente lo que va aquí: el vehículo de tres cuartos,
+sin fondo, centrado. Sin transparencia también funciona, pero se verá un
+rectángulo de estudio dentro de tarjetas que tienen su propio color.
+
+Peso: por debajo de 150 kB cada una.
 
 ### Flota de la demostración
 
 Estos son los ocho nombres que la demostración busca hoy:
 
-    toyota-hilux.jpg        Toyota Hilux SRV
-    mitsubishi-l200.jpg     Mitsubishi L200
-    hyundai-tucson.jpg      Hyundai Tucson
-    kia-sportage.jpg        Kia Sportage
-    toyota-corolla.jpg      Toyota Corolla
-    nissan-frontier.jpg     Nissan Frontier
-    mg-zs.jpg               MG ZS
-    cat-320d.jpg            CAT 320D  (excavadora, no es un auto)
+    toyota-hilux.png        Toyota Hilux SRV      ← está en la guía
+    hyundai-tucson.png      Hyundai Tucson        ← está en la guía
+    kia-sportage.png        Kia Sportage          ← está en la guía
+    toyota-corolla.png      Toyota Corolla        ← está en la guía
+    mitsubishi-l200.png     Mitsubishi L200       ← FALTA en la guía
+    nissan-frontier.png     Nissan Frontier       ← FALTA en la guía
+    mg-zs.png               MG ZS                 ← FALTA en la guía
+    cat-320d.png            CAT 320D              ← FALTA (excavadora)
+
+La guía de marca trae ocho recortes, pero solo cuatro son de la flota de la
+demostración. Los otros cuatro que trae —Land Cruiser, RAV4, Fortuner,
+Prado— no corresponden a ninguna orden abierta, así que no se usarían.
+
+Dos salidas, las dos válidas: pedir los cuatro que faltan, o cambiar la flota
+de demostración a los vehículos que sí hay. Lo que NO hay que hacer es poner
+la foto de un Land Cruiser bajo la placa de un L200: en un sistema cuya razón
+de ser es probar en qué estado entró un vehículo, una foto que no es la del
+vehículo es peor que ninguna foto.
 
 ## 4 · Después de dejar los archivos
 

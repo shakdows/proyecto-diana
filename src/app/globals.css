@@ -45,6 +45,9 @@
   --color-brand-600: #146ef5;
   --color-brand-500: #3b86f7;
   --color-brand-400: #6aa4f9;
+  /* Cian de la guía de marca. Acompaña al azul en degradados y trazos de
+     acento; NUNCA viste texto ni estados, que ya tienen sus colores. */
+  --color-accent-400: #22d3ee;
   --color-brand-300: #9cc3fb;
   --color-brand-200: #c6dcfd;
   --color-brand-100: #e3eefe;
@@ -144,19 +147,19 @@
 :root {
   --surface: #ffffff;
   --surface-raised: #ffffff;
-  --surface-sunken: #f5f7fa;
+  --surface-sunken: #f6f8fb;
   --surface-inverted: #101820;
   --fg: #0f172a;
   /*
    * `fg-muted` es #475569 y no el #64748B del texto secundario: sobre
-   * #F5F7FA, #64748B da 4.3:1 —por debajo de AA para texto normal—. El gris
+   * #F6F8FB, #64748B da 4.3:1 —por debajo de AA para texto normal—. El gris
    * más claro queda para `fg-subtle`, que solo viste rótulos y unidades, y
    * nunca frases que haya que leer.
    */
   --fg-muted: #475569;
   --fg-subtle: #64748b;
   --fg-inverted: #f5f7fa;
-  --border: #e2e8f0;
+  --border: #e5eaf0;
   --border-strong: #cbd5e1;
   --focus: #146ef5;
   color-scheme: light;

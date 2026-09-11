@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { RomeroMark, RomeroWordmark } from '@/components/brand/romero-logo';
+import { DianaLockup } from '@/components/brand/diana-logo';
+import { BlueWave, HexPattern } from '@/components/brand/surfaces';
 import { AssetImage } from '@/components/ui/asset-image';
 import type { RoleCode } from '@/lib/auth/permissions';
 import { clientEnv } from '@/lib/env';
@@ -66,6 +68,16 @@ function ShowcasePanel() {
         aria-hidden
         className="absolute inset-0 bg-linear-to-br from-graphite-950 via-graphite-950/85 to-brand-950/70"
       />
+      {/* El lenguaje gráfico de la guía: retícula hexagonal de fondo y las
+          ondas azules cruzando por debajo del texto. Dibujados, no imágenes:
+          escalan a cualquier pantalla, siguen el azul de marca si cambia y no
+          hay descarga que esperar antes de ver la portada entera. */}
+      <HexPattern className="text-white/[0.04]" />
+      <BlueWave className="opacity-60" />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -left-32 top-1/3 size-[28rem] rounded-full bg-brand-600/20 blur-3xl"
+      />
 
       <div className="relative flex h-full flex-col justify-between p-10 xl:p-14">
         {/* Momento de marca: aquí el logotipo va con su color, porque no hay
@@ -78,12 +90,7 @@ function ShowcasePanel() {
         </header>
 
         <div className="max-w-xl">
-          <p className="font-display text-5xl font-bold uppercase leading-none tracking-tight text-white xl:text-6xl">
-            Diana
-          </p>
-          <p className="mt-2 font-display text-xl font-semibold uppercase tracking-[0.14em] text-brand-400 xl:text-2xl">
-            Automotive Operations
-          </p>
+          <DianaLockup size="lg" endorsement={false} />
 
           <h1 className="mt-8 font-display text-3xl font-semibold leading-tight tracking-tight text-white xl:text-[2.5rem]">
             Control inteligente del

@@ -1,8 +1,9 @@
 /**
  * GENERADO POR `npm run assets`. No editar a mano.
  *
- * Ruta del logotipo oficial si alguien lo dejó en `public/marca/`; `null` si
- * todavía no está y hay que dibujar la reconstrucción.
+ * Rutas de los logotipos oficiales si alguien los dejó en `public/marca/`;
+ * `null` si todavía no están y hay que dibujar la reconstrucción.
  */
 
 export const OFFICIAL_LOGO: string | null = null;
+export const OFFICIAL_DIANA: string | null = null;

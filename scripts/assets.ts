@@ -29,6 +29,12 @@ const BRAND_NAMES = [
   'romero-motors.png',
   'romero-motors.jpg',
 ] as const;
+const DIANA_NAMES = [
+  'diana.svg',
+  'diana.webp',
+  'diana.png',
+  'logo-diana.png',
+] as const;
 
 function render(files: readonly string[]): string {
   const list =
@@ -70,36 +76,54 @@ function writeIfChanged(target: string, next: string, label: string): void {
  * el código lo dice: las letras son la tipográfica del sistema, no los trazos
  * originales.
  */
-function brand(): void {
+function firstPresent(folder: string, names: readonly string[]): string | null {
   let present: readonly string[] = [];
   try {
-    present = readdirSync(BRAND_FOLDER);
+    present = readdirSync(folder);
   } catch {
     // Carpeta ausente: se dibuja la reconstrucción, que es la verdad.
+    return null;
   }
+  return names.find((name) => present.includes(name)) ?? null;
+}
 
-  const found = BRAND_NAMES.find((name) => present.includes(name)) ?? null;
-  const value = found === null ? 'null' : `'/marca/${found}'`;
+/**
+ * Los dos logotipos.
+ *
+ * Mientras no estén, la aplicación dibuja reconstrucciones. No es lo mismo y
+ * el código lo dice: las letras son la tipográfica del sistema, no los trazos
+ * originales.
+ */
+function brand(): void {
+  const romero = firstPresent(BRAND_FOLDER, BRAND_NAMES);
+  const diana = firstPresent(BRAND_FOLDER, DIANA_NAMES);
+  const ref = (found: string | null): string => (found === null ? 'null' : `'/marca/${found}'`);
 
   writeIfChanged(
     BRAND_TARGET,
     `/**
  * GENERADO POR \`npm run assets\`. No editar a mano.
  *
- * Ruta del logotipo oficial si alguien lo dejó en \`public/marca/\`; \`null\` si
- * todavía no está y hay que dibujar la reconstrucción.
+ * Rutas de los logotipos oficiales si alguien los dejó en \`public/marca/\`;
+ * \`null\` si todavía no están y hay que dibujar la reconstrucción.
  */
 
-export const OFFICIAL_LOGO: string | null = ${value};
+export const OFFICIAL_LOGO: string | null = ${ref(romero)};
+export const OFFICIAL_DIANA: string | null = ${ref(diana)};
 `,
     'marca',
   );
 
-  console.log(
-    found === null
-      ? '  · sin logotipo oficial: se dibuja la reconstrucción (ver public/marca/README.md)'
-      : `  ✓ ${found}`,
-  );
+  for (const [nombre, found] of [
+    ['Romero Motors', romero],
+    ['DIANA', diana],
+  ] as const) {
+    console.log(
+      found === null
+        ? `  · ${nombre}: sin archivo oficial, se dibuja la reconstrucción`
+        : `  ✓ ${nombre}: ${found}`,
+    );
+  }
 }
 
 function main(): void {
