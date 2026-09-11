@@ -1,8 +1,8 @@
 {
-  "name": "automotive-cx",
+  "name": "proyecto-diana",
   "version": "0.1.0",
   "private": true,
-  "description": "Automotive Customer Experience Platform — medición, análisis y reporte de satisfacción de clientes del sector automotriz.",
+  "description": "Plataforma integral de gestión de taller automotriz y experiencia del cliente: recepción, orden de servicio, diagnóstico, cotización, compras, reparación, entrega y satisfacción.",
   "engines": {
     "node": ">=22.0.0"
   },
@@ -18,7 +18,8 @@
     "db:studio": "drizzle-kit studio",
     "db:seed:catalog": "tsx scripts/seed-catalog.ts",
     "db:seed:demo": "tsx scripts/seed-demo.ts",
-    "check": "npm run typecheck && npm run lint"
+    "check": "npm run typecheck && npm run lint && npm run test",
+    "test": "tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
