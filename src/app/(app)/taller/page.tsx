@@ -26,6 +26,11 @@ export default function Page() {
           label: 'Solicitud de repuestos',
           detail: 'Pedir las piezas de los trabajos que el cliente autorizó.',
         },
+        {
+          href: '/taller/reparacion',
+          label: 'Reparación y cronómetro',
+          detail: 'Cronómetro, pasos del trabajo y pausas con motivo.',
+        },
       ]}
     />
   );
