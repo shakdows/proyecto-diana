@@ -15,7 +15,7 @@ import { computeProgress } from '@/features/repairs/services/progress';
 import { formatMinutes } from '@/features/repairs/services/time-tracking';
 import { orderCoverage } from '@/features/parts/services/coverage';
 import { getSessionUser } from '@/lib/auth/session';
-import { formatTime } from '@/lib/utils/format';
+import { formatDayTime, formatNumber } from '@/lib/utils/format';
 
 export const metadata: Metadata = { title: 'Orden de servicio' };
 
@@ -59,8 +59,10 @@ export default async function OrdenPage({
   return (
     <>
       <PageHeader
-        title={row.order.code}
-        description={`${row.order.vehicle} · ${row.order.customer} · ${row.order.serviceType}`}
+        title={row.order.serviceType}
+        description={`${row.order.code} · ${row.order.vehicle} · ${row.order.machineType} · ${formatNumber(
+          row.order.horometerHours,
+        )} h · ${row.order.customer}`}
         actions={
           <div className="flex items-center gap-2">
             <Plate value={row.order.plate} />
@@ -191,19 +193,19 @@ export default async function OrdenPage({
                   </dd>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <dt className="text-fg-muted">Hora estimada</dt>
+                  <dt className="text-fg-muted">Entrega estimada</dt>
                   <dd className="font-medium text-fg">
                     {row.eta.etaAt === null ? (
                       <span className="text-fg-subtle">En espera de un tercero</span>
                     ) : (
-                      <span data-numeric>{formatTime(row.eta.etaAt)}</span>
+                      <span data-numeric>{formatDayTime(row.eta.etaAt, now)}</span>
                     )}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <dt className="text-fg-muted">Hora prometida</dt>
+                  <dt className="text-fg-muted">Entrega prometida</dt>
                   <dd data-numeric className="font-medium text-fg">
-                    {row.promisedAt === null ? '—' : formatTime(row.promisedAt)}
+                    {row.promisedAt === null ? '—' : formatDayTime(row.promisedAt, now)}
                   </dd>
                 </div>
               </dl>

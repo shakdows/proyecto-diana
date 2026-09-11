@@ -30,6 +30,10 @@ export interface DemoOrder {
   readonly code: string;
   readonly plate: string;
   readonly vehicle: string;
+  /** Excavadora, tractor oruga, cargador frontal… */
+  readonly machineType: string;
+  /** Horómetro. La maquinaria pesada se mantiene por horas, no por kilómetros. */
+  readonly horometerHours: number;
   readonly customer: string;
   readonly corporateClient: string | null;
   readonly advisor: string;
@@ -68,8 +72,56 @@ export interface BoardRow {
 }
 
 const MIN = 60_000;
+const DAY = 86_400_000;
 const ago = (now: Date, minutes: number): Date => new Date(now.getTime() - minutes * MIN);
 const ahead = (now: Date, minutes: number): Date => new Date(now.getTime() + minutes * MIN);
+
+/**
+ * Hora de cierre a la que el taller promete entregar.
+ *
+ * Los desfases de esta demostración son relativos a «ahora» para que el
+ * tablero esté siempre vivo, pero un desfase crudo hace que una entrega a
+ * tres días caiga a la 01:17 de la madrugada. Ningún taller promete a esa
+ * hora, y en una pantalla que se enseña a un cliente eso se lee como un
+ * error. La promesa se lleva al cierre de la jornada del día que toque,
+ * conservando si ya venció o no.
+ *
+ * `-05:00` es fijo a propósito: Perú no cambia de hora, y esto son datos de
+ * demostración, no el reloj de producción —ese sale de `branches.timezone`.
+ */
+const CLOSING_HOUR = '17:00';
+
+function limaDay(date: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Lima',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+function closingOn(date: Date): Date {
+  return new Date(`${limaDay(date)}T${CLOSING_HOUR}:00-05:00`);
+}
+
+/**
+ * La promesa, al cierre de la jornada, sin cruzar el «ahora».
+ *
+ * Una orden vencida debe seguir vencida después de redondear, y una en plazo
+ * seguir en plazo: el semáforo cuelga de eso.
+ */
+function promisedAtFor(now: Date, minutes: number): Date {
+  const raw = ahead(now, minutes);
+  const snapped = closingOn(raw);
+
+  if (minutes >= 0 && snapped.getTime() <= now.getTime()) {
+    return closingOn(new Date(raw.getTime() + DAY));
+  }
+  if (minutes < 0 && snapped.getTime() >= now.getTime()) {
+    return closingOn(new Date(raw.getTime() - DAY));
+  }
+  return snapped;
+}
 
 /** Sesiones de trabajo y pausa a partir de tramos relativos a «ahora». */
 function sessions(
@@ -92,8 +144,8 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
     isDemo: true as const,
     corporateClient: null,
     finalStagesDone: 0,
-    checklistRequired: 24,
-    checklistResolved: 24,
+    checklistRequired: 38,
+    checklistResolved: 38,
     diagnosticItemCount: 0,
     repairJobsTotal: 0,
     repairJobsDone: 0,
@@ -112,53 +164,58 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       ...base,
       id: 'os-154',
       code: 'OS-2026-000154',
-      plate: 'ABC123',
-      vehicle: 'Toyota Hilux 2021',
-      customer: 'Juan Pérez',
+      plate: 'EXC014',
+      vehicle: 'CAT 320D',
+      machineType: 'Excavadora',
+      horometerHours: 8420,
+      customer: 'Tierras Andes S.A.C.',
       advisor: 'Andrea López',
       technician: 'Carlos Mendoza',
-      serviceType: 'Mantenimiento correctivo',
+      serviceType: 'REPOSICION MOTOR',
       status: 'EN_REPARACION',
-      openedMinutesAgo: 540,
-      promisedInMinutes: 205,
-      estimatedMinutes: 182,
-      startedMinutesAgo: 180,
+      openedMinutesAgo: 2880,
+      promisedInMinutes: 1560,
+      estimatedMinutes: 1440,
+      startedMinutesAgo: 900,
       sessions: sessions(now, [
-        ['trabajo', 180, 120],
-        ['pausa', 120, 90, 'refrigerio'],
-        ['trabajo', 90, null],
+        ['trabajo', 900, 540],
+        ['pausa', 540, 420, 'fin_de_turno'],
+        ['trabajo', 420, null],
       ]),
       parts: [
-        { partId: 'p1', description: 'Pastillas delanteras', required: 1, received: 1 },
-        { partId: 'p2', description: 'Filtro de aire', required: 1, received: 1 },
+        { partId: 'p1', description: 'Culata reparada 3066', required: 1, received: 1 },
+        { partId: 'p2', description: 'Juego de anillos STD', required: 6, received: 6 },
+        { partId: 'p3', description: 'Metales de biela 0.50', required: 6, received: 6 },
       ],
       quotationLineCount: 4,
       decidedItemCount: 4,
       approvedItemCount: 3,
       diagnosticItemCount: 4,
       repairJobsTotal: 4,
-      repairJobsDone: 3,
+      repairJobsDone: 2,
       finalStages: ['lavado'],
     },
     {
       ...base,
       id: 'os-155',
       code: 'OS-2026-000155',
-      plate: 'V2K481',
-      vehicle: 'Mitsubishi L200 2019',
-      customer: 'Transportes del Sur S.A.C.',
-      corporateClient: 'Mitsui',
+      plate: 'TRC207',
+      vehicle: 'Komatsu D65EX-16',
+      machineType: 'Tractor oruga',
+      horometerHours: 12760,
+      customer: 'Contratistas Huari S.A.C.',
+      corporateClient: 'Minera Huari',
       advisor: 'Andrea López',
       technician: 'Luis Ramírez',
-      serviceType: 'Mantenimiento preventivo',
+      serviceType: 'CONTROL VALVULA',
       status: 'ESPERANDO_REPUESTOS',
-      openedMinutesAgo: 1620,
-      promisedInMinutes: -120,
-      estimatedMinutes: 150,
+      openedMinutesAgo: 5760,
+      promisedInMinutes: -480,
+      estimatedMinutes: 720,
       parts: [
-        { partId: 'p1', description: 'Pastillas delanteras', required: 2, received: 2 },
-        { partId: 'p2', description: 'Filtros', required: 3, received: 1 },
-        { partId: 'p3', description: 'Aceite 15W40', required: 5, received: 5 },
+        { partId: 'p1', description: 'Válvula de control principal', required: 1, received: 0 },
+        { partId: 'p2', description: 'Kit de sellos de válvula', required: 2, received: 2 },
+        { partId: 'p3', description: 'Manguera hidráulica 3/4"', required: 4, received: 3 },
       ],
       quotationLineCount: 5,
       decidedItemCount: 5,
@@ -170,14 +227,16 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       ...base,
       id: 'os-156',
       code: 'OS-2026-000156',
-      plate: 'D9M772',
-      vehicle: 'Hyundai Tucson 2023',
-      customer: 'María Quispe',
+      plate: 'CRG031',
+      vehicle: 'CAT 950H',
+      machineType: 'Cargador frontal',
+      horometerHours: 15340,
+      customer: 'Vega Pacífico E.I.R.L.',
       advisor: 'Diego Salas',
       technician: 'Carlos Mendoza',
-      serviceType: 'Planchado y pintura · Seguro',
+      serviceType: 'TRANSMISION',
       status: 'ESPERANDO_CLIENTE',
-      openedMinutesAgo: 2900,
+      openedMinutesAgo: 10080,
       promisedInMinutes: null,
       quotationLineCount: 6,
       decidedItemCount: 2,
@@ -187,47 +246,59 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       ...base,
       id: 'os-157',
       code: 'OS-2026-000157',
-      plate: 'B4T019',
-      vehicle: 'Kia Sportage 2022',
-      customer: 'Banco Continental',
-      corporateClient: 'BBVA',
+      plate: 'EXC022',
+      vehicle: 'Komatsu PC200-8',
+      machineType: 'Excavadora',
+      horometerHours: 6180,
+      customer: 'Vial Sur S.A.',
+      corporateClient: 'Consorcio Vial Sur',
       advisor: 'Andrea López',
       technician: 'Rosa Huamán',
-      serviceType: 'Mantenimiento preventivo',
+      serviceType: 'MANDO FINAL',
       status: 'EN_REPARACION',
-      openedMinutesAgo: 300,
-      promisedInMinutes: 300,
-      estimatedMinutes: 240,
-      startedMinutesAgo: 105,
-      sessions: sessions(now, [['trabajo', 105, null]]),
+      openedMinutesAgo: 1440,
+      promisedInMinutes: 900,
+      estimatedMinutes: 960,
+      startedMinutesAgo: 420,
+      sessions: sessions(now, [['trabajo', 420, null]]),
+      parts: [
+        { partId: 'p1', description: 'Mando final completo LH', required: 1, received: 1 },
+        { partId: 'p2', description: 'Aceite 80W90', required: 12, received: 12 },
+      ],
       quotationLineCount: 3,
       decidedItemCount: 3,
       approvedItemCount: 3,
       diagnosticItemCount: 3,
       repairJobsTotal: 3,
       repairJobsDone: 2,
-      finalStages: ['lavado', 'alineamiento'],
+      finalStages: ['lavado'],
     },
     {
       ...base,
       id: 'os-158',
       code: 'OS-2026-000158',
-      plate: 'C7X330',
-      vehicle: 'Toyota Corolla 2020',
-      customer: 'Renting Andino S.A.',
-      corporateClient: 'Relsa',
+      plate: 'TRC115',
+      vehicle: 'John Deere 850K',
+      machineType: 'Tractor oruga',
+      horometerHours: 9905,
+      customer: 'Canteras del Norte S.A.C.',
+      corporateClient: 'Agregados Pacífico',
       advisor: 'Diego Salas',
       technician: 'Luis Ramírez',
-      serviceType: 'Mantenimiento correctivo',
+      serviceType: 'TREN DE RODAJE',
       status: 'REPARACION_PAUSADA',
-      openedMinutesAgo: 480,
-      promisedInMinutes: 150,
-      estimatedMinutes: 240,
-      startedMinutesAgo: 200,
+      openedMinutesAgo: 4320,
+      promisedInMinutes: 600,
+      estimatedMinutes: 1200,
+      startedMinutesAgo: 1500,
       sessions: sessions(now, [
-        ['trabajo', 200, 60],
-        ['pausa', 60, null, 'espera_autorizacion', true],
+        ['trabajo', 1500, 480],
+        ['pausa', 480, null, 'espera_autorizacion', true],
       ]),
+      parts: [
+        { partId: 'p1', description: 'Rodillo inferior', required: 8, received: 8 },
+        { partId: 'p2', description: 'Zapata 600 mm', required: 4, received: 4 },
+      ],
       quotationLineCount: 4,
       decidedItemCount: 4,
       approvedItemCount: 2,
@@ -240,34 +311,41 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       ...base,
       id: 'os-159',
       code: 'OS-2026-000159',
-      plate: 'F1P845',
-      vehicle: 'Nissan Frontier 2018',
-      customer: 'Inversiones Vega E.I.R.L.',
-      corporateClient: 'Invetsa',
+      plate: 'RTR008',
+      vehicle: 'CAT 420F',
+      machineType: 'Retroexcavadora',
+      horometerHours: 4250,
+      customer: 'Agregados Ccahuana E.I.R.L.',
       advisor: 'Andrea López',
       technician: null,
-      serviceType: 'Mantenimiento preventivo',
+      serviceType: 'MANTENIMIENTO 500 H',
       status: 'PENDIENTE_DIAGNOSTICO',
       openedMinutesAgo: 95,
-      promisedInMinutes: 400,
+      promisedInMinutes: 1200,
     },
     {
       ...base,
       id: 'os-160',
       code: 'OS-2026-000160',
-      plate: 'G8R204',
-      vehicle: 'MG ZS 2024',
-      customer: 'Automotores MG Perú',
-      corporateClient: 'MG',
+      plate: 'CAM044',
+      vehicle: 'Volvo A30G',
+      machineType: 'Camión articulado',
+      horometerHours: 18420,
+      customer: 'Mineros Yanac S.A.C.',
+      corporateClient: 'Minera Huari',
       advisor: 'Diego Salas',
       technician: 'Rosa Huamán',
-      serviceType: 'Mantenimiento preventivo',
+      serviceType: 'SISTEMA DE FRENO',
       status: 'EN_LAVADO',
-      openedMinutesAgo: 620,
-      promisedInMinutes: -45,
-      estimatedMinutes: 90,
-      startedMinutesAgo: 400,
-      sessions: sessions(now, [['trabajo', 400, 310]]),
+      openedMinutesAgo: 2160,
+      promisedInMinutes: -90,
+      estimatedMinutes: 480,
+      startedMinutesAgo: 1200,
+      sessions: sessions(now, [['trabajo', 1200, 720]]),
+      parts: [
+        { partId: 'p1', description: 'Disco de freno húmedo', required: 6, received: 6 },
+        { partId: 'p2', description: 'Kit de sellos de freno', required: 2, received: 2 },
+      ],
       quotationLineCount: 2,
       decidedItemCount: 2,
       approvedItemCount: 2,
@@ -280,15 +358,17 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       ...base,
       id: 'os-161',
       code: 'OS-2026-000161',
-      plate: 'H3L967',
-      vehicle: 'Chevrolet Sail 2017',
+      plate: 'EXC019',
+      vehicle: 'CAT 336D',
+      machineType: 'Excavadora',
+      horometerHours: 11030,
       customer: 'Pedro Ccahuana',
       advisor: 'Andrea López',
       technician: null,
-      serviceType: 'Mantenimiento correctivo',
+      serviceType: 'REPOSICION TURBO',
       status: 'RECEPCIONADO',
       openedMinutesAgo: 18,
-      promisedInMinutes: 600,
+      promisedInMinutes: 2400,
       checklistResolved: 9,
     },
   ];
@@ -346,7 +426,7 @@ export function toBoardRow(order: DemoOrder, now: Date): BoardRow {
   });
 
   const promisedAt =
-    order.promisedInMinutes === null ? null : ahead(now, order.promisedInMinutes);
+    order.promisedInMinutes === null ? null : promisedAtFor(now, order.promisedInMinutes);
 
   const progress = computeProgress({
     status: order.status,

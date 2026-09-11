@@ -7,7 +7,7 @@ export default function Page() {
   return (
     <PhasePlaceholder
       title="Recepción"
-      description="Recepción del vehículo, checklist digital, diagrama de daños y firmas."
+      description="Recepción del equipo, checklist digital, diagrama de daños y firmas."
       phase={5}
       delivers={[
           'Formulario de recepción optimizado para tablet',

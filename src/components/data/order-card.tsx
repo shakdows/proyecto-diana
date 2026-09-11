@@ -6,7 +6,7 @@ import { StatusChip } from '@/components/ui/status-chip';
 import { TrafficLightDot } from '@/components/ui/traffic-light';
 import type { BoardRow } from '@/features/demo/board';
 import { formatMinutes } from '@/features/repairs/services/time-tracking';
-import { formatTime } from '@/lib/utils/format';
+import { formatDayTime, formatNumber } from '@/lib/utils/format';
 
 /**
  * Una orden como tarjeta, para tablet y móvil.
@@ -17,7 +17,7 @@ import { formatTime } from '@/lib/utils/format';
  * con el cliente delante. La tarjeta entra entera en pantalla y se toca
  * completa.
  */
-export function OrderCard({ row }: { readonly row: BoardRow }) {
+export function OrderCard({ row, now }: { readonly row: BoardRow; readonly now: Date }) {
   const { order } = row;
 
   return (
@@ -29,8 +29,15 @@ export function OrderCard({ row }: { readonly row: BoardRow }) {
         <div className="flex items-center gap-2.5">
           <Plate value={order.plate} />
           <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-fg">{order.serviceType}</p>
+            <p className="truncate text-xs text-fg-muted">
+              {order.vehicle}
+              <span data-numeric className="text-fg-subtle">
+                {' · '}
+                {formatNumber(order.horometerHours)} h
+              </span>
+            </p>
             <p className="font-mono text-xs text-fg-subtle">{order.code}</p>
-            <p className="truncate text-sm font-medium text-fg">{order.vehicle}</p>
           </div>
         </div>
         <ChevronRight aria-hidden className="mt-1 size-4 shrink-0 text-graphite-300" />
@@ -55,8 +62,8 @@ export function OrderCard({ row }: { readonly row: BoardRow }) {
         <ProgressBar percent={row.progressPercent} label={`Avance de ${order.code}`} />
       </div>
 
-      <dl className="mt-2 flex gap-5 text-xs">
-        <div className="flex gap-1.5">
+      <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs">
+        <div className="flex gap-1.5 whitespace-nowrap">
           <dt className="text-fg-subtle">
             {row.eta.overrunMinutes > 0 ? 'Excedido' : 'Restante'}
           </dt>
@@ -68,16 +75,18 @@ export function OrderCard({ row }: { readonly row: BoardRow }) {
                 )}
           </dd>
         </div>
-        <div className="flex gap-1.5">
+        <div className="flex gap-1.5 whitespace-nowrap">
           <dt className="text-fg-subtle">Entrega</dt>
           <dd data-numeric className="font-medium text-fg">
-            {row.eta.etaAt === null ? '—' : formatTime(row.eta.etaAt)}
+            {row.eta.etaAt === null ? '—' : formatDayTime(row.eta.etaAt, now)}
           </dd>
         </div>
         {row.promisedAt !== null && (
-          <div className="flex gap-1.5">
+          <div className="flex gap-1.5 whitespace-nowrap">
             <dt className="text-fg-subtle">Prometida</dt>
-            <dd data-numeric className="font-medium text-fg">{formatTime(row.promisedAt)}</dd>
+            <dd data-numeric className="font-medium text-fg">
+              {formatDayTime(row.promisedAt, now)}
+            </dd>
           </div>
         )}
       </dl>

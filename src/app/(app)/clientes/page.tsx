@@ -12,7 +12,7 @@ export default function Page() {
       delivers={[
           'Documento mostrado siempre como •••••123',
           'Ver el número completo exige permiso y queda auditado',
-          'Vehículos asociados e historial de órdenes',
+          'Equipos asociados e historial de órdenes',
           'Pertenencia a cliente corporativo',
       ]}
     />

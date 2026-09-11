@@ -18,7 +18,7 @@ export function Topbar({
         <Search aria-hidden className="absolute left-3 size-4 text-fg-subtle" />
         <input
           type="search"
-          placeholder="Placa, orden, DNI, cliente, VIN…"
+          placeholder="Código de equipo, orden, serie, cliente…"
           className="h-9 w-full rounded-control border border-border bg-surface-sunken pl-9 pr-3 text-sm text-fg placeholder:text-fg-subtle"
         />
       </label>

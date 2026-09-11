@@ -78,12 +78,14 @@ export default function TableroPage() {
           <>
             {/* Tabla en escritorio; tarjetas en tablet y móvil, que es donde
                 trabajan el asesor y el técnico (§56). */}
-            <div className="hidden lg:block">
-              <OrderTable rows={rows} />
+            {/* `overflow-x-auto`: si la ventana es más estrecha que la tabla,
+                la que se desplaza es la tabla, nunca la página entera. */}
+            <div className="hidden overflow-x-auto xl:block">
+              <OrderTable rows={rows} now={now} />
             </div>
-            <div className="lg:hidden">
+            <div className="xl:hidden">
               {rows.map((row) => (
-                <OrderCard key={row.order.id} row={row} />
+                <OrderCard key={row.order.id} row={row} now={now} />
               ))}
             </div>
           </>

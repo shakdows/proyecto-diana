@@ -4,10 +4,10 @@ import { clientEnv } from '@/lib/env';
 
 export const metadata: Metadata = {
   // `absolute` evita la plantilla del layout raíz («%s · Diana»), que
-  // convertía este título en «Diana · Gestión de taller automotriz · Diana».
-  title: { absolute: 'Diana · Gestión de taller automotriz' },
+  // convertía este título en «Diana · Taller de maquinaria pesada · Diana».
+  title: { absolute: 'Diana · Taller de maquinaria pesada' },
   description:
-    'Del ingreso del vehículo a la entrega, en una sola orden de servicio. Diagnóstico con evidencia, aprobación del cliente por ítem, compras trazables y tiempos que miden lo que de verdad hizo el taller.',
+    'Del ingreso del equipo a la entrega, en una sola orden de servicio. Diagnóstico con evidencia, aprobación del cliente por ítem, compras trazables y tiempos que miden lo que de verdad hizo el taller.',
 };
 
 const APP = 'https://proyecto-diana-blue.vercel.app';
@@ -24,7 +24,7 @@ const MOMENTOS = [
   {
     corte: 'Diagnóstico completado',
     mide: 'Capacidad técnica de responder rápido',
-    detalle: 'Desde que el vehículo entra hasta que se sabe qué tiene.',
+    detalle: 'Desde que el equipo entra al patio hasta que se sabe qué tiene.',
   },
   {
     corte: 'El cliente decidió',
@@ -53,7 +53,7 @@ const DECISIONES = [
   {
     titulo: 'El cliente aprueba línea por línea',
     cuerpo:
-      'Puede aprobar las pastillas, rechazar los discos y aprobar el alineamiento en la misma cotización. Solo los trabajos aprobados vuelven al técnico; los rechazados quedan bloqueados y reaparecen como recomendación en la siguiente visita.',
+      'Puede aprobar el mando final, rechazar el tren de rodaje y aprobar el control de válvula en la misma cotización. Solo los trabajos aprobados vuelven al técnico; los rechazados quedan bloqueados y reaparecen como recomendación en el siguiente ingreso.',
   },
   {
     titulo: 'El gris gana al rojo',
@@ -131,7 +131,7 @@ export default function PresentacionPage() {
           </p>
 
           <h1 className="max-w-4xl font-display text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-6xl">
-            Del ingreso del vehículo a la entrega,
+            Del ingreso del equipo a la entrega,
             <span className="text-brand-400"> en una sola orden</span>.
           </h1>
 
@@ -177,7 +177,7 @@ export default function PresentacionPage() {
         <div className="mx-auto max-w-6xl px-5 py-16 lg:px-8 lg:py-24">
           <Eyebrow>Lo que hay que medir bien</Eyebrow>
           <h2 className="max-w-3xl font-display text-3xl font-semibold tracking-tight text-fg lg:text-4xl">
-            Un vehículo pasa por decenas de eventos. Solo cuatro explican si el taller cumple.
+            Un equipo pasa por decenas de eventos. Solo cuatro explican si el taller cumple.
           </h2>
           <p className="mt-4 max-w-2xl text-fg-muted">
             Medir el tiempo total en taller mezcla el trabajo del técnico con la espera del
@@ -251,7 +251,7 @@ export default function PresentacionPage() {
           <p className="mt-10 max-w-3xl text-sm leading-relaxed text-fg-subtle">
             Las reglas no viven solo en la aplicación: la base de datos rechaza un cambio de estado
             fuera del recorrido, la edición de una cotización ya emitida y la ejecución de un
-            trabajo que el cliente rechazó. La línea de tiempo del vehículo la escribe un
+            trabajo que el cliente rechazó. La línea de tiempo del equipo la escribe un
             disparador, así que está completa por construcción.
           </p>
         </div>
@@ -287,7 +287,7 @@ export default function PresentacionPage() {
       <footer className="bg-graphite-950 pb-10">
         <div className="mx-auto max-w-6xl border-t border-graphite-800 px-5 pt-8 lg:px-8">
           <p className="text-xs text-graphite-400">
-            {clientEnv.NEXT_PUBLIC_APP_NAME} · Plataforma de gestión de taller automotriz y
+            {clientEnv.NEXT_PUBLIC_APP_NAME} · Plataforma de gestión de taller de maquinaria pesada y
             experiencia del cliente. Los datos mostrados en el sistema son de demostración.
           </p>
         </div>

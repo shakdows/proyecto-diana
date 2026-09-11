@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils/cn';
  * que un 12. Aquí el recuento vacío se apaga y el que tiene carga se destaca:
  * el asesor busca DÓNDE está atascado el trabajo, no el inventario de etapas.
  *
- * El orden es el del recorrido del vehículo, así que la etapa con acumulación
+ * El orden es el del recorrido del equipo, así que la etapa con acumulación
  * se lee como un cuello de botella y no como una casilla más.
  */
 export interface PipelineStage {

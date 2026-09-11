@@ -70,9 +70,9 @@ export const NAVIGATION: readonly NavGroup[] = [
     ],
   },
   {
-    label: 'Personas y vehículos',
+    label: 'Personas y equipos',
     items: [
-      { href: '/vehiculos', label: 'Vehículos', icon: 'vehiculos', permission: 'vehicles:read', phase: 4 },
+      { href: '/vehiculos', label: 'Equipos', icon: 'vehiculos', permission: 'vehicles:read', phase: 4 },
       { href: '/clientes', label: 'Clientes', icon: 'clientes', permission: 'customers:read', phase: 4 },
     ],
   },

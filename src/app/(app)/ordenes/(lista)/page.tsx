@@ -22,7 +22,7 @@ export default function OrdenesPage() {
     <>
       <PageHeader
         title="Órdenes de servicio"
-        description="Todo el recorrido del vehículo queda registrado en una única orden."
+        description="Todo el recorrido del equipo queda registrado en una única orden."
       />
 
       <Panel>
