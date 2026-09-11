@@ -121,7 +121,7 @@ export function ServiceStation({
 
           <div className="mt-3 flex flex-wrap items-center gap-5">
             <AssetImage
-              alt={`Ilustración de ${current.vehicle}`}
+              alt={current.vehicle}
               subject={current.vehicle}
               fit="cover"
               rounded="control"

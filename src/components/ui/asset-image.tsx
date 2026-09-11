@@ -1,5 +1,7 @@
 import { PartArt } from '@/components/art/part-art';
 import { VehicleArt } from '@/components/art/vehicle-art';
+import { PHOTO_MANIFEST } from '@/features/vehicles/services/manifest';
+import { findPhoto } from '@/features/vehicles/services/photos';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -7,17 +9,20 @@ import { cn } from '@/lib/utils/cn';
  *
  * Orden de preferencia:
  *
- *   1. `src` — el archivo real, cuando exista en `public/`.
- *   2. Ilustración dibujada, elegida por carrocería o por tipo de pieza.
- *   3. Superficie plana, solo para fondos decorativos.
+ *   1. `src` — un archivo concreto, cuando quien llama ya sabe cuál es.
+ *   2. La fotografía del modelo, si alguien dejó una en
+ *      `public/fotos-de-carros/` (ver el README de esa carpeta).
+ *   3. Ilustración dibujada, elegida por carrocería o por tipo de pieza.
+ *   4. Superficie plana, solo para fondos decorativos.
  *
- * El nivel 2 NO es un marcador de posición: un dibujo vectorial a 52 px se ve
+ * El nivel 3 NO es un marcador de posición: un dibujo vectorial a 52 px se ve
  * mejor que una fotografía comprimida al mismo tamaño, escala sin pixelarse y
  * pesa dos kilobytes. En recepción, además, es lo único posible: la foto real
  * del vehículo del cliente se toma DESPUÉS de esta pantalla.
  *
- * Cuando se suban las fotos a `public/`, se pasa `src` y entran sin tocar la
- * maqueta: el hueco ya tiene su tamaño y su recorte.
+ * Por eso el nivel 2 se resuelve por modelo y no por unidad: son fotos
+ * genéricas de catálogo —«así es un Hyundai Tucson»—, nunca evidencia del
+ * cliente, que vive en almacenamiento privado con URL firmada.
  */
 export function AssetImage({
   src,
@@ -49,10 +54,18 @@ export function AssetImage({
         ? 'rounded-control'
         : 'rounded-panel';
 
-  if (src !== undefined) {
+  // Una foto de catálogo solo sustituye al dibujo del vehículo. La evidencia
+  // no se ilustra con la foto de otro coche, y el fondo decorativo es fondo.
+  const photo =
+    src ?? (decorative || kind !== 'vehiculo' ? null : findPhoto(PHOTO_MANIFEST, subject ?? alt));
+
+  if (photo !== null) {
+    /* Siempre recortada, nunca encajada: los huecos tienen alto y ancho fijos,
+       y una foto en `contain` dejaría dos franjas vacías. `fit` sigue mandando
+       sobre el dibujo, que sí se escala entero. */
     /* eslint-disable-next-line @next/next/no-img-element -- rutas locales de
        tamaño conocido; el optimizador no aporta en miniaturas ya recortadas. */
-    return <img src={src} alt={alt} className={cn('object-cover', radius, className)} />;
+    return <img src={photo} alt={alt} className={cn('object-cover', radius, className)} />;
   }
 
   if (decorative) {

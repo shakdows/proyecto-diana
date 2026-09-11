@@ -68,7 +68,7 @@ export default function TableroPage() {
             alt={
               rows[0] === undefined
                 ? 'Vehículo del taller'
-                : `Ilustración de ${rows[0].order.vehicle}`
+                : rows[0].order.vehicle
             }
             subject={rows[0]?.order.vehicle ?? 'sedan'}
             equipmentKind={rows[0]?.order.equipmentKind ?? 'vehiculo'}

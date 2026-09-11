@@ -135,7 +135,7 @@ export function ReadyQueue({ initial }: { readonly initial: readonly ReadyVehicl
               >
                 <div className="flex flex-wrap items-start gap-5">
                   <AssetImage
-                    alt={`Ilustración de ${v.vehicle}`}
+                    alt={v.vehicle}
                     subject={v.vehicle}
                     fit="cover"
                     rounded="control"

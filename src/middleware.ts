@@ -18,6 +18,12 @@ const PUBLIC = [
   '/presentacion',
   '/api/health',
   '/icon.svg',
+  // Fotos genéricas de catálogo. Son públicas por definición —las ve el
+  // cliente en el portal de autorización, que entra sin sesión— y sin esta
+  // línea el middleware las redirigiría a /login y saldrían rotas.
+  // La evidencia del cliente NO vive aquí: va a almacenamiento privado con
+  // URL firmada. Ver public/fotos-de-carros/README.md.
+  '/fotos-de-carros',
   // El cliente llega por enlace y no tiene —ni debe tener— sesión del taller.
   '/autorizacion',
   '/encuesta',

@@ -94,7 +94,7 @@ export function QuotationBuilder({
 
         <div className="flex items-center gap-4">
           <AssetImage
-            alt={`Ilustración de ${vehicle}`}
+            alt={vehicle}
             subject={vehicle}
             className="hidden h-24 w-44 shrink-0 sm:block"
           />

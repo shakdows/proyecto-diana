@@ -117,7 +117,7 @@ export function HandoverForm({
 
       <header className="flex flex-wrap items-center gap-5 rounded-panel border border-border bg-surface-raised p-6">
         <AssetImage
-          alt={`Ilustración de ${vehicle}`}
+          alt={vehicle}
           subject={vehicle}
           fit="cover"
           rounded="control"

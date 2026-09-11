@@ -98,7 +98,7 @@ export function CustomerAuthorization({
 
         <section className="mt-5 flex items-center gap-4 rounded-panel border border-border bg-surface-raised p-4">
           <AssetImage
-            alt={`Ilustración de ${vehicle}`}
+            alt={vehicle}
             subject={vehicle}
             fit="cover"
             rounded="control"

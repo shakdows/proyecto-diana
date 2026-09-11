@@ -27,6 +27,7 @@ Plataforma integral de gestión de taller automotriz y experiencia del cliente.
 | 18 | [Despliegue en Supabase](18-despliegue-supabase.md) | Estado del proyecto en la nube y el paso manual que falta |
 | 19 | [Documentos PDF](19-documentos-pdf.md) | Los nueve documentos y las reglas que no son de maquetación |
 | 20 | [Persistencia de la demostración](20-persistencia-demo.md) | Qué se guarda, dónde y cómo se borra |
+| 21 | [Fotografías de los vehículos](21-fotos-de-vehiculos.md) | Cómo entran las fotos reales y por qué hay un manifiesto |
 | — | [Auditoría de UI/UX](UI-UX-AUDIT.md) | Estado real de cada ruta antes del rediseño |
 | — | [Rediseño de UI/UX](UI-UX-REDESIGN.md) | Concepto, tokens, componentes y plan por fases |
 

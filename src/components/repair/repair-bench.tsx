@@ -160,7 +160,7 @@ export function RepairBench({
       {/* Cabecera: qué vehículo, qué orden, qué trabajo. Nada más. */}
       <header className="flex flex-wrap items-center gap-4 rounded-panel border border-border bg-surface-raised p-5">
         <AssetImage
-          alt={`Ilustración de ${vehicle}`}
+          alt={vehicle}
           subject={vehicle}
           fit="cover"
           rounded="control"

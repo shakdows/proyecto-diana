@@ -142,7 +142,7 @@ export function PartsAuthorization({
 
         <div className="flex items-center gap-4">
           <AssetImage
-            alt={`Ilustración de ${vehicle}`}
+            alt={vehicle}
             subject={vehicle}
             fit="cover"
             rounded="control"
