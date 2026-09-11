@@ -6,10 +6,6 @@ const nextConfig: NextConfig = {
   // El build falla ante cualquier error de tipos: no se despliega código roto.
   // El lint corre como paso separado en CI (`npm run check`).
   typescript: { ignoreBuildErrors: false },
-  experimental: {
-    // Las Server Actions solo aceptan peticiones del propio origen.
-    serverActions: { bodySizeLimit: '2mb' },
-  },
   async headers() {
     return [
       {

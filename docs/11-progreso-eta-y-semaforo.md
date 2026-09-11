@@ -66,11 +66,11 @@ Orden `OS-2026-000154`, Toyota Hilux `ABC-123`, en `EN_REPARACION`:
 | Diagnóstico | 15 | 1,00 | 15,00 |
 | Autorización | 10 | 1,00 (4 de 4 decididos) | 10,00 |
 | Repuestos | 15 | 1,00 (cobertura completa) | 15,00 |
-| Reparación | 40 | 0,7 × (3/4) + 0,3 × (134/182) = 0,746 | 29,85 |
+| Reparación | 40 | 0,7 × (3/4) + 0,3 × (134/182) = 0,746 | 29,84 |
 | Calidad | 5 | 0,00 | 0,00 |
 | Finales | 7 | 0,00 | 0,00 |
 | Entrega | 3 | 0,00 | 0,00 |
-| | | **Avance** | **74,9 % → 75 %** |
+| | | **Avance** | **74,8 % → 75 %** |
 
 ### Reglas de borde
 

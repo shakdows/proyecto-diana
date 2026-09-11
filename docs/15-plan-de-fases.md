@@ -114,7 +114,7 @@ Para que el criterio de cierre sea verificable y no interpretable:
 | Sistema de diseño: tokens Tailwind v4 y primitivos de interfaz | `/` renderiza con la identidad definida |
 | `AppShell` con barra lateral y superior, navegación por rol | Todas las rutas del §7 recorribles |
 | Los cuatro estados de pantalla en componentes reutilizables | `components/feedback/` |
-| **Máquina de estados completa** (34 estados, 39 transiciones) | `npm run test` |
+| **Máquina de estados completa** (34 estados · 40 acciones · 76 pares estado-acción) | `npm run test` |
 | **Progreso, ETA y semáforo** como funciones puras | `npm run test` |
 | **Cobertura de repuestos** como función pura | `npm run test` |
 | Catálogo de permisos y matriz de roles (semilla) | `src/lib/auth/permissions.ts` |

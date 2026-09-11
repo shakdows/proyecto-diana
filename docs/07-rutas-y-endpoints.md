@@ -126,7 +126,33 @@ Todos los de `/api/reports/*` llevan `maxDuration: 60` en `vercel.json`, validan
 sus parámetros **con el mismo esquema Zod de la pantalla**, comprueban permiso y
 alcance, y registran la generación en `documents` y `audit_logs`.
 
-## 7.4 Middleware
+## 7.4 `loading.tsx` y el código 404 — trampa verificada
+
+Un `loading.tsx` convierte en **respuesta en streaming** a todo su segmento *y a
+sus hijos*. La cabecera HTTP sale con `200` antes de que el componente termine,
+y a partir de ese momento `notFound()` ya no puede fijar el `404`: renderiza la
+pantalla correcta con el código equivocado.
+
+Comprobado contra el servidor de producción de esta fase:
+
+| Dónde está el `loading.tsx` | `/ordenes/no-existe` |
+| --- | :-: |
+| `(app)/loading.tsx` | **200** ❌ |
+| `ordenes/loading.tsx` | **200** ❌ |
+| `ordenes/(lista)/loading.tsx` | **404** ✅ |
+
+**Regla del proyecto:** el estado de carga de un listado va en un **grupo de
+rutas** propio, nunca en un segmento que contenga rutas de detalle. Las rutas
+que resuelven si un recurso existe —`/ordenes/[id]`, `/vehiculos/[id]`,
+`/autorizacion/[token]`— no pueden estar envueltas por un `loading.tsx`; lo que
+tarde dentro de ellas va en un `<Suspense>` colocado **después** de la
+comprobación de existencia.
+
+Importa más de lo que parece: `/api/health` y el monitoreo externo distinguen
+por código de estado, y una orden inexistente que responda 200 es una orden que
+los registros dan por buena.
+
+## 7.5 Middleware
 
 `src/middleware.ts` hace exactamente dos cosas, y ninguna es control de acceso
 definitivo:

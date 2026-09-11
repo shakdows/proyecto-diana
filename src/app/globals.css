@@ -1,0 +1,175 @@
+@import 'tailwindcss';
+
+/*
+ * Sistema de diseño — docs/16-diseno-visual.md
+ *
+ * Las escalas se declaran estáticas; los tokens SEMÁNTICOS pasan por una
+ * variable intermedia para que el tema claro y el oscuro se resuelvan en un
+ * solo sitio. Los componentes usan siempre el nombre semántico
+ * (`bg-surface`, `text-fg-muted`), nunca el número de la escala.
+ *
+ * Tailwind v4 genera la utilidad desde el nombre del token: si se declara
+ * `--radius-panel`, la clase es `rounded-panel`.
+ */
+
+@theme {
+  /* Grafito y acero: la base del sistema */
+  --color-graphite-950: #090c10;
+  --color-graphite-900: #0f141a;
+  --color-graphite-800: #171e27;
+  --color-graphite-700: #222c38;
+  --color-graphite-600: #2f3c4b;
+  --color-graphite-500: #415062;
+  --color-graphite-400: #5c6c80;
+  --color-graphite-300: #8695a7;
+  --color-graphite-200: #b4c0cc;
+  --color-graphite-100: #dce3ea;
+  --color-graphite-50: #f2f5f8;
+
+  /* Azul corporativo: el ÚNICO color de marca */
+  --color-brand-900: #0a2a5e;
+  --color-brand-800: #0e3a7e;
+  --color-brand-700: #12499c;
+  --color-brand-600: #1859bc;
+  --color-brand-500: #2a6fd4;
+  --color-brand-400: #4e8be3;
+  --color-brand-300: #83aeee;
+  --color-brand-200: #b9d2f7;
+  --color-brand-100: #deeafc;
+  --color-brand-50: #eff5fe;
+
+  /* Señal: reservado al ESTADO. El color informa, no decora. */
+  --color-ok-700: #14664a;
+  --color-ok-600: #17805b;
+  --color-ok-500: #1e9e6a;
+  --color-ok-100: #d7f0e4;
+  --color-warn-700: #8a5c06;
+  --color-warn-600: #a8710a;
+  --color-warn-500: #c8860d;
+  --color-warn-100: #fbeed2;
+  --color-crit-700: #8f2119;
+  --color-crit-600: #af2a22;
+  --color-crit-500: #d0342c;
+  --color-crit-100: #fadbd8;
+  --color-wait-700: #47535f;
+  --color-wait-600: #5a6874;
+  --color-wait-500: #6b7a8c;
+  --color-wait-100: #e5e9ee;
+
+  /* Tokens semánticos */
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-inverted: var(--surface-inverted);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-fg-inverted: var(--fg-inverted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-focus: var(--focus);
+
+  /* Tipografía (§16.2) */
+  --font-display: var(--font-archivo), 'Archivo', system-ui, sans-serif;
+  --font-sans: var(--font-plex-sans), 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Jerarquía real de radios, no un valor único para todo */
+  --radius-chip: 0.375rem;
+  --radius-control: 0.5rem;
+  --radius-panel: 0.75rem;
+  --radius-modal: 1rem;
+
+  /* Jerarquía real de sombras */
+  --shadow-raise: 0 1px 2px 0 rgb(9 12 16 / 0.06), 0 1px 3px 0 rgb(9 12 16 / 0.04);
+  --shadow-panel: 0 1px 3px 0 rgb(9 12 16 / 0.08), 0 4px 12px -2px rgb(9 12 16 / 0.06);
+  --shadow-overlay: 0 8px 24px -4px rgb(9 12 16 / 0.16), 0 2px 8px -2px rgb(9 12 16 / 0.1);
+}
+
+:root {
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f2f5f8;
+  --surface-inverted: #0f141a;
+  --fg: #171e27;
+  --fg-muted: #415062;
+  --fg-subtle: #5c6c80;
+  --fg-inverted: #f2f5f8;
+  --border: #dce3ea;
+  --border-strong: #b4c0cc;
+  --focus: #1859bc;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #0f141a;
+    --surface-raised: #171e27;
+    --surface-sunken: #090c10;
+    --surface-inverted: #f2f5f8;
+    --fg: #f2f5f8;
+    --fg-muted: #b4c0cc;
+    --fg-subtle: #8695a7;
+    --fg-inverted: #0f141a;
+    --border: #222c38;
+    --border-strong: #2f3c4b;
+    --focus: #4e8be3;
+    color-scheme: dark;
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-surface-sunken);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv02', 'cv03';
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.011em;
+  }
+
+  /* Las cifras no bailan al actualizarse. */
+  th,
+  td,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Foco visible por teclado, siempre. Nunca outline:none sin sustituto. */
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-chip);
+  }
+
+  ::selection {
+    background-color: var(--color-brand-200);
+    color: var(--color-graphite-900);
+  }
+}
+
+/* §16.6 — se respeta la preferencia del sistema. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

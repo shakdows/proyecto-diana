@@ -109,6 +109,12 @@ stateDiagram-v2
 
 ## 3.4 Tabla de transiciones
 
+**34 estados · 40 acciones · 76 pares (estado, acción).** Las 39 filas de abajo
+agrupan varios estados de origen cuando comparten acción y guardas; la fila 39
+—`cancelar`— vale por sí sola 31 de esos pares, uno por cada estado anterior a
+`ENTREGADO`. Las cifras las verifica `npm run test` contra el código, no se
+mantienen a mano.
+
 `▸` = la acción puede desembocar en más de un estado según las guardas.
 
 | # | Desde | Acción | Hacia | Permiso | Guarda |
