@@ -1,19 +1,10 @@
 import type { Metadata } from 'next';
-import { PhasePlaceholder } from '@/components/layout/phase-placeholder';
+import { ServiceStation } from '@/components/final-services/service-station';
+import { DEMO_QUEUES } from '@/features/final-services/demo';
 
 export const metadata: Metadata = { title: 'Lavado' };
+export const dynamic = 'force-dynamic';
 
-export default function Page() {
-  return (
-    <PhasePlaceholder
-      title="Lavado"
-      description="Registro de inicio y fin del lavado."
-      phase={13}
-      delivers={[
-          'Cola de vehículos pendientes de lavado',
-          'Marcas de inicio y fin con responsable',
-          'Encadenamiento automático con la siguiente etapa configurada',
-      ]}
-    />
-  );
+export default function LavadoPage() {
+  return <ServiceStation kind="lavado" initialQueue={DEMO_QUEUES.lavado} />;
 }

@@ -1,19 +1,10 @@
 import type { Metadata } from 'next';
-import { PhasePlaceholder } from '@/components/layout/phase-placeholder';
+import { ServiceStation } from '@/components/final-services/service-station';
+import { DEMO_QUEUES } from '@/features/final-services/demo';
 
 export const metadata: Metadata = { title: 'Alineamiento' };
+export const dynamic = 'force-dynamic';
 
-export default function Page() {
-  return (
-    <PhasePlaceholder
-      title="Alineamiento"
-      description="Registro de inicio y fin del alineamiento."
-      phase={13}
-      delivers={[
-          'Cola de vehículos pendientes de alineamiento',
-          'Marcas de inicio y fin con responsable',
-          'Encadenamiento automático con la siguiente etapa configurada',
-      ]}
-    />
-  );
+export default function AlineamientoPage() {
+  return <ServiceStation kind="alineamiento" initialQueue={DEMO_QUEUES.alineamiento} />;
 }
