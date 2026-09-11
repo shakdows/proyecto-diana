@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { clientEnv } from '@/lib/env';
 
 export const metadata: Metadata = {
-  title: 'Diana · Gestión de taller automotriz',
+  // `absolute` evita la plantilla del layout raíz («%s · Diana»), que
+  // convertía este título en «Diana · Gestión de taller automotriz · Diana».
+  title: { absolute: 'Diana · Gestión de taller automotriz' },
   description:
     'Del ingreso del vehículo a la entrega, en una sola orden de servicio. Diagnóstico con evidencia, aprobación del cliente por ítem, compras trazables y tiempos que miden lo que de verdad hizo el taller.',
 };
