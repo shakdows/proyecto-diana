@@ -19,12 +19,15 @@ export function AssetImage({
   kind = 'vehiculo',
   className,
   rounded = 'panel',
+  decorative = false,
 }: {
   readonly src?: string;
   readonly alt: string;
   readonly kind?: 'vehiculo' | 'evidencia';
   readonly className?: string;
   readonly rounded?: 'chip' | 'control' | 'panel';
+  /** Fondo a sangre: sin icono. El icono guía en una miniatura, no en un muro. */
+  readonly decorative?: boolean;
 }) {
   const radius =
     rounded === 'chip' ? 'rounded-chip' : rounded === 'control' ? 'rounded-control' : 'rounded-panel';
@@ -37,6 +40,10 @@ export function AssetImage({
   }
 
   const Icon = kind === 'vehiculo' ? Car : ImageOff;
+
+  if (decorative) {
+    return <span aria-hidden className={cn('block bg-graphite-900', radius, className)} />;
+  }
 
   return (
     <span

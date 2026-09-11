@@ -28,11 +28,12 @@ export function RomeroMark({ className }: { readonly className?: string }) {
           <stop offset="100%" stopColor="currentColor" stopOpacity="0.65" />
         </linearGradient>
       </defs>
-      {/* Cuña izquierda: el corte diagonal característico del original. */}
-      <path d="M3 14.5 12.5 6v12.5L3 27z" fill="url(#romero-mark)" />
-      {/* Asta, panza y pierna de la R. */}
+      {/* Filete diagonal: el corte característico, separado del asta para que
+          la letra siga leyéndose como R a 40 px. */}
+      <path d="M2 40 12 8h5.2L7.2 40z" fill="url(#romero-mark)" opacity="0.55" />
+      {/* R: asta, panza y pierna. */}
       <path
-        d="M15.5 6h14.2c6.9 0 11.3 3.9 11.3 9.9 0 4.6-2.6 8-6.9 9.3L45 42h-9.4l-9.5-15.2h-2.9V42h-7.7V6zm7.7 6.6v8h6c3.2 0 5.2-1.5 5.2-4s-2-4-5.2-4h-6z"
+        d="M18 8h13.4c6.9 0 11.4 3.8 11.4 9.6 0 4.3-2.5 7.5-6.7 8.8L46 40h-8.9l-7.8-12.4h-4V40H18V8zm6.3 5.8v8h6.4c3.3 0 5.4-1.5 5.4-4s-2.1-4-5.4-4h-6.4z"
         fill="url(#romero-mark)"
       />
     </svg>

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Bell, ChevronDown, Menu } from 'lucide-react';
+import { Bell, LogOut, Menu } from 'lucide-react';
 import { useState } from 'react';
 import { Avatar } from '@/components/ui/avatar';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -10,6 +10,7 @@ import { Sidebar } from './sidebar';
 import { CommandPalette, type CommandTarget } from './command-palette';
 import { ROLE_LABELS, type RoleCode } from '@/lib/auth/permissions';
 import type { NavGroup } from '@/lib/auth/navigation';
+import { leaveDemo } from '@/app/login/actions';
 
 /**
  * Barra superior.
@@ -92,7 +93,18 @@ export function Topbar({
           </Tooltip>
         )}
 
-        <ChevronDown aria-hidden className="hidden size-4 text-fg-subtle sm:block" />
+        {/* Salir devuelve a la pantalla de entrada, que es donde se cambia de
+            puesto. Sin esto, probar la demostración con otro rol obligaba a
+            borrar la cookie a mano. */}
+        <form action={leaveDemo}>
+          <button
+            type="submit"
+            aria-label="Cerrar sesión y cambiar de puesto"
+            className="grid size-10 place-items-center rounded-control text-fg-subtle transition-colors duration-150 hover:bg-surface-sunken hover:text-crit-600"
+          >
+            <LogOut aria-hidden className="size-[1.125rem]" />
+          </button>
+        </form>
       </div>
 
       <Drawer open={navOpen} onClose={() => setNavOpen(false)} title="Navegación">

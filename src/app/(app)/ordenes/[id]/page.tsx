@@ -30,7 +30,7 @@ export default async function OrdenPage({
   const row = findDemoOrder(id, now);
   if (row === undefined) notFound();
 
-  const user = getSessionUser();
+  const user = await getSessionUser();
   const facts = factsFor(row.order);
 
   // Las acciones se calculan contra el usuario real de la sesión: lo que este
