@@ -8,8 +8,9 @@
   },
   "scripts": {
     "dev": "next dev",
-    "fotos": "tsx scripts/fotos.ts",
-    "prebuild": "npm run fotos",
+    "assets": "tsx scripts/assets.ts",
+    "fotos": "npm run assets",
+    "prebuild": "npm run assets",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

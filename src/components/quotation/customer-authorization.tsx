@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { usePersistentState } from '@/lib/demo/store';
 import { Check, CircleCheckBig, Images, ShieldCheck, X } from 'lucide-react';
 import { AssetImage } from '@/components/ui/asset-image';
-import { RomeroMark } from '@/components/brand/romero-logo';
+import { RomeroWordmark } from '@/components/brand/romero-logo';
 import { PRIORITY_LABELS } from '@/features/diagnosis/services/findings';
 import type { Priority } from '@/features/diagnosis/services/findings';
 import {
@@ -78,11 +78,11 @@ export function CustomerAuthorization({
   return (
     <div className="min-h-dvh bg-surface-sunken pb-44">
       <header className="bg-graphite-950 px-5 py-5">
-        <div className="mx-auto flex max-w-2xl items-center gap-2.5">
-          <RomeroMark className="size-8 text-brand-500" />
-          <span className="font-display text-sm font-bold uppercase tracking-[0.04em] text-white">
-            Romero Motors
-          </span>
+        {/* Pantalla de cara al cliente: aquí la marca va con su color. No hay
+            ningún rojo de estado cerca con el que pueda confundirse, y es el
+            único sitio donde el cliente ve el logotipo de la empresa. */}
+        <div className="mx-auto max-w-2xl">
+          <RomeroWordmark on="dark" className="h-10 w-auto text-white" />
         </div>
       </header>
 

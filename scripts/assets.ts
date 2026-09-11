@@ -1,6 +1,6 @@
 /**
- * Lee `public/fotos-de-carros/` y reescribe el manifiesto que consume la
- * aplicación.
+ * Lee las carpetas donde se dejan archivos a mano y reescribe los manifiestos
+ * que consume la aplicación: las fotos de vehículos y el logotipo oficial.
  *
  * Hace falta un manifiesto porque `AssetImage` termina dentro del paquete del
  * navegador —lo usan componentes de cliente—, y allí no hay disco que listar.
@@ -20,6 +20,15 @@ import { isPhotoFile, missingFor } from '../src/features/vehicles/services/photo
 
 const FOLDER = join(process.cwd(), 'public', 'fotos-de-carros');
 const TARGET = join(process.cwd(), 'src', 'features', 'vehicles', 'services', 'manifest.ts');
+const BRAND_FOLDER = join(process.cwd(), 'public', 'marca');
+const BRAND_TARGET = join(process.cwd(), 'src', 'features', 'brand', 'services', 'manifest.ts');
+/** Por orden de preferencia: vectorial primero, que escala sin pixelarse. */
+const BRAND_NAMES = [
+  'romero-motors.svg',
+  'romero-motors.webp',
+  'romero-motors.png',
+  'romero-motors.jpg',
+] as const;
 
 function render(files: readonly string[]): string {
   const list =
@@ -37,6 +46,60 @@ function render(files: readonly string[]): string {
 export const PHOTO_MANIFEST: readonly string[] = [
 ${list}];
 `;
+}
+
+function writeIfChanged(target: string, next: string, label: string): void {
+  let current = '';
+  try {
+    current = readFileSync(target, 'utf8');
+  } catch {
+    /* aún no existe */
+  }
+  if (current === next) {
+    console.log(`${label} · sin cambios`);
+    return;
+  }
+  writeFileSync(target, next, 'utf8');
+  console.log(`${label} · manifiesto reescrito`);
+}
+
+/**
+ * El logotipo oficial.
+ *
+ * Mientras no esté, la aplicación dibuja una reconstrucción. No es lo mismo y
+ * el código lo dice: las letras son la tipográfica del sistema, no los trazos
+ * originales.
+ */
+function brand(): void {
+  let present: readonly string[] = [];
+  try {
+    present = readdirSync(BRAND_FOLDER);
+  } catch {
+    // Carpeta ausente: se dibuja la reconstrucción, que es la verdad.
+  }
+
+  const found = BRAND_NAMES.find((name) => present.includes(name)) ?? null;
+  const value = found === null ? 'null' : `'/marca/${found}'`;
+
+  writeIfChanged(
+    BRAND_TARGET,
+    `/**
+ * GENERADO POR \`npm run assets\`. No editar a mano.
+ *
+ * Ruta del logotipo oficial si alguien lo dejó en \`public/marca/\`; \`null\` si
+ * todavía no está y hay que dibujar la reconstrucción.
+ */
+
+export const OFFICIAL_LOGO: string | null = ${value};
+`,
+    'marca',
+  );
+
+  console.log(
+    found === null
+      ? '  · sin logotipo oficial: se dibuja la reconstrucción (ver public/marca/README.md)'
+      : `  ✓ ${found}`,
+  );
 }
 
 function main(): void {
@@ -83,3 +146,4 @@ function main(): void {
 }
 
 main();
+brand();

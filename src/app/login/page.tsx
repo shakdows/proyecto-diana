@@ -11,7 +11,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { RomeroMark } from '@/components/brand/romero-logo';
+import { RomeroMark, RomeroWordmark } from '@/components/brand/romero-logo';
 import { AssetImage } from '@/components/ui/asset-image';
 import type { RoleCode } from '@/lib/auth/permissions';
 import { clientEnv } from '@/lib/env';
@@ -68,16 +68,13 @@ function ShowcasePanel() {
       />
 
       <div className="relative flex h-full flex-col justify-between p-10 xl:p-14">
-        <header className="flex items-center gap-3">
-          <RomeroMark className="size-11 text-brand-500" />
-          <span className="leading-tight">
-            <span className="block font-display text-base font-bold uppercase tracking-[0.04em] text-white">
-              Romero Motors
-            </span>
-            <span className="block text-xs text-graphite-400">
-              Más que un taller, tu aliado en el camino
-            </span>
-          </span>
+        {/* Momento de marca: aquí el logotipo va con su color, porque no hay
+            ningún rojo de estado con el que pueda confundirse. */}
+        <header>
+          <RomeroWordmark on="dark" className="h-16 w-auto text-white" />
+          <p className="mt-2 text-xs text-graphite-400">
+            Más que un taller, tu aliado en el camino
+          </p>
         </header>
 
         <div className="max-w-xl">
