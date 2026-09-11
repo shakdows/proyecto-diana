@@ -65,6 +65,23 @@ from required r
 left join received rc on rc.parts_request_item_id = r.parts_request_item_id;
 --> statement-breakpoint
 
+/*
+ * ⚠️ Estas vistas se crean DESPUÉS de que 0005 revocara los permisos de `anon`,
+ * así que heredan la concesión por defecto de Supabase sobre `public` y
+ * quedarían legibles —y hasta «escribibles»— por el visitante anónimo.
+ *
+ * Detectado desplegando: el sustituto local no reproduce esas concesiones por
+ * defecto, de modo que `npm run db:local` daba verde. El revoke va aquí, junto
+ * a la creación, porque cualquier objeto nuevo de `public` nace con el mismo
+ * problema y separarlo del `create` garantiza olvidarlo.
+ */
+revoke all on public.v_required_parts  from anon;
+revoke all on public.v_parts_coverage  from anon;
+grant select on public.v_required_parts  to authenticated;
+grant select on public.v_parts_coverage  to authenticated;
+-- Y lo mismo para lo que se cree en el futuro.
+alter default privileges in schema public revoke all on tables from anon;
+--> statement-breakpoint
 -- ── 2 · Avance de la orden, en SQL (§11.4) ──────────────────────────────────
 /*
  * Réplica de `src/features/repairs/services/progress.ts`.
@@ -312,7 +329,12 @@ returns uuid
 language sql
 stable
 security definer
-set search_path = public, pg_temp
+-- `extensions` va en el search_path porque en Supabase pgcrypto NO se instala
+-- en `public`, y sin esto `digest()` no existe para la función. En un
+-- PostgreSQL corriente el esquema no existe y Postgres lo ignora en silencio,
+-- así que la misma migración sirve en los dos sitios. Detectado desplegando:
+-- en local pasaba porque `create extension` lo puso en `public`.
+set search_path = public, extensions, pg_temp
 as $$
   select al.id
   from authorization_links al

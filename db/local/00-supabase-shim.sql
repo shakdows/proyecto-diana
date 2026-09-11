@@ -66,3 +66,15 @@ $$;
 grant usage on schema auth to anon, authenticated, service_role;
 grant select on auth.users to authenticated, service_role;
 grant usage on schema public to anon, authenticated, service_role;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Concesiones por defecto de la plataforma.
+--
+-- Supabase concede automáticamente TODO sobre los objetos nuevos de `public` a
+-- `anon` y `authenticated`. Sin reproducirlo aquí, una vista creada después
+-- del `revoke` de 0005 queda abierta a `anon` en producción y verde en local:
+-- es exactamente lo que pasó con `v_required_parts` y `v_parts_coverage`.
+-- ─────────────────────────────────────────────────────────────────────────────
+alter default privileges in schema public grant all on tables to anon, authenticated;
+alter default privileges in schema public grant all on functions to anon, authenticated;
+alter default privileges in schema public grant all on sequences to anon, authenticated;

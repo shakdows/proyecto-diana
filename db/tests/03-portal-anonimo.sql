@@ -165,3 +165,32 @@ begin
 
   raise notice '✓ PRUEBA 4 SUPERADA · el portal entrega solo la proyección apta para el cliente';
 end $$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 3.5 · `anon` no tiene permiso de objeto sobre NINGUNA tabla ni vista.
+--
+-- Las pruebas anteriores comprueban que `anon` no PUEDE LEER filas. Esta
+-- comprueba algo distinto y anterior: que no tiene el permiso siquiera. La
+-- diferencia importó de verdad: `v_required_parts` y `v_parts_coverage` se
+-- crean en 0006, después del `revoke` de 0005, y heredaban la concesión por
+-- defecto de Supabase sobre `public`. No filtraban filas porque son
+-- `security_invoker` y `anon` no tiene políticas, pero depender de la segunda
+-- línea cuando la primera debería existir es exactamente lo que esta prueba
+-- impide.
+-- ─────────────────────────────────────────────────────────────────────────────
+do $$
+declare
+  v_objetos text;
+  v_total   int;
+begin
+  select count(*), coalesce(string_agg(distinct table_name, ', ' order by table_name), '')
+    into v_total, v_objetos
+  from information_schema.role_table_grants
+  where table_schema = 'public' and grantee = 'anon';
+
+  if v_total > 0 then
+    raise exception 'FALLO 3.5: anon conserva permisos sobre: %', v_objetos;
+  end if;
+
+  raise notice '3.5 ✓ anon no tiene permiso de objeto sobre ninguna tabla ni vista';
+end $$;
