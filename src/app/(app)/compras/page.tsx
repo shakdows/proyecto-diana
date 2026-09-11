@@ -22,6 +22,11 @@ export default function Page() {
           label: 'Cotización de proveedores',
           detail: 'Comparar precio, plazo, garantía y forma de pago línea por línea.',
         },
+        {
+          href: '/compras/os-154/recepcion',
+          label: 'Recepción de repuestos',
+          detail: 'Contar lo que llegó y registrar aparte lo dañado o equivocado.',
+        },
       ]}
     />
   );
