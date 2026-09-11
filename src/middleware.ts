@@ -13,7 +13,14 @@ import { DEMO_ROLE_COOKIE } from '@/lib/auth/session';
  * `/presentacion`, la salud del servicio y los estáticos quedan fuera: son
  * públicos a propósito.
  */
-const PUBLIC = ['/login', '/presentacion', '/api/health', '/icon.svg'];
+const PUBLIC = [
+  '/login',
+  '/presentacion',
+  '/api/health',
+  '/icon.svg',
+  // El cliente llega por enlace y no tiene —ni debe tener— sesión del taller.
+  '/autorizacion',
+];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
