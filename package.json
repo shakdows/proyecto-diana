@@ -2,7 +2,7 @@
   "name": "proyecto-diana",
   "version": "0.1.0",
   "private": true,
-  "description": "Plataforma integral de gesti\u00f3n de taller automotriz y experiencia del cliente: recepci\u00f3n, orden de servicio, diagn\u00f3stico, cotizaci\u00f3n, compras, reparaci\u00f3n, entrega y satisfacci\u00f3n.",
+  "description": "Plataforma integral de gestión de taller automotriz y experiencia del cliente: recepción, orden de servicio, diagnóstico, cotización, compras, reparación, entrega y satisfacción.",
   "engines": {
     "node": ">=22.0.0"
   },
@@ -20,7 +20,8 @@
     "db:seed:demo": "tsx scripts/seed-demo.ts",
     "check": "npm run typecheck && npm run lint && npm run test",
     "test": "tsx --test \"src/**/*.test.ts\"",
-    "db:verify": "tsx scripts/verify-db.ts"
+    "db:verify": "tsx scripts/verify-db.ts",
+    "db:local": "./scripts/db-local.sh"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

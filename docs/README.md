@@ -23,6 +23,7 @@ Plataforma integral de gestión de taller automotriz y experiencia del cliente.
 | 14 | [Documentos PDF y Excel](14-documentos-pdf-y-excel.md) | Los nueve PDFs y las dos plantillas |
 | 15 | [Plan de fases](15-plan-de-fases.md) | Las 16 fases y su criterio de cierre |
 | 16 | [Diseño visual](16-diseno-visual.md) | Sistema de diseño y experiencia por rol |
+| 17 | [Verificación de la base](17-verificacion-de-la-base.md) | Cómo comprobar que las políticas RLS aíslan de verdad |
 | — | [Auditoría de UI/UX](UI-UX-AUDIT.md) | Estado real de cada ruta antes del rediseño |
 | — | [Rediseño de UI/UX](UI-UX-REDESIGN.md) | Concepto, tokens, componentes y plan por fases |
 
