@@ -20,6 +20,7 @@ const PUBLIC = [
   '/icon.svg',
   // El cliente llega por enlace y no tiene —ni debe tener— sesión del taller.
   '/autorizacion',
+  '/encuesta',
 ];
 
 export function middleware(request: NextRequest) {

@@ -1,19 +1,10 @@
 import type { Metadata } from 'next';
-import { PhasePlaceholder } from '@/components/layout/phase-placeholder';
+import { ReadyQueue } from '@/components/delivery/ready-queue';
+import { demoReady } from '@/features/delivery/demo';
 
-export const metadata: Metadata = { title: 'Seguimiento' };
+export const metadata: Metadata = { title: 'Vehículos listos' };
+export const dynamic = 'force-dynamic';
 
-export default function Page() {
-  return (
-    <PhasePlaceholder
-      title="Seguimiento"
-      description="Clientes cuya experiencia requiere una llamada."
-      phase={15}
-      delivers={[
-          'Casos marcados automáticamente por umbral de satisfacción',
-          'Asignación, resolución y cierre con registro de auditoría',
-          'Cruce con la operación: qué ocurrió en la orden de ese cliente',
-      ]}
-    />
-  );
+export default function VehiculosListosPage() {
+  return <ReadyQueue initial={demoReady(new Date())} />;
 }

@@ -50,8 +50,13 @@ export interface QueueEntry {
   readonly startedMinutesAgo: number | null;
   /** Minutos que suele tardar esta estación. Para avisar de lo que se alarga. */
   readonly typicalMinutes: number;
-  /** Hora prometida al cliente, en minutos desde ahora. Negativo = vencida. */
-  readonly promisedInMinutes: number;
+  /**
+   * Hora prometida al cliente, en minutos desde ahora. Negativo = vencida.
+   * `null` cuando la orden no tiene compromiso: no está vencida y no es
+   * urgente. Tratarlo como 0 la pintaría «vencida ahora mismo» y la subiría
+   * al tope de la cola por delante de vehículos que sí llegan tarde.
+   */
+  readonly promisedInMinutes: number | null;
   /** Servicios finales que este vehículo todavía necesita, en orden. */
   readonly remainingServices: readonly ServiceKind[];
 }
@@ -180,7 +185,9 @@ export function summarize(queue: readonly QueueEntry[]): StationSummary {
     waiting: waiting(queue).length,
     inProgress: inProgress(queue) === undefined ? 0 : 1,
     finishedToday: finished(queue).length,
-    overdue: queue.filter((e) => e.state !== 'terminado' && e.promisedInMinutes < 0).length,
+    overdue: queue.filter(
+      (e) => e.state !== 'terminado' && e.promisedInMinutes !== null && e.promisedInMinutes < 0,
+    ).length,
   };
 }
 
@@ -192,5 +199,7 @@ export function summarize(queue: readonly QueueEntry[]): StationSummary {
  * cliente lleva media hora esperando en recepción.
  */
 export function byUrgency(queue: readonly QueueEntry[]): readonly QueueEntry[] {
-  return [...queue].sort((a, b) => a.promisedInMinutes - b.promisedInMinutes);
+  // Sin compromiso se va al final: no hay nadie esperando por ello.
+  const key = (e: QueueEntry): number => e.promisedInMinutes ?? Number.POSITIVE_INFINITY;
+  return [...queue].sort((a, b) => key(a) - key(b));
 }

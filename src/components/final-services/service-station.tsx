@@ -196,7 +196,7 @@ export function ServiceStation({
             <ul className="divide-y divide-border">
               {pendientes.map((item) => {
                 const check = startCheck(queue, item.orderId);
-                const vencido = item.promisedInMinutes < 0;
+                const vencido = item.promisedInMinutes !== null && item.promisedInMinutes < 0;
 
                 return (
                   <li key={item.orderId} className="flex flex-wrap items-center gap-4 px-5 py-4">
@@ -217,9 +217,11 @@ export function ServiceStation({
                           )}
                         >
                           <Clock aria-hidden className="size-3.5" />
-                          {vencido
-                            ? `Vencida hace ${formatMinutes(-item.promisedInMinutes)}`
-                            : `Entrega en ${formatMinutes(item.promisedInMinutes)}`}
+                          {item.promisedInMinutes === null
+                            ? 'Sin hora comprometida'
+                            : vencido
+                              ? `Vencida hace ${formatMinutes(-item.promisedInMinutes)}`
+                              : `Entrega en ${formatMinutes(item.promisedInMinutes)}`}
                         </span>
                       </p>
                     </div>

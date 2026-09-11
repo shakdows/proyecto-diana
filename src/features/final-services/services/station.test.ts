@@ -169,3 +169,25 @@ describe('resumen y orden de atención', () => {
     assert.deepEqual(waiting([]), []);
   });
 });
+
+describe('órdenes sin hora comprometida', () => {
+  const conHora = entry({ orderId: 'con', promisedInMinutes: -30 });
+  const sinHora = entry({ orderId: 'sin', promisedInMinutes: null });
+
+  it('no cuentan como vencidas', () => {
+    // Tratarlas como 0 las pintaría «vencidas ahora mismo».
+    assert.equal(summarize([sinHora]).overdue, 0);
+  });
+
+  it('se van al final de la cola, no al principio', () => {
+    assert.deepEqual(
+      byUrgency([sinHora, conHora]).map((e) => e.orderId),
+      ['con', 'sin'],
+    );
+  });
+
+  it('entre dos sin hora, el orden no revienta', () => {
+    const otra = entry({ orderId: 'otra', promisedInMinutes: null });
+    assert.equal(byUrgency([sinHora, otra]).length, 2);
+  });
+});
