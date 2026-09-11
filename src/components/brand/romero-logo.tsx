@@ -1,4 +1,4 @@
-import { OFFICIAL_LOGO } from '@/features/brand/services/manifest';
+import { OFFICIAL_LOGO, OFFICIAL_LOGO_DARK } from '@/features/brand/services/manifest';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -36,14 +36,23 @@ export function RomeroWordmark({
 }: {
   /** Sobre qué fondo se dibuja: decide hacia dónde va el degradado. */
   readonly on?: 'light' | 'dark';
-  /** Sin color de marca: hereda el del contenedor. Para el armazón operativo. */
+  /**
+   * Sin color de marca: hereda el del contenedor. Para el armazón operativo.
+   * Solo afecta a la reconstrucción: el archivo oficial se muestra tal cual,
+   * porque recolorear el logotipo de una empresa no es cosa del código.
+   */
   readonly mono?: boolean;
   readonly className?: string;
 }) {
-  if (OFFICIAL_LOGO !== null) {
+  // El archivo oficial es rojo sobre negro: sobre grafito la «O» final y
+  // «MOTORS» se pierden, así que ahí va la variante clara. Si solo hay una,
+  // se usa esa y ya se verá; nunca se deja de mostrar el logotipo real.
+  const oficial = (on === 'dark' ? OFFICIAL_LOGO_DARK : OFFICIAL_LOGO) ?? OFFICIAL_LOGO;
+
+  if (oficial !== null) {
     /* eslint-disable-next-line @next/next/no-img-element -- archivo local de
-       tamaño conocido; el optimizador no aporta en un logotipo vectorial. */
-    return <img src={OFFICIAL_LOGO} alt="Romero Motors" className={cn('block', className)} />;
+       tamaño conocido; el optimizador no aporta en un logotipo. */
+    return <img src={oficial} alt="Romero Motors" className={cn('block', className)} />;
   }
 
   /* ⚠️ Las coordenadas NO están puestas a ojo: se midieron con `getBBox()` en

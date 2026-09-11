@@ -18,12 +18,18 @@ const PUBLIC = [
   '/presentacion',
   '/api/health',
   '/icon.svg',
-  // Fotos genéricas de catálogo. Son públicas por definición —las ve el
-  // cliente en el portal de autorización, que entra sin sesión— y sin esta
-  // línea el middleware las redirigiría a /login y saldrían rotas.
+  // ⚠️ Recursos de marca: fotos de catálogo, fondos y logotipos.
+  //
+  // Son públicos por definición —los ve el cliente en el portal de
+  // autorización y cualquiera en la portada, ambos sin sesión— y sin estas
+  // líneas el middleware los redirige a /login y salen rotos. Pasó ya una vez
+  // con `/fotos-de-carros`; las tres carpetas tienen el mismo problema.
+  //
   // La evidencia del cliente NO vive aquí: va a almacenamiento privado con
   // URL firmada. Ver public/fotos-de-carros/README.md.
   '/fotos-de-carros',
+  '/fondos',
+  '/marca',
   // El cliente llega por enlace y no tiene —ni debe tener— sesión del taller.
   '/autorizacion',
   '/encuesta',

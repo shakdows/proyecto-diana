@@ -6,5 +6,9 @@
  */
 
 export const PHOTO_MANIFEST: readonly string[] = [
-  /* Vacío: cada vehículo se dibuja. Ver public/fotos-de-carros/README.md. */
+  'cat-320d.webp',
+  'mg-zs.webp',
+  'mitsubishi-l200.webp',
+  'nissan-frontier.webp',
+  'toyota-hilux.webp',
 ];

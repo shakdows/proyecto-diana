@@ -14,7 +14,6 @@ import type { ReactNode } from 'react';
 import { RomeroMark, RomeroWordmark } from '@/components/brand/romero-logo';
 import { DianaLockup } from '@/components/brand/diana-logo';
 import { BlueWave, HexPattern } from '@/components/brand/surfaces';
-import { AssetImage } from '@/components/ui/asset-image';
 import type { RoleCode } from '@/lib/auth/permissions';
 import { clientEnv } from '@/lib/env';
 import { enterDemo } from './actions';
@@ -59,14 +58,20 @@ export default function LoginPage() {
 function ShowcasePanel() {
   return (
     <section className="relative hidden overflow-hidden bg-graphite-950 lg:block">
-      <AssetImage
-        decorative
+      {/* La fotografía del taller, por fin. El degradado que va encima ya
+          estaba probado contra este hueco, así que la imagen entró sin mover
+          una sola medida del texto. */}
+      {/* eslint-disable-next-line @next/next/no-img-element -- fondo local ya
+          recortado y comprimido; el optimizador no aporta y añade una petición. */}
+      <img
+        src="/fondos/hero-taller.webp"
         alt=""
-        className="absolute inset-0 size-full rounded-none"
+        aria-hidden
+        className="absolute inset-0 size-full object-cover"
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-linear-to-br from-graphite-950 via-graphite-950/85 to-brand-950/70"
+        className="absolute inset-0 bg-linear-to-br from-graphite-950/95 via-graphite-950/88 to-brand-950/80"
       />
       {/* El lenguaje gráfico de la guía: retícula hexagonal de fondo y las
           ondas azules cruzando por debajo del texto. Dibujados, no imágenes:

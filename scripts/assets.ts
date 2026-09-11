@@ -29,6 +29,13 @@ const BRAND_NAMES = [
   'romero-motors.png',
   'romero-motors.jpg',
 ] as const;
+/* El logotipo es rojo sobre NEGRO: sobre fondo oscuro la «O» final y «MOTORS»
+   desaparecen. Por eso hay dos archivos y no uno. */
+const BRAND_DARK_NAMES = [
+  'romero-motors-claro.svg',
+  'romero-motors-claro.webp',
+  'romero-motors-claro.png',
+] as const;
 const DIANA_NAMES = [
   'diana.svg',
   'diana.webp',
@@ -96,6 +103,7 @@ function firstPresent(folder: string, names: readonly string[]): string | null {
  */
 function brand(): void {
   const romero = firstPresent(BRAND_FOLDER, BRAND_NAMES);
+  const romeroClaro = firstPresent(BRAND_FOLDER, BRAND_DARK_NAMES);
   const diana = firstPresent(BRAND_FOLDER, DIANA_NAMES);
   const ref = (found: string | null): string => (found === null ? 'null' : `'/marca/${found}'`);
 
@@ -109,6 +117,8 @@ function brand(): void {
  */
 
 export const OFFICIAL_LOGO: string | null = ${ref(romero)};
+/** Variante para fondo oscuro. Si falta, se usa la normal. */
+export const OFFICIAL_LOGO_DARK: string | null = ${ref(romeroClaro)};
 export const OFFICIAL_DIANA: string | null = ${ref(diana)};
 `,
     'marca',
@@ -116,6 +126,7 @@ export const OFFICIAL_DIANA: string | null = ${ref(diana)};
 
   for (const [nombre, found] of [
     ['Romero Motors', romero],
+    ['Romero Motors (claro)', romeroClaro],
     ['DIANA', diana],
   ] as const) {
     console.log(

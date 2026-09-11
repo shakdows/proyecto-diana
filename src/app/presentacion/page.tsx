@@ -4,7 +4,6 @@ import { ArrowRight, Boxes, Car, Wrench } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { RomeroWordmark } from '@/components/brand/romero-logo';
 import { DotPattern } from '@/components/brand/surfaces';
-import { VehicleArt } from '@/components/art/vehicle-art';
 
 export const metadata: Metadata = {
   title: { absolute: 'Romero Motors · Más que un taller' },
@@ -47,14 +46,34 @@ export default function PortadaPage() {
 
       <main>
         <section className="relative isolate overflow-hidden">
-          <DotPattern className="text-white/[0.06]" />
+          {/* eslint-disable-next-line @next/next/no-img-element -- fondo local
+              ya recortado y comprimido. */}
+          <img
+            src="/fondos/hero-taller.webp"
+            alt=""
+            aria-hidden
+            className="absolute inset-0 size-full object-cover"
+          />
+          {/* El degradado deja legible el titular sobre cualquier parte de la
+              foto, y se apaga hacia la derecha para que la camioneta se vea. */}
+          <span
+            aria-hidden
+            className="absolute inset-0 bg-linear-to-r from-graphite-950 via-graphite-950/85 to-graphite-950/35"
+          />
+          <span
+            aria-hidden
+            className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-graphite-950 to-transparent"
+          />
+          <DotPattern className="text-white/[0.05]" />
           <span
             aria-hidden
             className="pointer-events-none absolute -right-40 -top-32 size-[34rem] rounded-full bg-romero-600/20 blur-3xl"
           />
 
-          <div className="relative mx-auto grid max-w-6xl gap-10 px-5 pb-16 pt-10 lg:grid-cols-[1fr_auto] lg:items-center lg:px-8 lg:pb-24 lg:pt-16">
-            <div className="min-w-0">
+          {/* Una sola columna: la camioneta ya está en la fotografía, y una
+              segunda columna vacía a su lado dejaba el titular encogido. */}
+          <div className="relative mx-auto max-w-6xl px-5 pb-16 pt-12 lg:px-8 lg:pb-28 lg:pt-24">
+            <div className="min-w-0 max-w-xl">
               <p className="text-xs uppercase tracking-[0.28em] text-graphite-400">
                 Servicio · Confianza · Movimiento
               </p>
@@ -87,18 +106,6 @@ export default function PortadaPage() {
               </div>
             </div>
 
-            {/* Sin fotografía todavía: la silueta ocupa su sitio y su recorte.
-                El día que entre `public/fondos/hero-taller.jpg` se cambia aquí
-                y nada más se mueve. */}
-            <span
-              aria-hidden
-              /* Atenuada a propósito. A pleno color el dibujo pesa más que el
-                 titular, y es un marcador de posición: no debe ser lo primero
-                 que se mira en la portada. */
-              className="hidden w-[24rem] opacity-25 grayscale lg:block xl:w-[30rem]"
-            >
-              <VehicleArt vehicle="Toyota Hilux" kind="vehiculo" fit="contain" />
-            </span>
           </div>
         </section>
 

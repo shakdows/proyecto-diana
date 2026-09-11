@@ -64,24 +64,27 @@ Peso: por debajo de 150 kB cada una.
 
 Estos son los ocho nombres que la demostración busca hoy:
 
-    toyota-hilux.png        Toyota Hilux SRV      ← está en la guía
-    hyundai-tucson.png      Hyundai Tucson        ← está en la guía
-    kia-sportage.png        Kia Sportage          ← está en la guía
-    toyota-corolla.png      Toyota Corolla        ← está en la guía
-    mitsubishi-l200.png     Mitsubishi L200       ← FALTA en la guía
-    nissan-frontier.png     Nissan Frontier       ← FALTA en la guía
-    mg-zs.png               MG ZS                 ← FALTA en la guía
-    cat-320d.png            CAT 320D              ← FALTA (excavadora)
+    toyota-hilux.webp       Toyota Hilux SRV      ✓ puesta
+    mitsubishi-l200.webp    Mitsubishi L200       ✓ puesta
+    nissan-frontier.webp    Nissan Frontier       ✓ puesta
+    mg-zs.webp              MG ZS                 ✓ puesta
+    cat-320d.webp           CAT 320D              ✓ puesta (excavadora)
+    hyundai-tucson.webp     Hyundai Tucson        ← FALTA
+    kia-sportage.webp       Kia Sportage          ← FALTA
+    toyota-corolla.webp     Toyota Corolla        ← FALTA
 
-La guía de marca trae ocho recortes, pero solo cuatro son de la flota de la
-demostración. Los otros cuatro que trae —Land Cruiser, RAV4, Fortuner,
-Prado— no corresponden a ninguna orden abierta, así que no se usarían.
+Faltan tres. Mientras tanto esos tres se dibujan, que es exactamente lo que
+tiene que pasar: no se rompe nada y se ve de un vistazo cuáles faltan.
 
-Dos salidas, las dos válidas: pedir los cuatro que faltan, o cambiar la flota
-de demostración a los vehículos que sí hay. Lo que NO hay que hacer es poner
-la foto de un Land Cruiser bajo la placa de un L200: en un sistema cuya razón
-de ser es probar en qué estado entró un vehículo, una foto que no es la del
-vehículo es peor que ninguna foto.
+## Aviso sobre la resolución
+
+Las cinco que hay vienen recortadas de la hoja de recursos y miden unos
+270 × 165 px, no los 1920 × 1080 que anuncia el índice del paquete. A ese
+tamaño rinden en la miniatura del tablero (64 × 48) y en la ficha del cajón
+lateral, y se quedan cortas en cualquier hueco grande.
+
+Si algún día hacen falta a tamaño de portada, hay que pedir los originales.
+Ampliar estas no sirve: no hay información que ampliar.
 
 ## 4 · Después de dejar los archivos
 
