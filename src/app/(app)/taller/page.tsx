@@ -15,6 +15,18 @@ export default function Page() {
           'Cronómetro con marcas del servidor y pausas justificadas',
           'Optimizada para tablet y móvil, con objetivos táctiles grandes',
       ]}
+      built={[
+        {
+          href: '/taller/diagnostico',
+          label: 'Diagnóstico técnico',
+          detail: 'Registrar hallazgos con evidencia y tiempo estimado.',
+        },
+        {
+          href: '/taller/repuestos',
+          label: 'Solicitud de repuestos',
+          detail: 'Pedir las piezas de los trabajos que el cliente autorizó.',
+        },
+      ]}
     />
   );
 }

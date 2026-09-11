@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
   ArrowLeft,
+  ArrowRight,
   CalendarDays,
   Camera,
   Car,
@@ -116,6 +117,26 @@ export default async function OrdenPage({
             </p>
           </div>
         </div>
+
+        {/*
+          Las pantallas del flujo, enlazadas desde la orden. Una ruta que solo
+          se alcanza escribiéndola en la barra de direcciones no está entregada.
+        */}
+        <nav aria-label="Pantallas de la orden" className="mt-6 flex flex-wrap gap-2">
+          {[
+            { href: `/ordenes/${order.id}/cotizacion`, label: 'Cotización' },
+            { href: `/ordenes/${order.id}/repuestos`, label: 'Autorización de repuestos' },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="inline-flex items-center gap-2 rounded-control border border-border-strong bg-surface px-3.5 py-2 text-sm font-medium text-fg transition-colors duration-150 hover:border-brand-600 hover:bg-surface-sunken"
+            >
+              {item.label}
+              <ArrowRight aria-hidden className="size-3.5 text-brand-600" />
+            </Link>
+          ))}
+        </nav>
 
         <div className="mt-7 border-t border-border pt-6">
           <OrderJourney
