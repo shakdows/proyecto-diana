@@ -1,10 +1,14 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import {
   Activity,
+  ArrowUpRight,
   ClipboardList,
   Eye,
+  FileSignature,
   Lock,
   Mail,
+  MessageSquareHeart,
   ShieldCheck,
   ShoppingCart,
   User,
@@ -15,6 +19,8 @@ import { RomeroMark, RomeroWordmark } from '@/components/brand/romero-logo';
 import { DianaLockup } from '@/components/brand/diana-logo';
 import { BlueWave, HexPattern } from '@/components/brand/surfaces';
 import type { RoleCode } from '@/lib/auth/permissions';
+import { DEMO_AUTH_TOKEN } from '@/features/quotations/demo';
+import { DEMO_SURVEY_TOKEN } from '@/features/delivery/demo';
 import { clientEnv } from '@/lib/env';
 import { enterDemo } from './actions';
 
@@ -37,6 +43,34 @@ const DEMO_ROLES: readonly {
   { role: 'compras', icon: <ShoppingCart />, label: 'Compras', hint: 'Repuestos y proveedores' },
   { role: 'calidad', icon: <ShieldCheck />, label: 'Calidad', hint: 'Control de calidad' },
 ];
+
+/**
+ * Las dos pantallas que ve el CLIENTE.
+ *
+ * Van aparte de los puestos y no como una sexta ficha, porque no son lo
+ * mismo. Un puesto elige un rol, deja una cookie y entra al taller; el cliente
+ * no tiene cuenta, no entra a ninguna aplicación y llega por un enlace que le
+ * mandaron al móvil. Ponerlos en la misma fila enseñaría que «cliente» es un
+ * puesto más del taller, y de ahí a que alguien pida «el usuario cliente» hay
+ * un paso.
+ *
+ * Sin esto no había forma de llegar: las dos pantallas existen desde la Fase 9
+ * y solo se alcanzaban por enlaces escondidos dentro de la propia aplicación.
+ */
+const VISTAS_CLIENTE = [
+  {
+    href: `/autorizacion/${DEMO_AUTH_TOKEN}`,
+    icon: <FileSignature />,
+    label: 'Aprobar una cotización',
+    hint: 'Lo que recibe por WhatsApp',
+  },
+  {
+    href: `/encuesta/${DEMO_SURVEY_TOKEN}`,
+    icon: <MessageSquareHeart />,
+    label: 'Responder la encuesta',
+    hint: 'Después de recoger el vehículo',
+  },
+] as const;
 
 export default function LoginPage() {
   return (
@@ -228,6 +262,33 @@ function AccessPanel() {
               </button>
             ))}
           </form>
+
+          {/* El cliente, aparte. No elige puesto ni deja sesión: abre el
+              mismo enlace que le llegaría al móvil. */}
+          <p className="mt-6 text-xs uppercase tracking-wide text-fg-subtle">
+            O mira lo que ve tu cliente
+          </p>
+          <div className="mt-2 grid gap-2">
+            {VISTAS_CLIENTE.map(({ href, icon, label, hint }) => (
+              <Link
+                key={href}
+                href={href}
+                className="flex items-center gap-2.5 rounded-control border border-border bg-surface px-3 py-2.5 transition-colors duration-150 ease-snap hover:border-romero-400 hover:bg-romero-500/5 active:scale-[0.98]"
+              >
+                <span
+                  aria-hidden
+                  className="grid size-8 shrink-0 place-items-center rounded-control bg-surface-sunken text-fg-muted [&>svg]:size-4"
+                >
+                  {icon}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium text-fg">{label}</span>
+                  <span className="block truncate text-xs text-fg-subtle">{hint}</span>
+                </span>
+                <ArrowUpRight aria-hidden className="size-4 shrink-0 text-fg-subtle" />
+              </Link>
+            ))}
+          </div>
             </>
           )}
 
