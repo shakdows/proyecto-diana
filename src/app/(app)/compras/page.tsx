@@ -16,6 +16,13 @@ export default function Page() {
           'Órdenes de compra y recepción parcial o total, con cobertura calculada',
           'Compras no autoriza su propio gasto: lo hace el asesor',
       ]}
+      built={[
+        {
+          href: '/compras/os-154',
+          label: 'Cotización de proveedores',
+          detail: 'Comparar precio, plazo, garantía y forma de pago línea por línea.',
+        },
+      ]}
     />
   );
 }

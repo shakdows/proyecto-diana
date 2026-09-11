@@ -126,6 +126,7 @@ export default async function OrdenPage({
           {[
             { href: `/ordenes/${order.id}/cotizacion`, label: 'Cotización' },
             { href: `/ordenes/${order.id}/repuestos`, label: 'Autorización de repuestos' },
+            { href: `/compras/${order.id}`, label: 'Cotización de proveedores' },
           ].map((item) => (
             <Link
               key={item.href}
