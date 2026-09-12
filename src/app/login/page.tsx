@@ -3,7 +3,6 @@ import Link from 'next/link';
 import {
   ArrowRight,
   ArrowUpRight,
-  Car,
   ChevronRight,
   ClipboardList,
   Eye,
@@ -13,9 +12,7 @@ import {
   MessageSquareHeart,
   ShieldCheck,
   ShoppingCart,
-  Sparkles,
   User,
-  Users,
   Wrench,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -106,14 +103,6 @@ export default function LoginPage() {
 /* ------------------------------------------------------------------ *
  * Izquierda: la empresa
  * ------------------------------------------------------------------ */
-
-/** Los cuatro conceptos de la guía de marca. */
-const CONCEPTS = [
-  { icon: <ShieldCheck />, label: 'Confianza', hint: 'en cada kilómetro' },
-  { icon: <Sparkles />, label: 'Tecnología', hint: 'que impulsa' },
-  { icon: <Users />, label: 'Personas', hint: 'que te escuchan' },
-  { icon: <Car />, label: 'Movilidad', hint: 'sin límites' },
-] as const;
 
 /**
  * Marfil cálido, no blanco puro.
@@ -206,45 +195,8 @@ function ShowcasePanel() {
           </p>
         </div>
 
-        {/*
-          La banda de conceptos. Deja de ser un pie de página funcional: más
-          aire entre bloques, el círculo fino y el subtítulo atenuado. La regla
-          de arriba se va —separaba dos cosas que son la misma composición.
-        */}
-        {/* Cuatro en fila solo cuando la COLUMNA da de sí. Con `xl:` —que mira
-            la ventana— a 1280 px la columna medía 730 y la fila salía 3 + 1,
-            que es lo que hace que una banda de marca parezca un pie de página
-            mal cerrado. */}
-        <ul className="mt-10 grid grid-cols-2 gap-x-6 gap-y-7 @3xl/hero:mt-14 @3xl/hero:flex @3xl/hero:flex-wrap @3xl/hero:gap-x-10">
-          {CONCEPTS.map(({ icon, label, hint }) => (
-            <li key={label} className="flex items-center gap-3.5">
-              <span
-                aria-hidden
-                className="grid size-14 shrink-0 place-items-center rounded-full border border-white/20 [&>svg]:size-[1.375rem]"
-                style={{ color: IVORY }}
-              >
-                {icon}
-              </span>
-              <span className="min-w-0 leading-tight">
-                <span
-                  className="block text-[0.9375rem] font-semibold uppercase tracking-[0.1em]"
-                  style={{ color: IVORY }}
-                >
-                  {label}
-                </span>
-                <span
-                  className="mt-1 block text-[0.8125rem]"
-                  style={{ color: 'rgb(248 244 236 / 0.70)' }}
-                >
-                  {hint}
-                </span>
-              </span>
-            </li>
-          ))}
-        </ul>
-
         <p
-          className="mt-10 flex items-center gap-3 text-[0.6875rem] font-medium uppercase tracking-[0.3em] xl:mt-12"
+          className="mt-12 flex items-center gap-3 text-[0.6875rem] font-medium uppercase tracking-[0.3em] xl:mt-14"
           style={{ color: 'rgb(248 244 236 / 0.60)' }}
         >
           <span aria-hidden className="h-px w-8 bg-romero-500" />
