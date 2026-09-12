@@ -41,7 +41,7 @@ export function Topbar({
   const [navOpen, setNavOpen] = useState(false);
 
   return (
-    <header className="flex h-[4.5rem] shrink-0 items-center gap-3 border-b border-border bg-surface px-4 lg:px-6">
+    <header className="flex h-topbar shrink-0 items-center gap-3 border-b border-border bg-surface px-4 lg:px-6">
       <button
         type="button"
         onClick={() => setNavOpen(true)}

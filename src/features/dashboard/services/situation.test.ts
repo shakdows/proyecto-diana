@@ -137,3 +137,57 @@ describe('mismo día', () => {
     assert.equal(isSameDay(new Date('2026-09-11T23:59:59'), new Date('2026-09-12T00:00:00')), false);
   });
 });
+
+describe('la parte destacada del titular', () => {
+  it('es siempre un prefijo exacto de la frase', () => {
+    const casos = [
+      situationOf({ activeCount: 0, finishingToday: 0, items: [] }),
+      situationOf({ activeCount: 8, finishingToday: 3, items: [] }),
+      situationOf({
+        activeCount: 8,
+        finishingToday: 3,
+        items: [{ kind: 'pausada', severity: 'crit' }],
+      }),
+      situationOf({
+        activeCount: 8,
+        finishingToday: 3,
+        items: [
+          { kind: 'pausada', severity: 'crit' },
+          { kind: 'repuestos', severity: 'warn' },
+        ],
+      }),
+    ];
+
+    for (const s of casos) {
+      assert.ok(
+        s.headline.startsWith(s.emphasis),
+        `«${s.emphasis}» no encabeza «${s.headline}»`,
+      );
+    }
+  });
+
+  it('sin nada que atender no hay cifra que destacar', () => {
+    assert.equal(situationOf({ activeCount: 8, finishingToday: 3, items: [] }).emphasis, '');
+  });
+
+  it('destaca la cifra y el sustantivo, concordando', () => {
+    const uno = situationOf({
+      activeCount: 8,
+      finishingToday: 1,
+      items: [{ kind: 'pausada', severity: 'crit' }],
+    });
+    assert.equal(uno.emphasis, '1 vehículo');
+    assert.equal(uno.headline, '1 vehículo necesita tu atención');
+
+    const dos = situationOf({
+      activeCount: 8,
+      finishingToday: 1,
+      items: [
+        { kind: 'pausada', severity: 'crit' },
+        { kind: 'cliente', severity: 'wait' },
+      ],
+    });
+    assert.equal(dos.emphasis, '2 vehículos');
+    assert.equal(dos.headline, '2 vehículos necesitan tu atención');
+  });
+});

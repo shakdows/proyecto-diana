@@ -86,6 +86,10 @@ export const NAVIGATION: readonly NavGroup[] = [
       { href: '/lavado', label: 'Lavado', icon: 'lavado', permission: 'washing:execute', phase: 13 },
       { href: '/alineamiento', label: 'Alineamiento', icon: 'alineamiento', permission: 'alignment:execute', phase: 13 },
       { href: '/compras', label: 'Compras', icon: 'compras', permission: 'purchases:read', phase: 11 },
+      /* Entrega y seguimiento. Estaba solo en la rejilla del tablero, donde
+         era un filtro de órdenes disfrazado de módulo; aquí se ve siempre y
+         solo lo ve quien entrega. */
+      { href: '/seguimiento', label: 'Entregas', icon: 'seguimiento', permission: 'orders:deliver', phase: 13 },
       { href: '/clientes', label: 'Clientes', icon: 'clientes', permission: 'customers:read', phase: 4 },
       { href: '/encuestas', label: 'Encuestas', icon: 'encuestas', permission: 'surveys:read', phase: 15 },
       { href: '/informes', label: 'Informes', icon: 'informes', permission: 'reports:read', phase: 16 },

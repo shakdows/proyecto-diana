@@ -6,7 +6,7 @@ import { buildLauncher, pendingTotal, visibleApps, type LauncherCounts } from '.
 
 const CERO: LauncherCounts = {
   atencion: 0, ordenes: 0, recepcionesHoy: 0, enTaller: 0,
-  comprasPendientes: 0, listos: 0, encuestasPorLlamar: 0, clientes: 0,
+  comprasPendientes: 0, encuestasPorLlamar: 0, clientes: 0,
 };
 
 describe('el lanzador', () => {
@@ -55,9 +55,14 @@ describe('el color dice de qué clase es el módulo', () => {
 
   it('lo administrativo nunca grita', () => {
     const apps = buildLauncher({ ...CERO, atencion: 9, encuestasPorLlamar: 9 });
-    for (const id of ['clientes', 'informes', 'configuracion', 'auditoria']) {
+    for (const id of ['informes', 'configuracion', 'auditoria']) {
       assert.equal(apps.find((a) => a.id === id)?.tone, 'graphite', id);
     }
+
+    /* Clientes lleva su propio verde —no es consulta, es la cartera— y
+       tampoco se altera: ningún módulo salvo los dos declarados cambia de
+       color por lo que pase en el taller. */
+    assert.equal(apps.find((a) => a.id === 'clientes')?.tone, 'ok');
   });
 });
 
@@ -67,10 +72,9 @@ describe('los distintivos', () => {
   });
 
   it('cada cifra llega a su acceso, no a otro', () => {
-    const apps = buildLauncher({ ...CERO, ordenes: 8, comprasPendientes: 1, listos: 2 });
+    const apps = buildLauncher({ ...CERO, ordenes: 8, comprasPendientes: 1 });
     assert.equal(apps.find((a) => a.id === 'ordenes')?.badge, 8);
     assert.equal(apps.find((a) => a.id === 'compras')?.badge, 1);
-    assert.equal(apps.find((a) => a.id === 'entrega')?.badge, 2);
     assert.equal(apps.find((a) => a.id === 'taller')?.badge, 0);
   });
 });
@@ -97,5 +101,44 @@ describe('quién ve qué', () => {
     const todos = buildLauncher(CERO).map((a) => a.id);
     const suyos = visibleApps(buildLauncher(CERO), ROLE_PERMISSIONS.asesor).map((a) => a.id);
     assert.deepEqual(suyos, todos.filter((id) => suyos.includes(id)));
+  });
+});
+
+describe('lo que la rejilla promete', () => {
+  it('cada módulo dice qué se hace dentro', () => {
+    for (const app of buildLauncher(CERO)) {
+      assert.ok(app.description.length > 0, `«${app.label}» no tiene descripción`);
+      // Una descripción que repite el título no añade nada.
+      assert.notEqual(app.description.toLowerCase(), app.label.toLowerCase());
+    }
+  });
+
+  it('son los diez módulos del sistema, sin filtros disfrazados de módulo', () => {
+    assert.deepEqual(
+      buildLauncher(CERO).map((a) => a.id),
+      [
+        'operacion',
+        'recepcion',
+        'ordenes',
+        'taller',
+        'compras',
+        'clientes',
+        'encuestas',
+        'informes',
+        'configuracion',
+        'auditoria',
+      ],
+    );
+  });
+
+  it('el rojo está reservado a los dos que pueden ir mal', () => {
+    const tranquilo = buildLauncher(CERO);
+    assert.equal(tranquilo.filter((a) => a.tone === 'crit').length, 0);
+
+    const alarmado = buildLauncher({ ...CERO, atencion: 4, encuestasPorLlamar: 19 });
+    assert.deepEqual(
+      alarmado.filter((a) => a.tone === 'crit').map((a) => a.id),
+      ['operacion', 'encuestas'],
+    );
   });
 });

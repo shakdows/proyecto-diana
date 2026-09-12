@@ -103,6 +103,16 @@
   --font-sans: var(--font-plex-sans), 'IBM Plex Sans', system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), 'IBM Plex Mono', ui-monospace, monospace;
 
+  /*
+   * Alto de la barra superior.
+   *
+   * Existe como token porque lo necesitan dos sitios que no se ven entre sí:
+   * la propia barra, y cualquier pantalla que quiera ocupar exactamente lo
+   * que queda debajo. Repetido a mano, el segundo se desajusta el día que
+   * cambie el primero y nadie relaciona una cosa con la otra.
+   */
+  --spacing-topbar: 4.5rem;
+
   /* Jerarquía real de radios, no un valor único para todo */
   --radius-chip: 0.375rem;
   --radius-control: 0.5rem;
@@ -250,4 +260,92 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/*
+ * Isla oscura: `theme-night`.
+ *
+ * El tablero se pinta en oscuro sobre una aplicación clara. La tentación es
+ * escribir los colores a mano en ese componente, y entonces `Badge`, `Plate`,
+ * `Panel` y cualquier cosa que se meta dentro siguen pintando en claro y hay
+ * que reescribir cada una.
+ *
+ * Aquí se redefinen los tokens en un ámbito. Todo lo que viva dentro
+ * —incluidos componentes que no saben nada de esto— se vuelve oscuro sin
+ * tocarlos. Es el mismo mecanismo del tema oscuro del sistema, acotado a un
+ * contenedor en vez de a `:root`.
+ *
+ * ── Por qué se redefine `--color-fg` y no `--fg` ───────────────────────────
+ *
+ * Los tokens semánticos se declaran arriba como `--color-fg: var(--fg)`, y de
+ * ahí sale la tentación de cambiar solo `--fg` aquí. No funciona: Tailwind v4
+ * resuelve ese alias en `:root`, así que `--color-fg` ya vale #0F172A antes de
+ * llegar a este contenedor y los descendientes heredan el valor resuelto, no
+ * la referencia. El síntoma es cruel porque es parcial: los componentes con
+ * color propio se ven bien y solo los que usan el token salen en claro sobre
+ * el fondo oscuro. Se redefinen los dos nombres —el alias por coherencia con
+ * el resto del archivo, y el `--color-*` porque es el que leen las utilidades.
+ *
+ * Los valores son los de la referencia del tablero premium, no una variación
+ * del oscuro del sistema: allí el fondo es grafito neutro y aquí es azul
+ * profundo, que es lo que da el aire automotriz.
+ */
+.theme-night {
+  --surface: #0c1824;
+  --surface-raised: #102030;
+  --surface-sunken: #07111b;
+  --surface-inverted: #f8fafc;
+  --fg: #f8fafc;
+  --fg-muted: #8fa3b8;
+  --fg-subtle: #6d829a;
+  --fg-inverted: #07111b;
+  --border: #17324a;
+  --border-strong: #23486a;
+  --focus: #2588ff;
+
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-inverted: var(--surface-inverted);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-fg-inverted: var(--fg-inverted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-focus: var(--focus);
+
+  color-scheme: dark;
+
+  /*
+   * El azul sube un punto: #146EF5 se eligió por contraste sobre BLANCO, y
+   * sobre #07111B se apaga. #1478FF mantiene la marca y recupera el brillo.
+   * Los colores de estado suben por lo mismo: los `600` del tema claro están
+   * calculados contra fondo claro y sobre azul profundo se leen sucios.
+   */
+  --color-brand-600: #1478ff;
+  --color-brand-700: #2588ff;
+  --color-crit-600: #e83a35;
+  --color-crit-500: #ef5b56;
+  --color-ok-600: #16a36a;
+  --color-warn-600: #c98a0a;
+
+  /*
+   * Los `100` son fondos de pastilla pensados para tema claro; sobre oscuro
+   * son manchas pálidas. Se sustituyen por versiones profundas del mismo tono,
+   * y los `700` —que ahí visten el texto— por versiones claras.
+   */
+  --color-crit-100: #3a1412;
+  --color-ok-100: #0c2f22;
+  --color-warn-100: #33260a;
+  --color-wait-100: #16222e;
+  --color-brand-100: #0b2444;
+  --color-crit-700: #ff8b87;
+  --color-ok-700: #4fd8a0;
+  --color-warn-700: #eab338;
+  --color-wait-700: #a3b5c6;
+
+  /* Sobre oscuro la sombra no separa: lo hace el borde. */
+  --shadow-raise: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-panel: 0 8px 24px -8px rgb(0 0 0 / 0.55);
 }

@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
-import { AppLauncher } from '@/components/dashboard/app-launcher';
-import { SituationHeader } from '@/components/dashboard/situation-header';
+import { BoardHero } from '@/components/dashboard/board-hero';
+import { BrandCard } from '@/components/dashboard/brand-card';
+import { ModuleGrid } from '@/components/dashboard/module-grid';
+import { PrioritiesPanel } from '@/components/dashboard/priorities-panel';
 import { attentionItems, demoBoard } from '@/features/demo/board';
 import { countFinishingToday, situationOf } from '@/features/dashboard/services/situation';
 import { buildLauncher, visibleApps } from '@/features/dashboard/services/launcher';
+import { topPriorities } from '@/features/dashboard/services/priorities';
 import { countByStage } from '@/features/dashboard/services/stages';
 import { demoTodayIntakes } from '@/features/reception/demo';
 import { demoSurveys } from '@/features/surveys/demo';
@@ -19,17 +20,25 @@ export const dynamic = 'force-dynamic';
 /**
  * El tablero.
  *
- * Una frase que dice cómo va el taller, y una rejilla de accesos con lo que
- * espera dentro de cada uno. Nada más.
+ * Cuatro bloques y nada más: una banda que dice cómo va el taller, los
+ * módulos con lo que espera dentro de cada uno, las prioridades de hoy y la
+ * tarjeta de marca. Entra en una pantalla de escritorio sin desplazarse.
  *
- * El detalle —las seis etapas, la lista de los que piden atención, los
- * vehículos en proceso— no se perdió: vive en `/tablero/operacion`, que es el
- * primer acceso de la rejilla y el que se pone rojo cuando hay algo. Quien
- * dirige el taller entra ahí y se queda; quien solo viene a recibir un
- * vehículo no tiene que atravesarlo para llegar a Recepción.
+ * El detalle —las seis etapas, la lista completa de atención, los vehículos en
+ * proceso— no se perdió: vive en `/tablero/operacion`, el primer módulo de la
+ * rejilla y el que se pone rojo cuando hay algo.
  *
- * Los distintivos son cifras REALES, contadas aquí: un contador decorativo se
- * descubre el primer día y a partir de ahí nadie mira ninguno.
+ * ── Por qué esta pantalla es oscura y el resto no ──────────────────────────
+ *
+ * `theme-night` redefine los tokens semánticos en un ámbito, no en `:root`.
+ * Todo lo que vive dentro —`Plate`, los distintivos, los bordes— se vuelve
+ * oscuro sin que haya que tocarlo, y ninguna otra pantalla se entera. El
+ * margen negativo saca el fondo hasta los bordes del área de contenido, que
+ * de otro modo dejaría un marco claro alrededor del tablero.
+ *
+ * Los distintivos y las prioridades son cifras REALES, contadas aquí: un
+ * contador decorativo se descubre el primer día y a partir de ahí nadie mira
+ * ninguno.
  */
 export default async function TableroPage() {
   const user = await getSessionUser();
@@ -52,7 +61,6 @@ export default async function TableroPage() {
       recepcionesHoy: demoTodayIntakes(now).length,
       enTaller: stages.reparacion,
       comprasPendientes: stages.repuestos,
-      listos: stages.listos,
       encuestasPorLlamar: pendingFollowUps(demoSurveys(now)).length,
       clientes: 0,
     }),
@@ -60,22 +68,32 @@ export default async function TableroPage() {
   );
 
   return (
-    <>
-      <SituationHeader
-        greeting={greetingAt(now)}
-        userName={user.fullName.split(' ')[0] ?? user.fullName}
-        situation={situation}
-      />
+    <div className="theme-night -mx-4 -my-6 min-h-[calc(100dvh-var(--spacing-topbar))] bg-surface-sunken px-4 py-5 text-fg lg:-mx-6 lg:-my-7 lg:px-6">
+      <div className="space-y-5">
+        <BoardHero
+          greeting={greetingAt(now)}
+          userName={user.fullName.split(' ')[0] ?? user.fullName}
+          situation={situation}
+        />
 
-      <AppLauncher apps={apps} />
+        <section className="@container/modulos space-y-3">
+          <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+            <h2 className="font-display text-base font-semibold text-fg">Módulos</h2>
+            <p className="text-xs text-fg-muted">
+              Todo en un solo lugar para una operación más eficiente.
+            </p>
+          </header>
 
-      <Link
-        href="/tablero/operacion"
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 transition-colors duration-150 hover:text-brand-700"
-      >
-        Ver el taller en detalle
-        <ArrowRight aria-hidden className="size-4" />
-      </Link>
-    </>
+          <ModuleGrid apps={apps} />
+        </section>
+
+        {/* Prioridades primero en estrecho: en un teléfono lo que hay que
+            hacer no puede ir debajo de una tarjeta de marca. */}
+        <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
+          <PrioritiesPanel priorities={topPriorities(attention, now)} />
+          <BrandCard />
+        </div>
+      </div>
+    </div>
   );
 }

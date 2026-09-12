@@ -16,6 +16,15 @@ export type SituationTone = 'estable' | 'atencion' | 'critico';
 export interface Situation {
   readonly tone: SituationTone;
   readonly headline: string;
+  /**
+   * El arranque del titular, para destacarlo en color: «4 vehículos».
+   *
+   * Va aquí y no en la plantilla porque es SIEMPRE un prefijo exacto de
+   * `headline`; partir la frase con un `split(' ').slice(0, 2)` en el
+   * componente funciona hasta que el titular cambia de forma y entonces
+   * destaca media palabra. Vacío cuando no hay cifra que destacar.
+   */
+  readonly emphasis: string;
   readonly detail: string;
 }
 
@@ -70,6 +79,7 @@ export function situationOf({ activeCount, finishingToday, items }: SituationInp
     return {
       tone: 'estable',
       headline: activeCount === 0 ? 'Taller sin vehículos' : 'Operación estable',
+      emphasis: '',
       detail: stableDetail(activeCount, finishingToday),
     };
   }
@@ -81,9 +91,12 @@ export function situationOf({ activeCount, finishingToday, items }: SituationInp
   // Un vehículo puede tener dos motivos; lo que se cuenta son VEHÍCULOS.
   const n = items.length;
 
+  const emphasis = n === 1 ? '1 vehículo' : `${String(n)} vehículos`;
+
   return {
     tone,
-    headline: n === 1 ? '1 vehículo necesita tu atención' : `${String(n)} vehículos necesitan tu atención`,
+    headline: `${emphasis} ${n === 1 ? 'necesita' : 'necesitan'} tu atención`,
+    emphasis,
     detail: summarizeAttention(items),
   };
 }
