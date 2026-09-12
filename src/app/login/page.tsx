@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
-  Activity,
+  ArrowRight,
   ArrowUpRight,
+  Car,
+  ChevronRight,
   ClipboardList,
   Eye,
   FileSignature,
@@ -11,13 +13,14 @@ import {
   MessageSquareHeart,
   ShieldCheck,
   ShoppingCart,
+  Sparkles,
   User,
+  Users,
   Wrench,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { RomeroMark, RomeroWordmark } from '@/components/brand/romero-logo';
+import { RomeroWordmark } from '@/components/brand/romero-logo';
 import { DianaLockup } from '@/components/brand/diana-logo';
-import { BlueWave, HexPattern } from '@/components/brand/surfaces';
 import type { RoleCode } from '@/lib/auth/permissions';
 import { DEMO_AUTH_TOKEN } from '@/features/quotations/demo';
 import { DEMO_SURVEY_TOKEN } from '@/features/delivery/demo';
@@ -72,125 +75,138 @@ const VISTAS_CLIENTE = [
   },
 ] as const;
 
+/**
+ * La entrada.
+ *
+ * Es la única pantalla que alguien ve antes de decidir si este sistema le
+ * parece serio, y la única donde la empresa firma con su color. Por eso va en
+ * crema y rojo Romero —`theme-cream`— y no en el gris azulado del taller: ahí
+ * dentro el rojo significa «retrasado», y aquí significa Romero Motors.
+ *
+ * Dos mitades. A la izquierda la fotografía del taller con el nombre en la
+ * pared, la promesa y los cuatro conceptos de la guía. A la derecha el acceso,
+ * sobre blanco, sin una sola imagen: lo que se hace con las manos no compite
+ * con lo que se mira.
+ */
 export default function LoginPage() {
   return (
-    <main className="grid min-h-dvh lg:grid-cols-[55fr_45fr]">
+    <main className="theme-cream grid min-h-dvh bg-surface-sunken lg:grid-cols-[57fr_43fr]">
       <ShowcasePanel />
       <AccessPanel />
     </main>
   );
 }
 
-/**
- * Panel izquierdo.
- *
- * En el diseño va una fotografía del taller. Mientras no exista el archivo,
- * el hueco se rellena con una composición en grafito y el degradado que
- * llevaría encima la foto: así el texto ya está probado sobre el fondo que
- * tendrá, y el día que entre la imagen no hay que recolocar nada.
- */
+/* ------------------------------------------------------------------ *
+ * Izquierda: la empresa
+ * ------------------------------------------------------------------ */
+
+/** Los cuatro conceptos de la guía de marca. */
+const CONCEPTS = [
+  { icon: <ShieldCheck />, label: 'Confianza', hint: 'en cada kilómetro' },
+  { icon: <Sparkles />, label: 'Tecnología', hint: 'que impulsa' },
+  { icon: <Users />, label: 'Personas', hint: 'que te escuchan' },
+  { icon: <Car />, label: 'Movilidad', hint: 'sin límites' },
+] as const;
+
 function ShowcasePanel() {
   return (
-    <section className="relative hidden overflow-hidden bg-graphite-950 lg:block">
-      {/* La fotografía del taller, por fin. El degradado que va encima ya
-          estaba probado contra este hueco, así que la imagen entró sin mover
-          una sola medida del texto. */}
+    <section className="relative isolate hidden overflow-hidden bg-graphite-950 lg:block">
       {/* eslint-disable-next-line @next/next/no-img-element -- fondo local ya
           recortado y comprimido; el optimizador no aporta y añade una petición. */}
       <img
-        src="/fondos/hero-taller.webp"
+        src="/fondos/hero-showroom.webp"
         alt=""
         aria-hidden
-        className="absolute inset-0 size-full object-cover"
+        /* `object-position` no es un ajuste fino: la fotografía es 16:9 y esta
+           columna es más alta que ancha, así que el recorte se come casi la
+           mitad del ancho. Centrado dejaba el nombre de la pared partido por
+           la mitad —«MERO / TORS»—, que es peor que no enseñarlo. */
+        className="absolute inset-0 -z-20 size-full object-[32%_center] object-cover"
       />
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-linear-to-br from-graphite-950/95 via-graphite-950/88 to-brand-950/80"
-      />
-      {/* El lenguaje gráfico de la guía: retícula hexagonal de fondo y las
-          ondas azules cruzando por debajo del texto. Dibujados, no imágenes:
-          escalan a cualquier pantalla, siguen el azul de marca si cambia y no
-          hay descarga que esperar antes de ver la portada entera. */}
-      <HexPattern className="text-white/[0.04]" />
-      <BlueWave className="opacity-60" />
+
+      {/*
+        Dos capas y no una. La primera oscurece de abajo arriba para que el
+        texto tenga dónde apoyarse sin tapar el nombre que ya está pintado en
+        la pared de la fotografía; la segunda quita saturación al conjunto,
+        porque la imagen es azulada y esta pantalla es cálida.
+      */}
       <span
         aria-hidden
-        className="pointer-events-none absolute -left-32 top-1/3 size-[28rem] rounded-full bg-brand-600/20 blur-3xl"
+        className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,rgb(10_12_16/0.94)_0%,rgb(10_12_16/0.72)_38%,rgb(10_12_16/0.25)_72%,transparent_100%)]"
+      />
+      <span
+        aria-hidden
+        className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgb(26_20_16/0.45),transparent_55%)]"
       />
 
-      <div className="relative flex h-full flex-col justify-between p-10 xl:p-14">
-        {/* Momento de marca: aquí el logotipo va con su color, porque no hay
-            ningún rojo de estado con el que pueda confundirse. */}
-        <header>
-          <RomeroWordmark on="dark" className="h-16 w-auto text-white" />
-          <p className="mt-2 text-xs text-graphite-400">
-            Más que un taller, tu aliado en el camino
-          </p>
-        </header>
-
+      <div className="relative flex h-full flex-col justify-end gap-10 p-10 xl:p-14">
         <div className="max-w-xl">
           <DianaLockup size="lg" endorsement={false} />
 
-          <h1 className="mt-8 font-display text-3xl font-semibold leading-tight tracking-tight text-white xl:text-[2.5rem]">
-            Control inteligente del
-            <br />
-            servicio automotriz
-          </h1>
-          <p className="mt-4 max-w-md text-base leading-relaxed text-graphite-300">
-            Gestiona cada vehículo desde la recepción hasta la entrega con trazabilidad completa
-            en tiempo real.
-          </p>
+          {/* El filete rojo es el de la guía: corto, grueso y encima del
+              titular, no debajo. */}
+          <span aria-hidden className="mt-8 block h-1 w-16 rounded-full bg-romero-500" />
 
-          <ul className="mt-9 space-y-3.5">
-            <Feature icon={<Activity />} label="Operación en tiempo real" />
-            <Feature icon={<ClipboardList />} label="Control de órdenes" />
-            <Feature icon={<ShieldCheck />} label="Trazabilidad y confiabilidad" />
-          </ul>
+          <h1 className="mt-5 font-display text-[2rem] font-bold leading-[1.15] tracking-tight text-white xl:text-[2.5rem]">
+            Vehículos en buenas manos,
+            <br />
+            negocios en movimiento.
+          </h1>
+          <p className="mt-4 max-w-md text-base leading-relaxed text-graphite-200">
+            Gestiona cada vehículo desde la recepción hasta la entrega, con trazabilidad
+            completa, eficiencia y clientes más satisfechos.
+          </p>
         </div>
 
-        <footer>
-          <p className="text-xs text-graphite-500">
-            © 2026 Romero Motors. Todos los derechos reservados.
-          </p>
-        </footer>
+        <ul className="flex flex-wrap gap-x-8 gap-y-5 border-t border-white/15 pt-7">
+          {CONCEPTS.map(({ icon, label, hint }) => (
+            <li key={label} className="flex items-center gap-3">
+              <span
+                aria-hidden
+                className="grid size-10 shrink-0 place-items-center rounded-full border border-white/25 text-white [&>svg]:size-[1.125rem]"
+              >
+                {icon}
+              </span>
+              <span className="leading-tight">
+                <span className="block text-xs font-semibold uppercase tracking-[0.14em] text-white">
+                  {label}
+                </span>
+                <span className="block text-xs text-graphite-300">{hint}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        <p className="flex items-center gap-3 text-[0.6875rem] font-medium uppercase tracking-[0.3em] text-graphite-300">
+          <span aria-hidden className="h-px w-8 bg-romero-500" />
+          El movimiento nos conecta
+        </p>
       </div>
     </section>
   );
 }
 
-function Feature({ icon, label }: { readonly icon: ReactNode; readonly label: string }) {
-  return (
-    <li className="flex items-center gap-3.5">
-      <span
-        aria-hidden
-        className="grid size-11 shrink-0 place-items-center rounded-control border border-brand-500/30 bg-brand-500/10 text-brand-400 [&>svg]:size-5"
-      >
-        {icon}
-      </span>
-      <span className="text-sm font-semibold uppercase tracking-[0.06em] text-graphite-200">
-        {label}
-      </span>
-    </li>
-  );
-}
+/* ------------------------------------------------------------------ *
+ * Derecha: el acceso
+ * ------------------------------------------------------------------ */
 
-/** Panel derecho: el acceso propiamente dicho. */
 function AccessPanel() {
   return (
-    <section className="flex items-center justify-center bg-surface-sunken px-5 py-10 sm:px-8">
-      <div className="w-full max-w-md">
-        <div className="mb-7 flex items-center gap-3 lg:hidden">
-          <RomeroMark className="size-10 text-brand-600" />
-          <span className="font-display text-base font-bold uppercase tracking-[0.04em] text-fg">
-            Romero Motors
-          </span>
-        </div>
+    <section className="flex items-center justify-center px-5 py-10 sm:px-8">
+      <div className="w-full max-w-[28rem]">
+        <header className="text-center">
+          <RomeroWordmark className="mx-auto h-11 w-auto" />
+          <p className="mt-2.5 text-[0.625rem] font-medium uppercase tracking-[0.2em] text-fg-subtle">
+            Más que un taller, tu aliado en el camino
+          </p>
+        </header>
 
-        <div className="rounded-modal border border-border bg-surface-raised p-7 shadow-panel sm:p-8">
-          <h2 className="font-display text-3xl font-semibold tracking-tight text-fg">
-            Bienvenido a DIANA
-          </h2>
-          <p className="mt-1.5 text-sm text-fg-muted">
+        <div className="@container/acceso mt-7 rounded-modal border border-border bg-surface p-6 shadow-panel sm:p-7">
+          <h1 className="font-display text-[1.75rem] font-bold tracking-tight text-fg">
+            Bienvenido
+          </h1>
+          <p className="mt-1 text-sm text-fg-muted">
             Accede al centro de operaciones automotrices.
           </p>
 
@@ -201,106 +217,128 @@ function AccessPanel() {
             lo pruebe. Se ve, dice por qué no funciona todavía, y la entrada
             real es la de abajo.
           */}
-          <fieldset disabled className="mt-6 space-y-3 opacity-60">
+          {/* Deshabilitado de verdad, pero no borrado: a 60 % de opacidad el
+              rojo de Romero se leía rosa, y la primera impresión de la
+              empresa no puede ser un color que no es el suyo. El aviso de
+              debajo dice por qué no funciona todavía. */}
+          <fieldset disabled className="mt-6 space-y-3 opacity-80">
             <legend className="sr-only">Acceso con credenciales</legend>
             <FakeInput icon={<Mail />} placeholder="Correo electrónico" />
             <FakeInput icon={<Lock />} placeholder="Contraseña" trailing={<Eye />} />
-            <p className="flex items-center justify-between pt-1 text-sm">
+            <p className="flex items-center justify-between pt-0.5 text-sm">
               <span className="flex items-center gap-2 text-fg-muted">
                 <span
                   aria-hidden
-                  className="size-4 rounded-[0.3rem] border-2 border-border-strong"
+                  className="size-4 rounded-[0.25rem] border-2 border-border-strong"
                 />
                 Recordarme
               </span>
-              <span className="text-brand-600">¿Olvidaste tu contraseña?</span>
+              <span className="font-medium text-romero-600">¿Olvidaste tu contraseña?</span>
             </p>
-            <p className="h-12 w-full rounded-control bg-brand-600 text-center text-sm font-semibold leading-[3rem] text-white">
+            <p className="flex h-12 w-full items-center justify-center gap-2 rounded-control bg-romero-600 text-sm font-semibold text-white">
               Ingresar al sistema
+              <ArrowRight aria-hidden className="size-4" />
             </p>
           </fieldset>
 
-          <p className="mt-3 rounded-control bg-surface-sunken px-3 py-2 text-xs leading-relaxed text-fg-subtle">
+          <p className="mt-3 rounded-control bg-surface-sunken px-3 py-2 text-xs leading-relaxed text-fg-muted">
             El acceso con credenciales llega con la autenticación real. Por ahora se entra
             eligiendo un puesto.
           </p>
 
           {clientEnv.NEXT_PUBLIC_DEMO_MODE && (
             <>
-          <div className="my-6 flex items-center gap-3" aria-hidden>
-            <span className="h-px flex-1 bg-border" />
-            <span className="text-xs text-fg-subtle">o</span>
-            <span className="h-px flex-1 bg-border" />
-          </div>
+              <div className="my-5 flex items-center gap-3" aria-hidden>
+                <span className="h-px flex-1 bg-border" />
+                <span className="text-xs text-fg-subtle">o accede como</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
 
-          <div className="rounded-control border border-brand-200 bg-brand-50 px-4 py-3">
-            <p className="text-sm font-semibold text-brand-800">Explorar modo demostración</p>
-            <p className="mt-0.5 text-xs text-brand-700/80">
-              Cada puesto entra a la pantalla que le sirve.
-            </p>
-          </div>
+              {/* Dos columnas solo cuando la TARJETA da de sí, no cuando la
+                  ventana lo hace. A 1024 px `sm:` ya era cierto y la tarjeta
+                  medía 312: «Administrador» salía «Adminis…». */}
+              <form action={enterDemo} className="grid grid-cols-1 gap-2 @sm/acceso:grid-cols-2">
+                {DEMO_ROLES.map(({ role, icon, label, hint }) => (
+                  <button
+                    key={role}
+                    type="submit"
+                    name="role"
+                    value={role}
+                    className="group flex items-center gap-2.5 rounded-control border border-border bg-surface px-3 py-2.5 text-left transition-colors duration-150 ease-snap hover:border-romero-400 hover:bg-romero-500/5 active:scale-[0.98]"
+                  >
+                    <span
+                      aria-hidden
+                      className="grid size-8 shrink-0 place-items-center rounded-control bg-surface-sunken text-romero-600 [&>svg]:size-4"
+                    >
+                      {icon}
+                    </span>
+                    {/* 13 px, no 14: con dos columnas dentro de una tarjeta de
+                        448 px quedan 110 px de texto, y «Administrador» a 14 px
+                        semibold mide más. Salía «Administr…» justo en el puesto
+                        que más se usa. */}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[0.8125rem] font-semibold leading-tight text-fg">
+                        {label}
+                      </span>
+                      {/* El rótulo se recorta si hace falta; la explicación
+                          se parte en dos líneas. «Recepción y client…» no
+                          explica nada, y una ficha un poco más alta no cuesta
+                          nada en una rejilla que estira todas por igual. */}
+                      <span className="mt-0.5 block text-[0.6875rem] leading-tight text-fg-muted">
+                        {hint}
+                      </span>
+                    </span>
+                    <ChevronRight
+                      aria-hidden
+                      className="size-3.5 shrink-0 text-fg-subtle transition-transform duration-150 group-hover:translate-x-0.5"
+                    />
+                  </button>
+                ))}
+              </form>
 
-          <form action={enterDemo} className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {DEMO_ROLES.map(({ role, icon, label, hint }) => (
-              <button
-                key={role}
-                type="submit"
-                name="role"
-                value={role}
-                className="flex items-center gap-2.5 rounded-control border border-border bg-surface px-3 py-2.5 text-left transition-colors duration-150 ease-snap hover:border-brand-300 hover:bg-brand-50 active:scale-[0.98]"
-              >
-                <span
-                  aria-hidden
-                  className="grid size-8 shrink-0 place-items-center rounded-control bg-surface-sunken text-fg-muted [&>svg]:size-4"
-                >
-                  {icon}
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium text-fg">{label}</span>
-                  <span className="block truncate text-xs text-fg-subtle">{hint}</span>
-                </span>
-              </button>
-            ))}
-          </form>
-
-          {/* El cliente, aparte. No elige puesto ni deja sesión: abre el
-              mismo enlace que le llegaría al móvil. */}
-          <p className="mt-6 text-xs uppercase tracking-wide text-fg-subtle">
-            O mira lo que ve tu cliente
-          </p>
-          <div className="mt-2 grid gap-2">
-            {VISTAS_CLIENTE.map(({ href, icon, label, hint }) => (
-              <Link
-                key={href}
-                href={href}
-                className="flex items-center gap-2.5 rounded-control border border-border bg-surface px-3 py-2.5 transition-colors duration-150 ease-snap hover:border-romero-400 hover:bg-romero-500/5 active:scale-[0.98]"
-              >
-                <span
-                  aria-hidden
-                  className="grid size-8 shrink-0 place-items-center rounded-control bg-surface-sunken text-fg-muted [&>svg]:size-4"
-                >
-                  {icon}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-fg">{label}</span>
-                  <span className="block truncate text-xs text-fg-subtle">{hint}</span>
-                </span>
-                <ArrowUpRight aria-hidden className="size-4 shrink-0 text-fg-subtle" />
-              </Link>
-            ))}
-          </div>
+              {/* El cliente, aparte. No elige puesto ni deja sesión: abre el
+                  mismo enlace que le llegaría al móvil. */}
+              <p className="mt-5 text-xs text-fg-subtle">O realiza otras acciones</p>
+              <div className="mt-2 grid gap-2">
+                {VISTAS_CLIENTE.map(({ href, icon, label, hint }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="group flex items-center gap-2.5 rounded-control border border-border bg-surface px-3 py-2.5 transition-colors duration-150 ease-snap hover:border-romero-400 hover:bg-romero-500/5 active:scale-[0.98]"
+                  >
+                    <span
+                      aria-hidden
+                      className="grid size-8 shrink-0 place-items-center rounded-control bg-surface-sunken text-fg-muted [&>svg]:size-4"
+                    >
+                      {icon}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-fg">{label}</span>
+                      <span className="block truncate text-xs text-fg-muted">{hint}</span>
+                    </span>
+                    <ArrowUpRight aria-hidden className="size-4 shrink-0 text-fg-subtle" />
+                  </Link>
+                ))}
+              </div>
             </>
           )}
+        </div>
 
-          <footer className="mt-7 flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-t border-border pt-4 text-xs text-fg-subtle">
+        <footer className="mt-6 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-fg-muted">
+            Romero Motors
+          </p>
+          <p className="mt-1.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-fg-subtle">
             <span data-numeric>DIANA v1.0.0</span>
+            <span aria-hidden>·</span>
             <span className="flex items-center gap-1.5">
               <span aria-hidden className="size-2 rounded-full bg-ok-500" />
               Sistema operativo
             </span>
-            <span>© Romero Motors</span>
-          </footer>
-        </div>
+            <span aria-hidden>·</span>
+            <span>© 2026</span>
+          </p>
+        </footer>
       </div>
     </section>
   );

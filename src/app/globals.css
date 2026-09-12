@@ -349,3 +349,49 @@
   --shadow-raise: 0 1px 2px 0 rgb(0 0 0 / 0.4);
   --shadow-panel: 0 8px 24px -8px rgb(0 0 0 / 0.55);
 }
+
+/*
+ * Isla crema: `theme-cream`.
+ *
+ * El mismo mecanismo que `theme-night`, en el otro extremo. Lo usan las
+ * pantallas que ve alguien de FUERA del taller —la entrada, la autorización
+ * que le llega al cliente, la encuesta—, donde la interfaz deja de ser una
+ * herramienta y pasa a ser la cara de la empresa.
+ *
+ * No es «el tema claro con otro blanco». El gris azulado del sistema
+ * (#F6F8FB) está elegido para que ocho horas de tablero no cansen; la crema
+ * (#FAF7F2) está elegida para que una fotografía de taller con luz cálida no
+ * parezca pegada sobre una hoja de cálculo. Son dos problemas distintos.
+ *
+ * Aquí manda el ROJO de Romero Motors y no el azul de marca del producto: es
+ * el momento en que se firma quién es la empresa, y es justo donde el propio
+ * sistema de color reserva el rojo completo (ver `romero-logo.tsx`). Dentro
+ * del taller no aparece nunca, porque ahí el rojo significa «retrasado».
+ */
+.theme-cream {
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #faf7f2;
+  --surface-inverted: #1f2937;
+  --fg: #1f2937;
+  --fg-muted: #6b7280;
+  --fg-subtle: #9ca3af;
+  --fg-inverted: #ffffff;
+  --border: #e5e7eb;
+  --border-strong: #dcd7cf;
+  --focus: #c0161c;
+
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-inverted: var(--surface-inverted);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-fg-inverted: var(--fg-inverted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-focus: var(--focus);
+
+  color-scheme: light;
+}
