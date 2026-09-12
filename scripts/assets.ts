@@ -12,7 +12,7 @@
  * arrastra un manifiesto viejo.
  */
 
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { demoOrders } from '../src/features/demo/board';
@@ -43,11 +43,63 @@ const DIANA_NAMES = [
   'logo-diana.png',
 ] as const;
 
-function render(files: readonly string[]): string {
+/**
+ * ¿La imagen tiene canal alfa?
+ *
+ * Se lee de la CABECERA del archivo, no con una biblioteca de imágenes: este
+ * script corre en `prebuild`, también en el despliegue, y meter `sharp` como
+ * dependencia de compilación por un bit de una cabecera no sale a cuenta.
+ *
+ * Importa porque decide cómo se encaja la foto. Un recorte sin fondo se encaja
+ * ENTERO —el hueco lo rellena el color de la tarjeta—, mientras que una foto
+ * de estudio con su propio fondo se recorta para llenar el hueco. Aplicar la
+ * regla equivocada se ve enseguida: el recorte sale con medio coche fuera de
+ * cuadro, y la foto de estudio, con dos franjas vacías a los lados.
+ */
+function hasAlpha(file: string): boolean {
+  let head: Buffer;
+  try {
+    head = readFileSync(file).subarray(0, 40);
+  } catch {
+    return false;
+  }
+
+  // PNG: el tipo de color va en el byte 25 del IHDR. 4 = gris+alfa, 6 = RGBA.
+  if (head.length > 25 && head.toString('binary', 1, 4) === 'PNG') {
+    const colourType = head[25];
+    return colourType === 4 || colourType === 6;
+  }
+
+  if (head.length > 24 && head.toString('ascii', 0, 4) === 'RIFF' && head.toString('ascii', 8, 12) === 'WEBP') {
+    const chunk = head.toString('ascii', 12, 16);
+    // Extendido: bit 0x10 de los indicadores.
+    if (chunk === 'VP8X') return ((head[20] ?? 0) & 0x10) !== 0;
+    /* Sin pérdida: tras la firma 0x2F vienen 14 bits de ancho, 14 de alto y
+       entonces el bit de alfa — el bit 28 del entero de 32 bits siguiente. */
+    if (chunk === 'VP8L') {
+      const bits = head.readUInt32LE(21);
+      return ((bits >> 28) & 1) === 1;
+    }
+    // VP8 con pérdida y a secas: sin alfa.
+    return false;
+  }
+
+  /* JPEG nunca lleva alfa. De cualquier otro formato —AVIF, por ejemplo— no
+     se afirma nada: se trata como opaco, que es el comportamiento que había
+     antes de esto y no rompe ninguna imagen existente. */
+  return false;
+}
+
+function render(files: readonly string[], cutouts: readonly string[]): string {
   const list =
     files.length === 0
       ? '  /* Vacío: cada vehículo se dibuja. Ver public/fotos-de-carros/README.md. */\n'
       : files.map((f) => `  '${f}',\n`).join('');
+
+  const cutoutList =
+    cutouts.length === 0
+      ? '  /* Ninguna: todas traen su propio fondo. */\n'
+      : cutouts.map((f) => `  '${f}',\n`).join('');
 
   return `/**
  * GENERADO POR \`npm run fotos\`. No editar a mano.
@@ -58,6 +110,17 @@ function render(files: readonly string[]): string {
 
 export const PHOTO_MANIFEST: readonly string[] = [
 ${list}];
+
+/**
+ * Las que vienen SIN fondo, con canal alfa.
+ *
+ * Deciden cómo se encaja la imagen: un recorte se muestra entero y el hueco
+ * lo rellena el color de la tarjeta; una foto de estudio se recorta para
+ * llenarlo. Con la regla cambiada, el recorte sale con medio coche fuera de
+ * cuadro.
+ */
+export const PHOTO_CUTOUTS: readonly string[] = [
+${cutoutList}];
 `;
 }
 
@@ -146,7 +209,8 @@ function main(): void {
   }
 
   const files = entries.filter(isPhotoFile).sort();
-  const next = render(files);
+  const cutouts = files.filter((f) => hasAlpha(join(FOLDER, f)));
+  const next = render(files, cutouts);
 
   let current = '';
   try {
@@ -159,7 +223,10 @@ function main(): void {
     console.log(`fotos · sin cambios (${String(files.length)} en la carpeta)`);
   } else {
     writeFileSync(TARGET, next, 'utf8');
-    console.log(`fotos · manifiesto reescrito con ${String(files.length)} archivo(s)`);
+    console.log(
+      `fotos · manifiesto reescrito con ${String(files.length)} archivo(s), ` +
+        `${String(cutouts.length)} sin fondo`,
+    );
   }
 
   for (const file of files) console.log(`  ✓ ${file}`);

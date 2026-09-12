@@ -83,3 +83,23 @@ export function missingFor(
     .filter((v) => findPhoto(manifest, v) === null)
     .map((v) => ({ vehicle: v, expected: `${expectedName(v)}.jpg` }));
 }
+
+/**
+ * ¿Esta foto viene sin fondo?
+ *
+ * Decide cómo se encaja: un recorte con canal alfa se muestra ENTERO y el
+ * hueco lo rellena el color de la tarjeta; una foto de estudio con su propio
+ * fondo se recorta para llenar el hueco.
+ *
+ * Costó verlo: las cinco primeras fotos de la flota traían fondo de estudio y
+ * `object-cover` iba bien para todas. Al llegar tres recortes transparentes a
+ * 1200 px, el mismo recorte dejaba medio coche fuera de una miniatura de
+ * 56 × 40 y las filas parecían manchas.
+ *
+ * `path` es la ruta que devuelve `findPhoto`, no un nombre de archivo suelto.
+ */
+export function isCutout(cutouts: readonly string[], path: string | null): boolean {
+  if (path === null) return false;
+  const file = path.slice(path.lastIndexOf('/') + 1);
+  return cutouts.includes(file);
+}

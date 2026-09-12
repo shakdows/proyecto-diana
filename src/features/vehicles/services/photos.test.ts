@@ -3,8 +3,15 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 
 import { demoOrders } from '@/features/demo/board';
-import { PHOTO_MANIFEST } from './manifest';
-import { expectedName, findPhoto, isPhotoFile, missingFor, slugify } from './photos';
+import { PHOTO_CUTOUTS, PHOTO_MANIFEST } from './manifest';
+import {
+  expectedName,
+  findPhoto,
+  isCutout,
+  isPhotoFile,
+  missingFor,
+  slugify,
+} from './photos';
 
 describe('nombre de archivo', () => {
   it('convierte el modelo en algo que sirve como URL', () => {
@@ -153,6 +160,32 @@ describe('la carpeta y el código dicen lo mismo', () => {
       assert.ok(
         PHOTO_MANIFEST.includes(archivo),
         `${archivo} está en la carpeta pero no en el manifiesto: falta correr \`npm run fotos\``,
+      );
+    }
+  });
+});
+
+describe('cómo se encaja cada foto lo decide la foto', () => {
+  it('un recorte del manifiesto se reconoce por su ruta completa', () => {
+    const cutouts = ['toyota-corolla.webp', 'kia-sportage.webp'];
+    assert.equal(isCutout(cutouts, '/fotos-de-carros/toyota-corolla.webp'), true);
+    assert.equal(isCutout(cutouts, '/fotos-de-carros/toyota-hilux.webp'), false);
+  });
+
+  it('sin foto no hay nada que encajar', () => {
+    assert.equal(isCutout(['toyota-corolla.webp'], null), false);
+  });
+
+  it('casa por archivo, no por subcadena de la ruta', () => {
+    // `corolla.webp` no es `toyota-corolla.webp`, aunque una acabe en la otra.
+    assert.equal(isCutout(['corolla.webp'], '/fotos-de-carros/toyota-corolla.webp'), false);
+  });
+
+  it('cada recorte declarado existe en el manifiesto', () => {
+    for (const file of PHOTO_CUTOUTS) {
+      assert.ok(
+        PHOTO_MANIFEST.includes(file),
+        `«${file}» está marcado como recorte y no está en el manifiesto`,
       );
     }
   });

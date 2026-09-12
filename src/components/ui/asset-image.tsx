@@ -1,7 +1,7 @@
 import { PartArt } from '@/components/art/part-art';
 import { VehicleArt } from '@/components/art/vehicle-art';
-import { PHOTO_MANIFEST } from '@/features/vehicles/services/manifest';
-import { findPhoto } from '@/features/vehicles/services/photos';
+import { PHOTO_CUTOUTS, PHOTO_MANIFEST } from '@/features/vehicles/services/manifest';
+import { findPhoto, isCutout } from '@/features/vehicles/services/photos';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -60,12 +60,30 @@ export function AssetImage({
     src ?? (decorative || kind !== 'vehiculo' ? null : findPhoto(PHOTO_MANIFEST, subject ?? alt));
 
   if (photo !== null) {
-    /* Siempre recortada, nunca encajada: los huecos tienen alto y ancho fijos,
-       y una foto en `contain` dejaría dos franjas vacías. `fit` sigue mandando
-       sobre el dibujo, que sí se escala entero. */
-    /* eslint-disable-next-line @next/next/no-img-element -- rutas locales de
-       tamaño conocido; el optimizador no aporta en miniaturas ya recortadas. */
-    return <img src={photo} alt={alt} className={cn('object-cover', radius, className)} />;
+    /*
+     * Cómo se encaja NO lo decide quien llama: lo decide la foto.
+     *
+     * Una foto de estudio trae su propio fondo, y los huecos tienen alto y
+     * ancho fijos: encajarla entera dejaría dos franjas vacías, así que se
+     * recorta. Un recorte sin fondo es lo contrario: recortarlo deja medio
+     * coche fuera de cuadro, y mostrarlo entero no deja ninguna franja porque
+     * lo que rodea al vehículo es el color de la tarjeta.
+     *
+     * Eso lo sabe el manifiesto, que lee el canal alfa de cada archivo al
+     * generarse. Dejarlo en manos de quien llama significaba acertar en ocho
+     * sitios y volver a acertar cada vez que se sube una foto nueva.
+     */
+    const cutout = isCutout(PHOTO_CUTOUTS, photo);
+
+    return (
+      /* eslint-disable-next-line @next/next/no-img-element -- rutas locales de
+         tamaño conocido; el optimizador no aporta en miniaturas ya recortadas. */
+      <img
+        src={photo}
+        alt={alt}
+        className={cn(cutout ? 'object-contain' : 'object-cover', radius, className)}
+      />
+    );
   }
 
   if (decorative) {

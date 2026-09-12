@@ -69,22 +69,27 @@ Estos son los ocho nombres que la demostración busca hoy:
     nissan-frontier.webp    Nissan Frontier       ✓ puesta
     mg-zs.webp              MG ZS                 ✓ puesta
     cat-320d.webp           CAT 320D              ✓ puesta (excavadora)
-    hyundai-tucson.webp     Hyundai Tucson        ← FALTA
-    kia-sportage.webp       Kia Sportage          ← FALTA
-    toyota-corolla.webp     Toyota Corolla        ← FALTA
+    toyota-corolla.webp     Toyota Corolla        ✓ puesta
+    hyundai-tucson.webp     Hyundai Tucson        ✓ puesta
+    kia-sportage.webp       Kia Sportage          ✓ puesta
 
-Faltan tres. Mientras tanto esos tres se dibujan, que es exactamente lo que
-tiene que pasar: no se rompe nada y se ve de un vistazo cuáles faltan.
+La flota está completa. Si mañana la demostración incorpora otro modelo, el
+dibujo vectorial lo cubre solo y esta tabla vuelve a marcar el que falta.
 
 ## Aviso sobre la resolución
 
-Las cinco que hay vienen recortadas de la hoja de recursos y miden unos
+Las cinco primeras vienen recortadas de la hoja de recursos y miden unos
 270 × 165 px, no los 1920 × 1080 que anuncia el índice del paquete. A ese
 tamaño rinden en la miniatura del tablero (64 × 48) y en la ficha del cajón
 lateral, y se quedan cortas en cualquier hueco grande.
 
 Si algún día hacen falta a tamaño de portada, hay que pedir los originales.
 Ampliar estas no sirve: no hay información que ampliar.
+
+Las tres últimas —Corolla, Tucson, Sportage— sí llegaron a 1254 × 1254 con
+fondo transparente. Están recortadas al contorno del vehículo y reescaladas a
+1200 px de ancho: a esa resolución sirven igual para la miniatura de 64 px que
+para una portada, y cada una pesa menos de 130 kB.
 
 ## 4 · Después de dejar los archivos
 
