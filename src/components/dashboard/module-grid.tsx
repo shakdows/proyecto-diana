@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { NavIcon } from '@/components/layout/nav-icon';
 import type { LauncherApp, LauncherTone } from '@/features/dashboard/services/launcher';
 import { cn } from '@/lib/utils/cn';
@@ -39,7 +39,7 @@ export function ModuleGrid({ apps }: { readonly apps: readonly LauncherApp[] }) 
             href={app.href}
             className={cn(
               'group relative flex h-full items-center gap-3 rounded-panel border border-border',
-              'min-h-[4.5rem] bg-surface p-3 pr-8',
+              'min-h-[4.5rem] bg-surface p-3 pr-10',
               'transition-[transform,border-color,background-color] duration-150 ease-snap',
               'hover:-translate-y-0.5 hover:border-border-strong hover:bg-surface-raised',
               'active:translate-y-0',
@@ -86,13 +86,20 @@ export function ModuleGrid({ apps }: { readonly apps: readonly LauncherApp[] }) 
               </span>
             </span>
 
-            <ArrowUpRight
+            {/* Botón circular a la derecha, centrado: en la referencia es lo
+                que dice «esto se abre». Una flecha suelta en la esquina se lee
+                como adorno. */}
+            <span
               aria-hidden
               className={cn(
-                'absolute right-2.5 top-2.5 size-4 text-fg-subtle',
-                'transition-colors duration-150 group-hover:text-brand-600',
+                'absolute right-2.5 top-1/2 grid size-6 -translate-y-1/2 place-items-center',
+                'rounded-full border border-border text-fg-subtle',
+                'transition-colors duration-150',
+                'group-hover:border-brand-600 group-hover:bg-brand-600 group-hover:text-white',
               )}
-            />
+            >
+              <ArrowRight className="size-3" />
+            </span>
           </Link>
         </li>
       ))}

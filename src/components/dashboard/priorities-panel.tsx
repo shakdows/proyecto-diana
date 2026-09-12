@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ChevronRight, Crosshair } from 'lucide-react';
+import { CarFront, ChevronRight, Crosshair } from 'lucide-react';
 import type { Priority } from '@/features/dashboard/services/priorities';
 import { Plate } from '@/components/ui/plate';
 import { cn } from '@/lib/utils/cn';
@@ -12,14 +12,14 @@ import { cn } from '@/lib/utils/cn';
  * —gravedad primero—, así que cortar por abajo siempre deja fuera lo menos
  * grave y nunca al revés.
  *
- * El punto de color repite la gravedad que ya trae el dato. No es decoración
+ * El color del icono repite la gravedad que ya trae el dato. No es decoración
  * redundante: es lo que permite contar los rojos sin leer una palabra.
  */
 
-const DOT: Readonly<Record<Priority['severity'], string>> = {
-  crit: 'bg-crit-600',
-  warn: 'bg-warn-600',
-  wait: 'bg-wait-600',
+const SEVERITY: Readonly<Record<Priority['severity'], string>> = {
+  crit: 'bg-crit-600/15 text-crit-600',
+  warn: 'bg-warn-600/15 text-warn-600',
+  wait: 'bg-wait-600/20 text-wait-700',
 };
 
 export function PrioritiesPanel({ priorities }: { readonly priorities: readonly Priority[] }) {
@@ -60,7 +60,15 @@ export function PrioritiesPanel({ priorities }: { readonly priorities: readonly 
                 href={p.href}
                 className="flex items-center gap-3 px-5 py-3 transition-colors duration-150 hover:bg-surface-raised"
               >
-                <span aria-hidden className={cn('size-2 shrink-0 rounded-full', DOT[p.severity])} />
+                <span
+                  aria-hidden
+                  className={cn(
+                    'grid size-8 shrink-0 place-items-center rounded-[0.625rem] [&>svg]:size-4',
+                    SEVERITY[p.severity],
+                  )}
+                >
+                  <CarFront />
+                </span>
 
                 {/* Dos columnas en pantalla ancha, apiladas en estrecho: el
                     vehículo y lo que le pasa son dos datos, no una frase. */}
