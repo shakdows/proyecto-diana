@@ -1,16 +1,18 @@
 import type { Metadata } from 'next';
-import { ControlTower } from '@/components/control-tower/control-tower';
-import { AttentionList } from '@/components/dashboard/attention-list';
-import { RecentActivity } from '@/components/dashboard/recent-activity';
-import { StageCounters } from '@/components/dashboard/stage-counters';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
+import { AppLauncher } from '@/components/dashboard/app-launcher';
 import { SituationHeader } from '@/components/dashboard/situation-header';
-import { attentionItems, demoActivity, demoBoard } from '@/features/demo/board';
+import { attentionItems, demoBoard } from '@/features/demo/board';
 import { countFinishingToday, situationOf } from '@/features/dashboard/services/situation';
+import { buildLauncher, visibleApps } from '@/features/dashboard/services/launcher';
+import { countByStage } from '@/features/dashboard/services/stages';
+import { demoTodayIntakes } from '@/features/reception/demo';
+import { demoSurveys } from '@/features/surveys/demo';
+import { pendingFollowUps } from '@/features/surveys/services/board';
+import { getSessionUser } from '@/lib/auth/session';
 
 export const metadata: Metadata = { title: 'Tablero' };
-
-/* Los tiempos se calculan contra `now`: la página no puede prerrenderizarse o
-   se quedaría con el reloj del momento de la compilación. */
 export const dynamic = 'force-dynamic';
 
 function greeting(hour: number): string {
@@ -20,50 +22,65 @@ function greeting(hour: number): string {
 }
 
 /**
- * Centro de operaciones.
+ * El tablero.
  *
- * La pantalla responde a tres preguntas, en este orden y sin repetir nada que
- * ya tenga su propia sección en el menú:
+ * Una frase que dice cómo va el taller, y una rejilla de accesos con lo que
+ * espera dentro de cada uno. Nada más.
  *
- *   1. ¿Cómo va el taller?      → la frase de arriba, que cambia con el estado.
- *   2. ¿Dónde está cada uno?    → las seis etapas, que suman el total.
- *   3. ¿Qué necesita acción?    → los vehículos con problema, antes que el resto.
- *   4. ¿Qué hay en marcha?      → la lista, con la ficha en un cajón lateral.
+ * El detalle —las seis etapas, la lista de los que piden atención, los
+ * vehículos en proceso— no se perdió: vive en `/tablero/operacion`, que es el
+ * primer acceso de la rejilla y el que se pone rojo cuando hay algo. Quien
+ * dirige el taller entra ahí y se queda; quien solo viene a recibir un
+ * vehículo no tiene que atravesarlo para llegar a Recepción.
  *
- * Y cierra con la actividad reciente, que es contexto y no tarea.
- *
- * Lo que se quitó pesa tanto como lo que se puso: la cita de marca, el bloque
- * promocional y la ilustración de cabecera ocupaban el sitio que se lee
- * primero para decir algo idéntico todos los días.
+ * Los distintivos son cifras REALES, contadas aquí: un contador decorativo se
+ * descubre el primer día y a partir de ahí nadie mira ninguno.
  */
-export default function TableroPage() {
+export default async function TableroPage() {
+  const user = await getSessionUser();
   const now = new Date();
+
   const rows = demoBoard(now);
   const attention = attentionItems(rows, now);
+  const stages = countByStage(rows.map((r) => r.order.status));
 
-  const finishingToday = countFinishingToday(
-    rows.map((r) => r.eta.etaAt),
-    now,
+  const situation = situationOf({
+    activeCount: rows.length,
+    finishingToday: countFinishingToday(rows.map((r) => r.eta.etaAt), now),
+    items: attention,
+  });
+
+  const apps = visibleApps(
+    buildLauncher({
+      atencion: attention.length,
+      ordenes: rows.length,
+      recepcionesHoy: demoTodayIntakes(now).length,
+      enTaller: stages.reparacion,
+      comprasPendientes: stages.repuestos,
+      listos: stages.listos,
+      encuestasPorLlamar: pendingFollowUps(demoSurveys(now)).length,
+      clientes: 0,
+    }),
+    user.permissions,
   );
-  const situation = situationOf({ activeCount: rows.length, finishingToday, items: attention });
 
   return (
     <>
       <SituationHeader
         greeting={greeting(now.getHours())}
-        userName="Andrea"
+        userName={user.fullName.split(' ')[0] ?? user.fullName}
         situation={situation}
       />
 
-      {/* Seis cifras, no cuatro: son las paradas reales del vehículo y suman
-          el total. Cada uno del taller está en una y solo una. */}
-      <StageCounters rows={rows} />
+      <AppLauncher apps={apps} />
 
-      <AttentionList items={attention} now={now} />
-
-      <ControlTower rows={rows} now={now} />
-
-      <RecentActivity entries={demoActivity()} />
+      <Link
+        href="/tablero/operacion"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 transition-colors duration-150 hover:text-brand-700"
+      >
+        Ver el taller en detalle
+        <ArrowRight aria-hidden className="size-4" />
+      </Link>
     </>
   );
 }
