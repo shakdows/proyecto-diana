@@ -19,20 +19,48 @@ import { cn } from '@/lib/utils/cn';
  * selecciona, no se traduce y no lo lee un lector de pantalla. La imagen se
  * recortó para quitarlo.
  */
+const ACCENT: Readonly<Record<Situation['tone'], string>> = {
+  estable: 'border-l-ok-600',
+  atencion: 'border-l-warn-600',
+  critico: 'border-l-crit-600',
+};
+
+export interface HeroAction {
+  readonly href: string;
+  readonly label: string;
+}
+
 export function BoardHero({
   greeting,
   userName,
   situation,
+  primary = { href: '/recepcion/nueva', label: 'Nueva recepción' },
+  secondary,
+  /** Filete vertical del color de la situación, a la izquierda. */
+  accent = false,
 }: {
   readonly greeting: string;
   readonly userName: string;
   readonly situation: Situation;
+  readonly primary?: HeroAction;
+  readonly secondary?: HeroAction;
+  /** Filete vertical del color de la situación, a la izquierda. */
+  readonly accent?: boolean;
 }) {
   const rest =
     situation.emphasis === '' ? situation.headline : situation.headline.slice(situation.emphasis.length);
 
   return (
-    <section className="@container relative isolate overflow-hidden rounded-panel border border-border bg-surface">
+    <section
+      className={cn(
+        '@container relative isolate overflow-hidden rounded-panel border border-border bg-surface',
+        // El filete dice la gravedad antes de leer una palabra. Solo se dibuja
+        // donde se ha pedido: en el tablero la banda ya es lo único que hay y
+        // un acento más no añade nada.
+        accent && 'border-l-[3px]',
+        accent && ACCENT[situation.tone],
+      )}
+    >
       {/* Degradado propio: el panel no es plano, se abre hacia la derecha
           donde está el vehículo. */}
       <span
@@ -58,24 +86,31 @@ export function BoardHero({
 
         <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-3">
           <Link
-            href="/recepcion/nueva"
+            href={primary.href}
             className={cn(
               'inline-flex h-11 items-center gap-2 rounded-control bg-brand-600 px-5',
               'text-sm font-semibold text-white shadow-panel',
               'transition-colors duration-150 ease-snap hover:bg-brand-700 active:scale-[0.98]',
             )}
           >
-            <Plus aria-hidden className="size-4" />
-            Nueva recepción
+            {primary.href === '/recepcion/nueva' ? (
+              <Plus aria-hidden className="size-4" />
+            ) : null}
+            {primary.label}
+            {primary.href !== '/recepcion/nueva' ? (
+              <ArrowRight aria-hidden className="size-4" />
+            ) : null}
           </Link>
 
-          <Link
-            href="/tablero/operacion"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-fg-muted transition-colors duration-150 hover:text-fg"
-          >
-            Ver detalle
-            <ArrowRight aria-hidden className="size-4" />
-          </Link>
+          {secondary !== undefined && (
+            <Link
+              href={secondary.href}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-fg-muted transition-colors duration-150 hover:text-fg"
+            >
+              {secondary.label}
+              <ArrowRight aria-hidden className="size-4" />
+            </Link>
+          )}
         </div>
       </div>
     </section>

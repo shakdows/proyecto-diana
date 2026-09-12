@@ -74,6 +74,7 @@ export default async function TableroPage() {
           greeting={greetingAt(now)}
           userName={user.fullName.split(' ')[0] ?? user.fullName}
           situation={situation}
+          secondary={{ href: '/tablero/operacion', label: 'Ver detalle' }}
         />
 
         <section className="@container/modulos space-y-3">

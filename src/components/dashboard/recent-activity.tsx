@@ -27,11 +27,11 @@ export function RecentActivity({ entries }: { readonly entries: readonly Activit
 
   return (
     <section>
-      <h2 className="font-display text-lg font-semibold tracking-tight text-fg">
+      <h2 className="pb-3 font-display text-base font-semibold tracking-tight text-fg">
         Actividad reciente
       </h2>
 
-      <ul className="mt-3 divide-y divide-border overflow-hidden rounded-panel border border-border bg-surface-raised">
+      <ul className="divide-y divide-border overflow-hidden rounded-panel border border-border bg-surface-raised">
         {entries.slice(0, 5).map((entry) => (
           <li key={entry.id}>
             <Link
@@ -43,7 +43,12 @@ export function RecentActivity({ entries }: { readonly entries: readonly Activit
                 className={cn('size-2 shrink-0 rounded-full', DOT[entry.tone])}
               />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm text-fg">{entry.text}</span>
+                {/* Dos líneas en vez de recorte: en la columna lateral la
+                    mitad de los textos se quedaban en «Reparación reanudada
+                    tr…», que no dice nada. */}
+                <span className="line-clamp-2 block text-sm leading-snug text-fg">
+                  {entry.text}
+                </span>
                 <span className="block truncate text-xs text-fg-subtle">
                   <span data-numeric>{entry.orderCode}</span> · {entry.actor}
                 </span>

@@ -70,6 +70,10 @@ export const NAVIGATION: readonly NavGroup[] = [
     label: 'Operación',
     items: [
       { href: '/tablero', label: 'Tablero', icon: 'tablero', permission: 'dashboard:control_tower', phase: 14 },
+      /* El centro de operaciones estaba solo detrás del primer módulo del
+         tablero. Quien dirige el taller entra ahí y se queda; obligarle a
+         pasar por el tablero cada vez es un clic al día por persona. */
+      { href: '/tablero/operacion', label: 'Centro de operaciones', icon: 'panel', permission: 'dashboard:control_tower', phase: 14 },
       { href: '/recepcion', label: 'Recepción', icon: 'recepcion', permission: 'receptions:read', phase: 5 },
       { href: '/ordenes', label: 'Órdenes', icon: 'ordenes', permission: 'orders:read', phase: 7 },
       {

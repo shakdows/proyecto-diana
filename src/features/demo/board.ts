@@ -140,19 +140,25 @@ const ago = (now: Date, minutes: number): Date => new Date(now.getTime() - minut
 const ahead = (now: Date, minutes: number): Date => new Date(now.getTime() + minutes * MIN);
 
 /**
- * Hora de cierre a la que el taller promete entregar.
+ * Hora a la que el taller promete entregar.
  *
  * Los desfases de esta demostración son relativos a «ahora» para que el
  * tablero esté siempre vivo, pero un desfase crudo hace que una entrega a
  * tres días caiga a la 01:17 de la madrugada. Ningún taller promete a esa
  * hora, y en una pantalla que se enseña a un cliente eso se lee como un
- * error. La promesa se lleva al cierre de la jornada del día que toque,
- * conservando si ya venció o no.
+ * error.
+ *
+ * La primera versión llevaba TODAS las promesas al cierre de la jornada. Era
+ * plausible fila a fila y absurdo en conjunto: en cuanto hubo una lista de
+ * próximas entregas, las cuatro decían «Hoy 17:00» y parecía un contador
+ * roto. Ahora la hora se redondea a la media hora más cercana dentro del
+ * horario de atención, que conserva la variedad real de los desfases.
  *
  * `-05:00` es fijo a propósito: Perú no cambia de hora, y esto son datos de
  * demostración, no el reloj de producción —ese sale de `branches.timezone`.
  */
-const CLOSING_HOUR = '17:00';
+const OPENING_HOUR = 8;
+const CLOSING_HOUR_NUM = 18;
 
 function limaDay(date: Date): string {
   return new Intl.DateTimeFormat('en-CA', {
@@ -163,8 +169,41 @@ function limaDay(date: Date): string {
   }).format(date);
 }
 
-function closingOn(date: Date): Date {
-  return new Date(`${limaDay(date)}T${CLOSING_HOUR}:00-05:00`);
+/** La hora de Lima de un instante, en minutos desde medianoche. */
+function limaMinutes(date: Date): number {
+  const [h = '0', m = '0'] = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/Lima',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+    .format(date)
+    .split(':');
+  return Number(h) * 60 + Number(m);
+}
+
+function atLima(day: Date, minutes: number): Date {
+  const hh = String(Math.floor(minutes / 60)).padStart(2, '0');
+  const mm = String(minutes % 60).padStart(2, '0');
+  return new Date(`${limaDay(day)}T${hh}:${mm}:00-05:00`);
+}
+
+/**
+ * La media hora más cercana, dentro del horario de atención.
+ *
+ * Fuera de horario la hora se PLIEGA dentro de la jornada, no se recorta. Con
+ * un recorte, una demostración abierta de madrugada mandaba todas las promesas
+ * a las 08:00 y volvía el problema que esto vino a resolver: cuatro entregas
+ * seguidas a la misma hora. Plegar conserva la variedad de los desfases a
+ * cualquier hora del día.
+ */
+const WINDOW = (CLOSING_HOUR_NUM - OPENING_HOUR) * 60;
+
+function businessHourOn(date: Date): Date {
+  const rounded = Math.round(limaMinutes(date) / 30) * 30;
+  const open = OPENING_HOUR * 60;
+  const folded = open + (((rounded - open) % WINDOW) + WINDOW) % WINDOW;
+  return atLima(date, folded);
 }
 
 /**
@@ -175,13 +214,16 @@ function closingOn(date: Date): Date {
  */
 function promisedAtFor(now: Date, minutes: number): Date {
   const raw = ahead(now, minutes);
-  const snapped = closingOn(raw);
+  const snapped = businessHourOn(raw);
 
+  /* Redondear no puede cruzar el «ahora»: una orden vencida debe seguir
+     vencida y una en plazo seguir en plazo, porque el semáforo cuelga de eso.
+     Si el redondeo la cruza, se mueve un día entero, que conserva el lado. */
   if (minutes >= 0 && snapped.getTime() <= now.getTime()) {
-    return closingOn(new Date(raw.getTime() + DAY));
+    return businessHourOn(new Date(raw.getTime() + DAY));
   }
   if (minutes < 0 && snapped.getTime() >= now.getTime()) {
-    return closingOn(new Date(raw.getTime() - DAY));
+    return businessHourOn(new Date(raw.getTime() - DAY));
   }
   return snapped;
 }
