@@ -125,11 +125,13 @@ function ShowcasePanel() {
         src="/fondos/hero-showroom.webp"
         alt=""
         aria-hidden
-        /* `object-position` no es un ajuste fino: la fotografía es 16:9 y esta
-           columna es más alta que ancha, así que el recorte se come casi la
-           mitad del ancho. Centrado dejaba el nombre de la pared partido por
-           la mitad —«MERO / TORS»—, que es peor que no enseñarlo. */
-        className="absolute inset-0 -z-20 size-full object-[32%_center] object-cover"
+        /* El encuadre se ancla al TERCIO IZQUIERDO, no al centro. La columna
+           cambia de proporción con la pantalla —1,15 en un monitor, 0,91 en un
+           portátil— y cuanto más estrecha, más ancho se lleva el recorte. Los
+           dos bordes no valen lo mismo: a la derecha solo hay vestíbulo, y a
+           la izquierda está el rótulo de la pared. Centrado, a 800 px de alto
+           «ROMERO» se quedaba sin la R. */
+        className="absolute inset-0 -z-20 size-full object-[35%_center] object-cover"
       />
 
       {/*
@@ -140,7 +142,7 @@ function ShowcasePanel() {
       */}
       <span
         aria-hidden
-        className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,rgb(10_12_16/0.92)_0%,rgb(10_12_16/0.62)_40%,rgb(10_12_16/0.12)_74%,transparent_100%)]"
+        className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,rgb(10_12_16/0.90)_0%,rgb(10_12_16/0.58)_42%,rgb(10_12_16/0.10)_76%,transparent_100%)]"
       />
       <span
         aria-hidden
