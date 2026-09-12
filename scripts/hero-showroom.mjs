@@ -62,8 +62,20 @@ const TRUCK_LEFT = 440;
 /** La camioneta pisa el suelo ORIGINAL, no el alargado. */
 const TRUCK_BASELINE = PHOTO_H - 30;
 
+/*
+ * Revelado.
+ *
+ * La toma viene de estudio virtual y es MUY oscura: sobre ella van además dos
+ * velos que asientan el texto, y los tres juntos apagaban la escena hasta que
+ * no se distinguía el suelo del vehículo. Se sube la luz y se levantan las
+ * sombras con un desplazamiento pequeño —`linear` suma antes de multiplicar,
+ * así que abre los negros sin quemar las luces del techo, que es lo que haría
+ * subir solo el brillo—.
+ */
 const photo = await sharp(LOBBY)
   .resize({ width: W, height: PHOTO_H, fit: 'cover', position: 'centre' })
+  .modulate({ brightness: 1.22 })
+  .linear(1.0, 10)
   .toBuffer();
 
 /*

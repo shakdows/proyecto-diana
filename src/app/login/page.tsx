@@ -146,16 +146,21 @@ function ShowcasePanel() {
           lea como una campaña y no como texto encima de una foto: el lado del
           texto queda en penumbra y el vestíbulo se abre hacia la derecha.
           Antes solo había uno de abajo arriba, y el titular competía con el
-          capó de la camioneta. */}
+          capó de la camioneta.
+
+          Las opacidades bajaron un tercio cuando la fotografía pasó a ir
+          revelada: la pared ya es oscura de suyo, y velo sobre oscuro no da
+          contraste, da barro. El titular apoya en el velo de abajo, que es el
+          que sí hace falta porque ahí el suelo es claro y reflectante. */}
       <span
         aria-hidden
-        className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgb(7_8_10/0.80)_0%,rgb(7_8_10/0.58)_38%,rgb(7_8_10/0.25)_64%,rgb(7_8_10/0.06)_100%)]"
+        className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgb(7_8_10/0.62)_0%,rgb(7_8_10/0.44)_38%,rgb(7_8_10/0.18)_64%,rgb(7_8_10/0.04)_100%)]"
       />
       {/* El segundo asienta el bloque de abajo, donde el suelo es claro y
           reflectante. */}
       <span
         aria-hidden
-        className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,rgb(7_8_10/0.80)_0%,rgb(7_8_10/0.30)_34%,transparent_62%)]"
+        className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,rgb(7_8_10/0.78)_0%,rgb(7_8_10/0.28)_36%,transparent_64%)]"
       />
 
       <div className="relative flex h-full flex-col justify-end p-10 xl:p-14">
