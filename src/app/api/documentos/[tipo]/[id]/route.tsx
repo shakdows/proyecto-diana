@@ -1,5 +1,6 @@
 import { renderToBuffer, type DocumentProps } from '@react-pdf/renderer';
 import { NextResponse } from 'next/server';
+import { documentById } from '@/features/reports/services/catalog';
 import { QuotationPdf } from '@/components/documents/quotation-pdf';
 import { HandoverPdf } from '@/components/documents/handover-pdf';
 import { ReportPdf } from '@/components/documents/report-pdf';
@@ -32,21 +33,17 @@ import { getSessionUser } from '@/lib/auth/session';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const TIPOS = [
-  'checklist',
-  'orden',
-  'diagnostico',
-  'cotizacion',
-  'compra',
-  'repuestos',
-  'trabajo',
-  'entrega',
-  'informe',
-] as const;
-type Tipo = (typeof TIPOS)[number];
+/*
+ * Los tipos que esta ruta sirve salen del CATÁLOGO, no de una lista propia.
+ *
+ * Con dos listas, añadir un documento al centro de informes y olvidarse de
+ * esta da una tarjeta con un botón que lleva a un 404 —peor que no tener la
+ * tarjeta—, y nada avisa. Con una sola, ese error no se puede cometer.
+ */
+type Tipo = string;
 
 function isTipo(value: string): value is Tipo {
-  return (TIPOS as readonly string[]).includes(value);
+  return documentById(value) !== undefined;
 }
 
 export async function GET(
@@ -59,6 +56,22 @@ export async function GET(
   }
 
   const user = await getSessionUser();
+
+  /*
+   * ⚠️ EL PERMISO SE COMPRUEBA AQUÍ, NO EN LA PANTALLA.
+   *
+   * El centro de informes oculta las tarjetas que el usuario no puede pedir,
+   * pero eso es comodidad: evita ofrecer un botón que iba a fallar. Quien
+   * escriba la URL a mano llega igual hasta aquí, y aquí es donde se decide.
+   *
+   * Responde 404 y no 403 a propósito, como el resto del sistema: un 403
+   * confirma que el documento existe, y eso ya es información.
+   */
+  const kind = documentById(tipo);
+  if (kind === undefined || !user.permissions.includes(kind.permission)) {
+    return NextResponse.json({ error: 'No se encontró el documento.' }, { status: 404 });
+  }
+
   const now = new Date();
 
   const supplierId = new URL(request.url).searchParams.get('proveedor') ?? '';

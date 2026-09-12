@@ -72,7 +72,7 @@ export const NAVIGATION: readonly NavGroup[] = [
       { href: '/compras', label: 'Compras', icon: 'compras', permission: 'purchases:read', phase: 11 },
       { href: '/clientes', label: 'Clientes', icon: 'clientes', permission: 'customers:read', phase: 4 },
       { href: '/encuestas', label: 'Encuestas', icon: 'encuestas', permission: 'surveys:read', phase: 15 },
-      { href: '/informes', label: 'Reportes', icon: 'informes', permission: 'reports:read', phase: 16 },
+      { href: '/informes', label: 'Informes', icon: 'informes', permission: 'reports:read', phase: 16 },
     ],
   },
   {

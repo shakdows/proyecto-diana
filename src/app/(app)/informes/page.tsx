@@ -1,20 +1,35 @@
 import type { Metadata } from 'next';
-import { PhasePlaceholder } from '@/components/layout/phase-placeholder';
+import { DocumentCenter, type OrderChoice } from '@/components/reports/document-center';
+import { demoCorporateClients } from '@/features/customers/demo';
+import { demoBoard } from '@/features/demo/board';
+import { visibleDocuments } from '@/features/reports/services/catalog';
+import { getSessionUser } from '@/lib/auth/session';
 
 export const metadata: Metadata = { title: 'Informes' };
 
-export default function Page() {
+/* Las órdenes disponibles se calculan contra `now`. */
+export const dynamic = 'force-dynamic';
+
+export default async function InformesPage() {
+  const user = await getSessionUser();
+
+  const orders: readonly OrderChoice[] = demoBoard(new Date()).map(({ order }) => ({
+    id: order.id,
+    code: order.code,
+    plate: order.plate,
+    vehicle: order.vehicle,
+    customer: order.customer,
+  }));
+
   return (
-    <PhasePlaceholder
-      title="Informes"
-      description="Documentos PDF y plantillas Excel."
-      phase={16}
-      delivers={[
-          'Checklist, orden de servicio, diagnóstico, cotización y autorización',
-          'Orden de compra, reporte de repuestos, reporte de trabajo y acta de entrega',
-          'Informe corporativo de satisfacción, con gráficos vectoriales',
-          'Plantillas Excel: checklist imprimible en A4 y carga masiva normalizada',
-      ]}
+    <DocumentCenter
+      /* El filtro por permiso se hace EN EL SERVIDOR: así la lista de
+         documentos que el usuario no puede pedir ni siquiera baja al
+         navegador. La comprobación que manda sigue estando en la ruta que
+         sirve el PDF. */
+      documents={visibleDocuments(user.permissions)}
+      orders={orders}
+      corporateClients={demoCorporateClients()}
     />
   );
 }
