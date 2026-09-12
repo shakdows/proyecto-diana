@@ -1,21 +1,21 @@
 import type { Metadata } from 'next';
-import { PhasePlaceholder } from '@/components/layout/phase-placeholder';
+import { SettingsHub } from '@/components/settings/settings-hub';
+import { visibleSettings } from '@/features/settings/services/hub';
+import { getSessionUser } from '@/lib/auth/session';
 
 export const metadata: Metadata = { title: 'Configuración' };
+export const dynamic = 'force-dynamic';
 
-export default function Page() {
+export default async function ConfiguracionPage() {
+  const user = await getSessionUser();
+
   return (
-    <PhasePlaceholder
-      title="Configuración"
-      description="Catálogos, umbrales y reglas administrables sin desplegar."
-      phase={3}
-      delivers={[
-          'Usuarios, roles y permisos efectivos',
-          'Empresas, sedes, bahías y tipos de servicio',
-          'Categorías e ítems del checklist, motivos de pausa, etapas finales',
-          'Cuestionario de satisfacción y sus versiones',
-          'Umbrales de satisfacción, pesos del avance y tolerancias del semáforo',
-      ]}
+    /* Las dos listas se filtran EN EL SERVIDOR. El interruptor
+       simple/avanzado solo alterna entre lo que ya se le permite ver: no
+       puede destapar un bloque cuyo permiso no tiene. */
+    <SettingsHub
+      simple={visibleSettings(user.permissions, 'simple')}
+      advanced={visibleSettings(user.permissions, 'avanzado')}
     />
   );
 }
