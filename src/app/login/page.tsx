@@ -115,78 +115,138 @@ const CONCEPTS = [
   { icon: <Car />, label: 'Movilidad', hint: 'sin límites' },
 ] as const;
 
+/**
+ * Marfil cálido, no blanco puro.
+ *
+ * El blanco #FFF sobre una fotografía de taller con luz de tungsteno se lee
+ * azulado y se despega de la escena. El marfil pertenece a la misma luz, y es
+ * el mismo que usa el panel de acceso al otro lado.
+ */
+const IVORY = '#f8f4ec';
+
 function ShowcasePanel() {
   return (
-    <section className="relative isolate hidden overflow-hidden bg-graphite-950 lg:block">
+    <section className="@container/hero relative isolate hidden overflow-hidden bg-graphite-950 lg:block">
       {/* eslint-disable-next-line @next/next/no-img-element -- fondo local ya
           recortado y comprimido; el optimizador no aporta y añade una petición. */}
       <img
         src="/fondos/hero-showroom.webp"
         alt=""
         aria-hidden
-        /* El encuadre se ancla al TERCIO IZQUIERDO, no al centro. La columna
-           cambia de proporción con la pantalla —1,15 en un monitor, 0,91 en un
-           portátil— y cuanto más estrecha, más ancho se lleva el recorte. Los
-           dos bordes no valen lo mismo: a la derecha solo hay vestíbulo, y a
-           la izquierda está el rótulo de la pared. Centrado, a 800 px de alto
-           «ROMERO» se quedaba sin la R. */
-        className="absolute inset-0 -z-20 size-full object-[35%_center] object-cover"
+        /*
+         * El encuadre se ancla CERCA DEL BORDE IZQUIERDO, no al centro.
+         *
+         * La columna cambia de proporción con la pantalla —1,15 en un monitor
+         * grande, 0,76 en uno de 1024— y cuanto más estrecha, más ancho se
+         * lleva el recorte: en el peor caso se va el 43 %. Los dos bordes no
+         * valen lo mismo: a la derecha solo hay vestíbulo, y a la izquierda
+         * están el rótulo y el lema pintados en la pared.
+         *
+         * El 18 % es el valor que deja la pintura entera en TODOS los casos
+         * probados, del monitor ancho al portátil de 1024. Con el 35 % de
+         * antes, ahí «ROMERO» se quedaba sin la R.
+         */
+        className="absolute inset-0 -z-20 size-full object-[18%_center] object-cover"
       />
 
       {/*
-        Dos capas y no una. La primera oscurece de abajo arriba para que el
-        texto tenga dónde apoyarse sin tapar el nombre que ya está pintado en
-        la pared de la fotografía; la segunda quita saturación al conjunto,
-        porque la imagen es azulada y esta pantalla es cálida.
+        Dos velos con trabajos distintos.
       */}
+
+      {/* El primero corre de IZQUIERDA a derecha y es el que hace que esto se
+          lea como una campaña y no como texto encima de una foto: el lado del
+          texto queda en penumbra y el vestíbulo se abre hacia la derecha.
+          Antes solo había uno de abajo arriba, y el titular competía con el
+          capó de la camioneta. */}
       <span
         aria-hidden
-        className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,rgb(10_12_16/0.90)_0%,rgb(10_12_16/0.58)_42%,rgb(10_12_16/0.10)_76%,transparent_100%)]"
+        className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgb(7_8_10/0.80)_0%,rgb(7_8_10/0.58)_38%,rgb(7_8_10/0.25)_64%,rgb(7_8_10/0.06)_100%)]"
       />
+      {/* El segundo asienta el bloque de abajo, donde el suelo es claro y
+          reflectante. */}
       <span
         aria-hidden
-        className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgb(26_20_16/0.45),transparent_55%)]"
+        className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,rgb(7_8_10/0.80)_0%,rgb(7_8_10/0.30)_34%,transparent_62%)]"
       />
 
-      <div className="relative flex h-full flex-col justify-end gap-10 p-10 xl:p-14">
-        <div className="max-w-xl">
+      <div className="relative flex h-full flex-col justify-end p-10 xl:p-14">
+        <div>
           {/* Sin el nombre del producto. Esta mitad es la EMPRESA —su taller,
               su rótulo, su promesa—; DIANA es la herramienta, y firma donde
               corresponde: el pie del panel de acceso. Dos marcas compitiendo
               sobre la misma fotografía no dejaban leer ninguna. */}
-          <span aria-hidden className="block h-1 w-16 rounded-full bg-romero-500" />
+          <span aria-hidden className="block h-[3px] w-14 rounded-full bg-romero-500" />
 
-          <h1 className="mt-5 font-display text-[2rem] font-bold leading-[1.15] tracking-tight text-white xl:text-[2.5rem]">
+          {/*
+            Los saltos de línea son MANUALES y no un `max-width` que deja
+            partir por donde caiga. Un titular de campaña se compone: «buenas
+            manos» no puede quedar huérfano al final de un renglón, y
+            «negocios en movimiento» tiene que leerse de una pieza.
+
+            El interlineado baja de 1,15 a 1,0 y el espaciado entre letras se
+            aprieta: a este cuerpo, el espaciado normal separa las palabras
+            como si fuera un párrafo.
+          */}
+          <h1
+            className="mt-7 font-display text-[2.125rem] font-extrabold leading-[1.02] tracking-[-0.02em] [@media(max-height:52rem)]:mt-5 [@media(max-height:52rem)]:text-[1.875rem] xl:text-[2.75rem] 2xl:text-[3.25rem]"
+            style={{ color: IVORY }}
+          >
             Vehículos en buenas manos,
             <br />
             negocios en movimiento.
           </h1>
-          <p className="mt-4 max-w-md text-base leading-relaxed text-graphite-200">
-            Gestiona cada vehículo desde la recepción hasta la entrega, con trazabilidad
-            completa, eficiencia y clientes más satisfechos.
+
+          <p
+            className="mt-6 max-w-[34rem] text-[1.0625rem] leading-[1.55] [@media(max-height:52rem)]:mt-4 [@media(max-height:52rem)]:text-[0.9375rem] xl:text-[1.1875rem]"
+            style={{ color: 'rgb(248 244 236 / 0.82)' }}
+          >
+            Gestiona cada vehículo desde la recepción hasta la entrega,
+            <br className="hidden xl:inline" /> con trazabilidad completa, eficiencia y
+            clientes más satisfechos.
           </p>
         </div>
 
-        <ul className="flex flex-wrap gap-x-8 gap-y-5 border-t border-white/15 pt-7">
+        {/*
+          La banda de conceptos. Deja de ser un pie de página funcional: más
+          aire entre bloques, el círculo fino y el subtítulo atenuado. La regla
+          de arriba se va —separaba dos cosas que son la misma composición.
+        */}
+        {/* Cuatro en fila solo cuando la COLUMNA da de sí. Con `xl:` —que mira
+            la ventana— a 1280 px la columna medía 730 y la fila salía 3 + 1,
+            que es lo que hace que una banda de marca parezca un pie de página
+            mal cerrado. */}
+        <ul className="mt-10 grid grid-cols-2 gap-x-6 gap-y-7 @3xl/hero:mt-14 @3xl/hero:flex @3xl/hero:flex-wrap @3xl/hero:gap-x-10">
           {CONCEPTS.map(({ icon, label, hint }) => (
-            <li key={label} className="flex items-center gap-3">
+            <li key={label} className="flex items-center gap-3.5">
               <span
                 aria-hidden
-                className="grid size-10 shrink-0 place-items-center rounded-full border border-white/25 text-white [&>svg]:size-[1.125rem]"
+                className="grid size-14 shrink-0 place-items-center rounded-full border border-white/20 [&>svg]:size-[1.375rem]"
+                style={{ color: IVORY }}
               >
                 {icon}
               </span>
-              <span className="leading-tight">
-                <span className="block text-xs font-semibold uppercase tracking-[0.14em] text-white">
+              <span className="min-w-0 leading-tight">
+                <span
+                  className="block text-[0.9375rem] font-semibold uppercase tracking-[0.1em]"
+                  style={{ color: IVORY }}
+                >
                   {label}
                 </span>
-                <span className="block text-xs text-graphite-300">{hint}</span>
+                <span
+                  className="mt-1 block text-[0.8125rem]"
+                  style={{ color: 'rgb(248 244 236 / 0.70)' }}
+                >
+                  {hint}
+                </span>
               </span>
             </li>
           ))}
         </ul>
 
-        <p className="flex items-center gap-3 text-[0.6875rem] font-medium uppercase tracking-[0.3em] text-graphite-300">
+        <p
+          className="mt-10 flex items-center gap-3 text-[0.6875rem] font-medium uppercase tracking-[0.3em] xl:mt-12"
+          style={{ color: 'rgb(248 244 236 / 0.60)' }}
+        >
           <span aria-hidden className="h-px w-8 bg-romero-500" />
           El movimiento nos conecta
         </p>

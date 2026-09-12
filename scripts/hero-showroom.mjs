@@ -16,10 +16,28 @@
  *   · el rótulo, que NO sale de `fotos/` sino de `public/marca/`: la copia de
  *     la hoja de recursos mide 202 px de ancho y en la pared se vería borrosa.
  *
- * Lo que NO se monta: los textos. La hoja traía «MÁS QUE UN TALLER…» y los
- * cuatro conceptos dibujados dentro de la imagen; la pantalla los pinta en
- * HTML, donde escalan, se traducen y los lee un lector de pantalla. Montarlos
- * también saldría duplicado.
+ * ── Qué texto va dentro de la imagen y cuál no ────────────────────────────
+ *
+ * DENTRO va el que está PINTADO EN LA PARED: el lema de la empresa, justo
+ * bajo el rótulo. Es parte de la escena: dibujarlo en HTML lo haría flotar
+ * sobre la fotografía en vez de pertenecer a ella, y se movería con cada
+ * recorte.
+ *
+ * FUERA se queda la banda de conceptos —«Confianza · en cada kilómetro» y las
+ * otras tres—, que la pantalla pinta en HTML. Ahí es mensaje y no decorado:
+ * escala, se traduce y lo lee un lector de pantalla.
+ *
+ * La hoja de referencia llevaba además una lista vertical en la pared con esos
+ * mismos cuatro conceptos. NO se monta, por dos razones que apuntan al mismo
+ * sitio: decía exactamente lo que ya dice la banda de abajo, y caía justo
+ * donde el titular se apoya. La lista y el titular se pisaban, y no hay
+ * posición que lo arregle en todas las alturas de pantalla —el titular está
+ * anclado abajo y la pared no se mueve con él—. La pared se queda con lo que
+ * no compite: el nombre y la promesa.
+ *
+ * El texto de la pared se dibuja con SVG y una tipográfica del sistema, no se
+ * escala desde la hoja de recursos: la copia de la hoja mide 174 px de ancho
+ * y a tamaño de pared se vería como una mancha.
  */
 
 import { createRequire } from 'node:module';
@@ -43,7 +61,9 @@ const base = await sharp(LOBBY)
   .resize({ width: W, height: H, fit: 'cover', position: 'centre' })
   .toBuffer();
 
-const sign = await sharp(SIGN).resize({ width: 430 }).toBuffer();
+/* Más grande y más arriba: es lo primero que se lee de la escena y antes
+   competía de tú a tú con el lema que lleva debajo. */
+const sign = await sharp(SIGN).resize({ width: 500 }).toBuffer();
 
 const truck = await sharp(TRUCK).trim({ threshold: 2 }).resize({ width: TRUCK_W }).toBuffer();
 const tm = await sharp(truck).metadata();
@@ -92,9 +112,42 @@ const reflection = await sharp(truck)
   .png()
   .toBuffer();
 
+/* ------------------------------------------------------------------ *
+ * Lo que está pintado en la pared
+ * ------------------------------------------------------------------ */
+
+const WALL_X = 195;
+const WALL_FONT = 'Liberation Sans, DejaVu Sans, sans-serif';
+
+/** Gris claro y no blanco: la pared está en penumbra y el blanco puro salta. */
+const WALL_INK = '#dcdcdc';
+
+const wallText = await sharp(
+  Buffer.from(
+    `<svg width="520" height="120" xmlns="http://www.w3.org/2000/svg">
+       <text x="0" y="40" font-family="${WALL_FONT}" font-size="34" letter-spacing="3"
+             fill="${WALL_INK}">MÁS QUE UN TALLER,</text>
+       <text x="0" y="86" font-family="${WALL_FONT}" font-size="34" letter-spacing="3"
+             fill="${WALL_INK}">TU ALIADO EN EL CAMINO</text>
+     </svg>`,
+  ),
+)
+  /* Un punto de desenfoque: está pintado sobre una pared, no impreso sobre la
+     imagen. Sin él, el texto queda más nítido que el rótulo que tiene encima
+     y se lee como una pegatina. */
+  .blur(0.4)
+  .png()
+  .toBuffer();
+
 const out = await sharp(base)
   .composite([
-    { input: sign, left: 190, top: 205 },
+    /* Alto, en el tercio superior de la pared. Lo pintado no se mueve con la
+       pantalla y el bloque de texto de la portada está anclado ABAJO: cuanto
+       más baja es la ventana, más sube ese bloque. A 800 px el filete rojo del
+       titular cruzaba «TU ALIADO EN EL CAMINO». Subir la pintura es lo único
+       que lo resuelve a todas las alturas a la vez. */
+    { input: sign, left: 190, top: 95 },
+    { input: wallText, left: WALL_X, top: 296 },
     { input: shadow, left: TRUCK_LEFT + Math.round((TRUCK_W - shadowW) / 2), top: baseline - 74 },
     { input: reflection, left: TRUCK_LEFT, top: baseline - 6 },
     { input: truck, left: TRUCK_LEFT, top: truckTop },
