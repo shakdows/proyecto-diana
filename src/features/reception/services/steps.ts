@@ -89,6 +89,31 @@ export function completedSteps(draft: ReceptionDraft): ReadonlySet<ReceptionStep
   return done;
 }
 
+/**
+ * ¿Hay trabajo de verdad en este borrador?
+ *
+ * Una placa tecleada NO es trabajo: es una intención que se abandona a
+ * menudo. Sí lo es haber confirmado al cliente, resuelto un punto del
+ * checklist, marcado un daño, subido una foto o firmado.
+ *
+ * Sirve para decidir si un borrador guardado debe ganarle a una placa que
+ * llega por la URL. Sin esta distinción, alguien que un día escribió una
+ * placa y se fue vería esa placa vieja cada vez que entra a recibir otro
+ * vehículo, y tendría que borrarla a mano para poder trabajar.
+ */
+export function hasProgress(draft: ReceptionDraft): boolean {
+  return (
+    draft.customerConfirmed ||
+    draft.vehicleConfirmed ||
+    draft.checklistResolved > 0 ||
+    draft.damageCount > 0 ||
+    draft.damagesReviewed ||
+    draft.photoCount > 0 ||
+    draft.customerSigned ||
+    draft.advisorSigned
+  );
+}
+
 /** El primer paso que aún no está terminado. */
 export function currentStep(draft: ReceptionDraft): ReceptionStep {
   const done = completedSteps(draft);

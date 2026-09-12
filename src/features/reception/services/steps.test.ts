@@ -6,6 +6,7 @@ import {
   RECEPTION_STEPS,
   canOpen,
   completedSteps,
+  hasProgress,
   currentStep,
   progress,
   stepState,
@@ -126,5 +127,35 @@ describe('progreso y estado por paso', () => {
     assert.equal(stepState(hastaChecklist, 'cliente'), 'completado');
     assert.equal(stepState(hastaChecklist, 'danos'), 'en_progreso');
     assert.equal(stepState(hastaChecklist, 'firma'), 'pendiente');
+  });
+});
+
+describe('¿hay trabajo en el borrador?', () => {
+  it('una placa tecleada NO es trabajo', () => {
+    // Si contara, quien escribió una placa un día y se fue la vería
+    // reaparecer cada vez que entra a recibir otro vehículo.
+    assert.equal(hasProgress({ ...EMPTY_DRAFT, plate: 'ABC123' }), false);
+  });
+
+  it('el borrador vacío tampoco', () => {
+    assert.equal(hasProgress(EMPTY_DRAFT), false);
+  });
+
+  it('confirmar al cliente sí lo es', () => {
+    assert.equal(hasProgress({ ...EMPTY_DRAFT, customerConfirmed: true }), true);
+  });
+
+  it('un solo punto del checklist ya lo es', () => {
+    assert.equal(hasProgress({ ...EMPTY_DRAFT, checklistResolved: 1 }), true);
+  });
+
+  it('haber revisado los daños lo es, aunque no hubiera ninguno', () => {
+    // Un vehículo sin un rayón es un resultado válido del paso.
+    assert.equal(hasProgress({ ...EMPTY_DRAFT, damagesReviewed: true }), true);
+  });
+
+  it('una foto o una firma lo son', () => {
+    assert.equal(hasProgress({ ...EMPTY_DRAFT, photoCount: 1 }), true);
+    assert.equal(hasProgress({ ...EMPTY_DRAFT, customerSigned: true }), true);
   });
 });

@@ -13,7 +13,13 @@ export const metadata: Metadata = { title: 'Nueva recepción' };
  * de demostración entero es honesto y evita fingir una búsqueda remota que
  * todavía no existe.
  */
-export default function NuevaRecepcionPage() {
+export default async function NuevaRecepcionPage({
+  searchParams,
+}: {
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const placa = typeof params['placa'] === 'string' ? params['placa'] : undefined;
   const rows = demoBoard(new Date());
 
   const known: readonly KnownVehicle[] = rows.map((row) => {
@@ -37,5 +43,5 @@ export default function NuevaRecepcionPage() {
     };
   });
 
-  return <NewReception known={known} />;
+  return <NewReception known={known} initialPlate={placa} />;
 }

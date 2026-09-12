@@ -26,6 +26,7 @@ import { IdentifierInput } from '@/components/ui/input';
 import { ReceptionStepper } from './reception-stepper';
 import {
   EMPTY_DRAFT,
+  hasProgress,
   RECEPTION_STEPS,
   STEP_LABELS,
   progress,
@@ -66,7 +67,24 @@ const DRAFT_KEY = 'diana:recepcion-borrador';
  * `service_order_id`. El almacenamiento local no sobrevive a cambiar de
  * dispositivo, y en un taller el asesor cambia de tablet.
  */
-export function NewReception({ known }: { readonly known: readonly KnownVehicle[] }) {
+export function NewReception({
+  known,
+  initialPlate,
+}: {
+  readonly known: readonly KnownVehicle[];
+  /**
+   * La placa que el asesor ya tecleó en el mostrador.
+   *
+   * Llega por la URL desde `/recepcion`. Sin esto, quien escribe «ABC-123»,
+   * ve que no existe y pulsa «registrar vehículo», tendría que volver a
+   * teclearla. Es un detalle pequeño y es exactamente donde un flujo continuo
+   * se rompe.
+   *
+   * El borrador guardado MANDA sobre esto: si hay una recepción a medias, se
+   * recupera esa. Pisarla con la placa de la URL tiraría trabajo hecho.
+   */
+  readonly initialPlate?: string;
+}) {
   /*
    * Todo el estado del paso vive en UN objeto. No es preferencia de estilo:
    * la restauración del borrador tiene que dejar el formulario coherente de
@@ -102,18 +120,27 @@ export function NewReception({ known }: { readonly known: readonly KnownVehicle[
       /* Borrador ilegible: se empieza limpio, que es mejor que romper. */
     }
 
-    const match =
-      saved === null ? null : (known.find((k) => k.plate === normalizePlate(saved.plate)) ?? null);
+    /*
+     * El borrador guardado gana SOLO si tiene trabajo dentro. Una placa
+     * tecleada y abandonada no es trabajo: si contara, quien escribió una
+     * placa un día y se fue la vería reaparecer cada vez que entra a recibir
+     * otro vehículo, y tendría que borrarla a mano para poder trabajar.
+     */
+    const enCurso = saved !== null && hasProgress(saved.draft) ? saved : null;
+    const plate = enCurso?.plate ?? initialPlate ?? saved?.plate ?? '';
+    const match = plate === '' ? null : (known.find((k) => k.plate === normalizePlate(plate)) ?? null);
 
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hidratación de `localStorage`, que no existe en el servidor
     setState({
-      draft: saved?.draft ?? EMPTY_DRAFT,
-      query: saved?.plate ?? '',
+      draft: enCurso?.draft ?? { ...EMPTY_DRAFT, plate: normalizePlate(plate) },
+      query: plate,
       found: match,
-      searched: match !== null,
+      // Con placa venida de fuera ya se dio la búsqueda por hecha: el asesor
+      // la buscó en la pantalla anterior y no va a buscarla dos veces.
+      searched: plate !== '',
       restored: true,
     });
-  }, [known]);
+  }, [known, initialPlate]);
 
   useEffect(() => {
     if (!state.restored) return;

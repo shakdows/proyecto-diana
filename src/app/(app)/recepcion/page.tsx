@@ -1,21 +1,23 @@
 import type { Metadata } from 'next';
-import { PhasePlaceholder } from '@/components/layout/phase-placeholder';
+import { ReceptionDesk } from '@/components/reception/reception-desk';
+import { demoCorporateClients, demoCustomers } from '@/features/customers/demo';
+import { demoTodayIntakes } from '@/features/reception/demo';
 
 export const metadata: Metadata = { title: 'Recepción' };
 
-export default function Page() {
+/* La hora de llegada y «lo que entró hoy» se calculan contra `now`:
+   prerrenderizar dejaría la lista congelada en la hora de compilación. */
+export const dynamic = 'force-dynamic';
+
+export default function RecepcionPage() {
+  const now = new Date();
+
   return (
-    <PhasePlaceholder
-      title="Recepción"
-      description="Recepción del vehículo, checklist digital, diagrama de daños y firmas."
-      phase={5}
-      delivers={[
-          'Formulario de recepción optimizado para tablet',
-          'Checklist por categorías, leído del catálogo administrable',
-          'Niveles de combustible, aceite y refrigerante; cocada de los cinco neumáticos',
-          'Documentos entregados y firma digital de cliente y asesor',
-          'Generación automática de la orden de servicio',
-      ]}
+    <ReceptionDesk
+      customers={demoCustomers(now)}
+      intakes={demoTodayIntakes(now)}
+      corporateClients={demoCorporateClients()}
+      now={now}
     />
   );
 }
