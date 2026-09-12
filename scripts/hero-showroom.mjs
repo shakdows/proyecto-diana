@@ -14,6 +14,19 @@
  *     pintados en la pared y en perspectiva;
  *   · la camioneta recortada, con canal alfa.
  *
+ * ── Por qué el lienzo es más alto que la fotografía ───────────────────────
+ *
+ * La columna de la portada es más ALTA que ancha —ronda 1,15 en un monitor y
+ * 0,91 en un portátil— y la toma es 1,5. Recortar una cosa dentro de la otra
+ * se lleva entre el 20 % y el 49 % del ancho, y eso cortaba el morro de la
+ * camioneta.
+ *
+ * La solución no es mover el encuadre —a la izquierda está el rótulo y no se
+ * puede sacrificar—: es alargar el suelo. Se estira la franja inferior, que es
+ * mármol pulido con reflejos verticales y se alarga sin delatarse, hasta que
+ * el lienzo llega a 1,15. A esa proporción, en el monitor donde se usa esto no
+ * hay recorte: se ve la escena entera.
+ *
  * ── Por qué ya no se dibuja el texto de la pared ──────────────────────────
  *
  * Una versión anterior montaba el lema con SVG sobre un vestíbulo vacío.
@@ -38,20 +51,59 @@ const TRUCK = 'fotos/ChatGPT Image 12 sept 2026, 11_52_31.png';
 const OUT = 'public/fondos/hero-showroom.webp';
 
 const W = 1536;
-const H = 1024;
-const TRUCK_W = 980;
-const TRUCK_LEFT = 500;
-/** Suelo visible bajo las ruedas. Sin él la camioneta toca el borde inferior. */
-const FLOOR_GAP = 80;
+/** Alto de la toma original, antes de alargar el suelo. */
+const PHOTO_H = 1024;
+/** Suelo añadido, hasta llegar a la proporción de la columna (~1,15). */
+const FLOOR_EXTRA = 316;
+const H = PHOTO_H + FLOOR_EXTRA;
 
-const base = await sharp(LOBBY)
-  .resize({ width: W, height: H, fit: 'cover', position: 'centre' })
+const TRUCK_W = 880;
+const TRUCK_LEFT = 440;
+/** La camioneta pisa el suelo ORIGINAL, no el alargado. */
+const TRUCK_BASELINE = PHOTO_H - 30;
+
+const photo = await sharp(LOBBY)
+  .resize({ width: W, height: PHOTO_H, fit: 'cover', position: 'centre' })
+  .toBuffer();
+
+/*
+ * El suelo alargado.
+ *
+ * Se toma la franja inferior y se estira. Funciona porque ese suelo es mármol
+ * pulido: lo que hay son reflejos verticales, y en perspectiva un reflejo se
+ * alarga hacia el espectador. Estirar una pared o un techo se notaría; esto
+ * no. Un desenfoque mínimo y un velo que oscurece hacia abajo disimulan la
+ * costura y, de paso, asientan el primer plano.
+ */
+const floor = await sharp(photo)
+  .extract({ left: 0, top: PHOTO_H - 150, width: W, height: 150 })
+  .resize({ width: W, height: FLOOR_EXTRA, fit: 'fill' })
+  .blur(2)
+  .toBuffer();
+
+const floorShade = Buffer.from(
+  `<svg width="${W}" height="${FLOOR_EXTRA}">` +
+    `<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">` +
+    `<stop offset="0" stop-color="#05070a" stop-opacity="0"/>` +
+    `<stop offset="1" stop-color="#05070a" stop-opacity="0.55"/>` +
+    `</linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/></svg>`,
+);
+
+const base = await sharp({
+  create: { width: W, height: H, channels: 4, background: { r: 5, g: 7, b: 10, alpha: 1 } },
+})
+  .composite([
+    { input: photo, left: 0, top: 0 },
+    { input: floor, left: 0, top: PHOTO_H },
+    { input: floorShade, left: 0, top: PHOTO_H },
+  ])
+  .png()
   .toBuffer();
 
 const truck = await sharp(TRUCK).trim({ threshold: 2 }).resize({ width: TRUCK_W }).toBuffer();
 const tm = await sharp(truck).metadata();
-const truckTop = H - tm.height - FLOOR_GAP;
-const baseline = truckTop + tm.height;
+const baseline = TRUCK_BASELINE;
+const truckTop = baseline - tm.height;
 
 /*
  * Sombra de contacto y reflejo.
