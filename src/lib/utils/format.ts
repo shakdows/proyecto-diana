@@ -163,3 +163,20 @@ export function displayPlate(plate: string): string {
 export function maskDocument(last3: string): string {
   return `•••••${last3}`;
 }
+
+/**
+ * «Buenos días» / «Buenas tardes» / «Buenas noches».
+ *
+ * La hora se lee en la zona del taller, no en la del servidor. `getHours()`
+ * devuelve la hora local del proceso, y en producción ese proceso corre en
+ * UTC: un técnico que abre la pantalla a las siete de la tarde en Lima
+ * recibía «Buenos días» del día siguiente.
+ */
+export function greetingAt(now: Date, timeZone: string = DEFAULT_TIME_ZONE): string {
+  const hour = Number(
+    new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', hour12: false }).format(now),
+  );
+  if (hour < 12) return 'Buenos días';
+  if (hour < 19) return 'Buenas tardes';
+  return 'Buenas noches';
+}

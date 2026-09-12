@@ -446,7 +446,7 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       customerDocLast3: '194',
       corporateClient: 'Invetsa',
       advisor: 'Andrea López',
-      technician: null,
+      technician: 'Carlos Mendoza',
       serviceType: 'DIAGNÓSTICO ELECTRÓNICO',
       status: 'PENDIENTE_DIAGNOSTICO',
       openedMinutesAgo: 95,
@@ -485,6 +485,51 @@ export function demoOrders(now: Date): readonly DemoOrder[] {
       repairJobsTotal: 2,
       repairJobsDone: 2,
       finalStages: ['lavado'],
+    },
+    {
+      /*
+       * Lo que un técnico terminó ESTA MAÑANA y ya no está en sus manos.
+       *
+       * Sin una fila así, la jornada del técnico no tiene bloque de
+       * «terminado hoy» y la pantalla sugiere que nadie acaba nada. El modelo
+       * se repite a propósito —dos Corolla en el taller es lo normal— para no
+       * ampliar la flota documentada en `public/fotos-de-carros/README.md`.
+       *
+       * Promete para el cierre de hoy y va en verde: así aparece en el
+       * recuento del tablero sin colarse en el bloque de atención, que es
+       * para lo que va mal.
+       */
+      ...base,
+      id: 'os-162',
+      code: 'OS-2026-000162',
+      plate: 'H3W651',
+      vehicle: 'Toyota Corolla',
+      modelYear: 2021,
+      equipmentKind: 'vehiculo',
+      usage: 52180,
+      customer: 'Elena Chávez',
+      customerPhone: '+51 976 340 812',
+      customerEmail: 'elena.chavez@ejemplo.com',
+      customerDocLast3: '409',
+      advisor: 'Diego Salas',
+      technician: 'Carlos Mendoza',
+      serviceType: 'CAMBIO DE ACEITE Y FILTROS',
+      status: 'CONTROL_CALIDAD',
+      openedMinutesAgo: 390,
+      promisedInMinutes: 180,
+      estimatedMinutes: 90,
+      startedMinutesAgo: 300,
+      sessions: sessions(now, [['trabajo', 300, 195]]),
+      parts: [
+        { partId: 'p1', description: 'Filtro de aceite', required: 1, received: 1 },
+        { partId: 'p2', description: 'Aceite 5W30 sintético', required: 4, received: 4 },
+      ],
+      quotationLineCount: 2,
+      decidedItemCount: 2,
+      approvedItemCount: 2,
+      diagnosticItemCount: 2,
+      repairJobsTotal: 2,
+      repairJobsDone: 2,
     },
     {
       /*

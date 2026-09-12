@@ -11,15 +11,10 @@ import { demoTodayIntakes } from '@/features/reception/demo';
 import { demoSurveys } from '@/features/surveys/demo';
 import { pendingFollowUps } from '@/features/surveys/services/board';
 import { getSessionUser } from '@/lib/auth/session';
+import { greetingAt } from '@/lib/utils/format';
 
 export const metadata: Metadata = { title: 'Tablero' };
 export const dynamic = 'force-dynamic';
-
-function greeting(hour: number): string {
-  if (hour < 12) return 'Buenos días';
-  if (hour < 19) return 'Buenas tardes';
-  return 'Buenas noches';
-}
 
 /**
  * El tablero.
@@ -67,7 +62,7 @@ export default async function TableroPage() {
   return (
     <>
       <SituationHeader
-        greeting={greeting(now.getHours())}
+        greeting={greetingAt(now)}
         userName={user.fullName.split(' ')[0] ?? user.fullName}
         situation={situation}
       />

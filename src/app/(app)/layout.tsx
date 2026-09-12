@@ -16,7 +16,7 @@ import { getSessionUser } from '@/lib/auth/session';
 export default async function AppLayout({ children }: { readonly children: React.ReactNode }) {
   // FASE 3 sustituye esto por la sesión real de Supabase Auth.
   const user = await getSessionUser();
-  const groups = visibleNavigation(user.permissions);
+  const groups = visibleNavigation(user.permissions, user.role);
 
   const now = new Date();
   const rows = demoBoard(now);

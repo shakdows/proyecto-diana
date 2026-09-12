@@ -4,16 +4,11 @@ import { ArrowRight, CarFront, ClipboardList, UserRound } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { attentionItems, demoBoard } from '@/features/demo/board';
 import { getSessionUser } from '@/lib/auth/session';
+import { greetingAt } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
 
 export const metadata: Metadata = { title: 'Inicio' };
 export const dynamic = 'force-dynamic';
-
-function greeting(hour: number): string {
-  if (hour < 12) return 'Buenos días';
-  if (hour < 19) return 'Buenas tardes';
-  return 'Buenas noches';
-}
 
 /**
  * La casa del asesor.
@@ -37,7 +32,7 @@ export default async function InicioPage() {
   return (
     <>
       <header>
-        <p className="text-sm text-fg-muted">{greeting(now.getHours())}, {nombre}</p>
+        <p className="text-sm text-fg-muted">{greetingAt(now)}, {nombre}</p>
         <h1 className="mt-1 font-display text-[1.75rem] font-semibold tracking-tight text-fg lg:text-[2rem]">
           ¿Qué necesitas hacer?
         </h1>

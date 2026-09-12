@@ -15,6 +15,15 @@ export interface NavItem {
   readonly permission: Permission;
   /** Fase que entrega la pantalla completa. */
   readonly phase: number;
+  /**
+   * Cómo se llama la pantalla para ciertos puestos.
+   *
+   * No es cosmética: para el jefe de taller `/taller` es «el taller», una
+   * sección que supervisa; para el técnico es SU lista de trabajos del día, y
+   * llamarla «Taller» le hace buscar dentro lo que ya es todo el contenido.
+   * La ruta y el permiso no cambian.
+   */
+  readonly labelByRole?: Partial<Readonly<Record<RoleCode, string>>>;
 }
 
 export interface NavGroup {
@@ -63,7 +72,14 @@ export const NAVIGATION: readonly NavGroup[] = [
       { href: '/tablero', label: 'Tablero', icon: 'tablero', permission: 'dashboard:control_tower', phase: 14 },
       { href: '/recepcion', label: 'Recepción', icon: 'recepcion', permission: 'receptions:read', phase: 5 },
       { href: '/ordenes', label: 'Órdenes', icon: 'ordenes', permission: 'orders:read', phase: 7 },
-      { href: '/taller', label: 'Taller', icon: 'taller', permission: 'repairs:read', phase: 12 },
+      {
+        href: '/taller',
+        label: 'Taller',
+        icon: 'taller',
+        permission: 'repairs:read',
+        phase: 12,
+        labelByRole: { tecnico: 'Mi jornada', planchado_pintura: 'Mi jornada' },
+      },
       /* Lavado y alineamiento solo los ve quien los ejecuta: su permiso es
          `:execute`, que el asesor no tiene. Por eso no ensucian su menú y a la
          vez el operario de lavado no se queda sin ninguna entrada. */
@@ -84,12 +100,26 @@ export const NAVIGATION: readonly NavGroup[] = [
   },
 ];
 
-/** Filtra el menú por los permisos efectivos del usuario. */
-export function visibleNavigation(granted: readonly Permission[]): readonly NavGroup[] {
+/**
+ * Filtra el menú por los permisos efectivos del usuario.
+ *
+ * `role` solo cambia CÓMO se llama una entrada, nunca cuáles se ven: quien
+ * decide eso son los permisos, y por debajo RLS. Es opcional porque `/` llama
+ * a esto sin saber el rol.
+ */
+export function visibleNavigation(
+  granted: readonly Permission[],
+  role?: RoleCode,
+): readonly NavGroup[] {
   const set = new Set<Permission>(granted);
   return NAVIGATION.map((group) => ({
     label: group.label,
-    items: group.items.filter((item) => set.has(item.permission)),
+    items: group.items
+      .filter((item) => set.has(item.permission))
+      .map((item) => {
+        const alias = role === undefined ? undefined : item.labelByRole?.[role];
+        return alias === undefined ? item : { ...item, label: alias };
+      }),
   })).filter((group) => group.items.length > 0);
 }
 
