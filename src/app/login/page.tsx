@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { RomeroWordmark } from '@/components/brand/romero-logo';
-import { DianaLockup } from '@/components/brand/diana-logo';
 import type { RoleCode } from '@/lib/auth/permissions';
 import { DEMO_AUTH_TOKEN } from '@/features/quotations/demo';
 import { DEMO_SURVEY_TOKEN } from '@/features/delivery/demo';
@@ -151,24 +150,11 @@ function ShowcasePanel() {
 
       <div className="relative flex h-full flex-col justify-end gap-10 p-10 xl:p-14">
         <div className="max-w-xl">
-          {/*
-            Se retira en pantallas bajas. El bloque está anclado abajo, así que
-            cuanto menos alto es el hueco más sube el texto, y a 800 px
-            «DIANA» acaba encima del rótulo de la pared de la fotografía: dos
-            marcas superpuestas y ninguna legible. El nombre del producto
-            aguanta sin aparecer aquí —lo dice el pie del panel de acceso—;
-            el titular, no.
-          */}
-          <div className="[@media(max-height:52rem)]:hidden">
-            <DianaLockup size="lg" endorsement={false} />
-          </div>
-
-          {/* El filete rojo es el de la guía: corto, grueso y encima del
-              titular, no debajo. */}
-          <span
-            aria-hidden
-            className="mt-8 block h-1 w-16 rounded-full bg-romero-500 [@media(max-height:52rem)]:mt-0"
-          />
+          {/* Sin el nombre del producto. Esta mitad es la EMPRESA —su taller,
+              su rótulo, su promesa—; DIANA es la herramienta, y firma donde
+              corresponde: el pie del panel de acceso. Dos marcas compitiendo
+              sobre la misma fotografía no dejaban leer ninguna. */}
+          <span aria-hidden className="block h-1 w-16 rounded-full bg-romero-500" />
 
           <h1 className="mt-5 font-display text-[2rem] font-bold leading-[1.15] tracking-tight text-white xl:text-[2.5rem]">
             Vehículos en buenas manos,
