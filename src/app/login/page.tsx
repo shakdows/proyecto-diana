@@ -90,7 +90,14 @@ const VISTAS_CLIENTE = [
  */
 export default function LoginPage() {
   return (
-    <main className="theme-cream grid min-h-dvh bg-surface-sunken lg:grid-cols-[57fr_43fr]">
+    /*
+     * `lg:h-dvh` y no `min-h-dvh`: con la altura mínima, una pantalla de
+     * portátil —900 px— dejaba «Responder la encuesta» cortado abajo y había
+     * que desplazar la página entera, fotografía incluida. Fijando el alto, la
+     * imagen se queda quieta y lo único que se desplaza es la columna que lo
+     * necesita.
+     */
+    <main className="theme-cream grid min-h-dvh bg-surface-sunken lg:h-dvh lg:grid-cols-[57fr_43fr]">
       <ShowcasePanel />
       <AccessPanel />
     </main>
@@ -133,7 +140,7 @@ function ShowcasePanel() {
       */}
       <span
         aria-hidden
-        className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,rgb(10_12_16/0.94)_0%,rgb(10_12_16/0.72)_38%,rgb(10_12_16/0.25)_72%,transparent_100%)]"
+        className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,rgb(10_12_16/0.92)_0%,rgb(10_12_16/0.62)_40%,rgb(10_12_16/0.12)_74%,transparent_100%)]"
       />
       <span
         aria-hidden
@@ -142,11 +149,24 @@ function ShowcasePanel() {
 
       <div className="relative flex h-full flex-col justify-end gap-10 p-10 xl:p-14">
         <div className="max-w-xl">
-          <DianaLockup size="lg" endorsement={false} />
+          {/*
+            Se retira en pantallas bajas. El bloque está anclado abajo, así que
+            cuanto menos alto es el hueco más sube el texto, y a 800 px
+            «DIANA» acaba encima del rótulo de la pared de la fotografía: dos
+            marcas superpuestas y ninguna legible. El nombre del producto
+            aguanta sin aparecer aquí —lo dice el pie del panel de acceso—;
+            el titular, no.
+          */}
+          <div className="[@media(max-height:52rem)]:hidden">
+            <DianaLockup size="lg" endorsement={false} />
+          </div>
 
           {/* El filete rojo es el de la guía: corto, grueso y encima del
               titular, no debajo. */}
-          <span aria-hidden className="mt-8 block h-1 w-16 rounded-full bg-romero-500" />
+          <span
+            aria-hidden
+            className="mt-8 block h-1 w-16 rounded-full bg-romero-500 [@media(max-height:52rem)]:mt-0"
+          />
 
           <h1 className="mt-5 font-display text-[2rem] font-bold leading-[1.15] tracking-tight text-white xl:text-[2.5rem]">
             Vehículos en buenas manos,
@@ -193,17 +213,25 @@ function ShowcasePanel() {
 
 function AccessPanel() {
   return (
-    <section className="flex items-center justify-center px-5 py-10 sm:px-8">
-      <div className="w-full max-w-[28rem]">
+    <section className="flex justify-center overflow-y-auto px-5 py-8 sm:px-8 lg:py-6">
+      {/*
+        `my-auto` en el hijo y NO `items-center` en el contenedor. Centrar con
+        `items-center` funciona mientras el contenido quepa; en cuanto no cabe
+        —una pantalla de 800 px de alto—, el desbordamiento se reparte arriba y
+        abajo y la parte de ARRIBA queda fuera del área desplazable: el
+        logotipo y «Bienvenido» se volvían inalcanzables. Los márgenes
+        automáticos centran igual y se colapsan solos cuando no hay sitio.
+      */}
+      <div className="w-full max-w-[28rem] lg:my-auto">
         <header className="text-center">
-          <RomeroWordmark className="mx-auto h-11 w-auto" />
-          <p className="mt-2.5 text-[0.625rem] font-medium uppercase tracking-[0.2em] text-fg-subtle">
+          <RomeroWordmark className="mx-auto h-9 w-auto" />
+          <p className="mt-2 text-[0.625rem] font-medium uppercase tracking-[0.2em] text-fg-subtle">
             Más que un taller, tu aliado en el camino
           </p>
         </header>
 
-        <div className="@container/acceso mt-7 rounded-modal border border-border bg-surface p-6 shadow-panel sm:p-7">
-          <h1 className="font-display text-[1.75rem] font-bold tracking-tight text-fg">
+        <div className="@container/acceso mt-5 rounded-modal border border-border bg-surface p-5 shadow-panel sm:p-6">
+          <h1 className="font-display text-[1.625rem] font-bold tracking-tight text-fg">
             Bienvenido
           </h1>
           <p className="mt-1 text-sm text-fg-muted">
@@ -221,7 +249,7 @@ function AccessPanel() {
               rojo de Romero se leía rosa, y la primera impresión de la
               empresa no puede ser un color que no es el suyo. El aviso de
               debajo dice por qué no funciona todavía. */}
-          <fieldset disabled className="mt-6 space-y-3 opacity-80">
+          <fieldset disabled className="mt-5 space-y-3 opacity-80">
             <legend className="sr-only">Acceso con credenciales</legend>
             <FakeInput icon={<Mail />} placeholder="Correo electrónico" />
             <FakeInput icon={<Lock />} placeholder="Contraseña" trailing={<Eye />} />
@@ -241,14 +269,14 @@ function AccessPanel() {
             </p>
           </fieldset>
 
-          <p className="mt-3 rounded-control bg-surface-sunken px-3 py-2 text-xs leading-relaxed text-fg-muted">
+          <p className="mt-2.5 rounded-control bg-surface-sunken px-3 py-2 text-xs leading-snug text-fg-muted">
             El acceso con credenciales llega con la autenticación real. Por ahora se entra
             eligiendo un puesto.
           </p>
 
           {clientEnv.NEXT_PUBLIC_DEMO_MODE && (
             <>
-              <div className="my-5 flex items-center gap-3" aria-hidden>
+              <div className="my-4 flex items-center gap-3" aria-hidden>
                 <span className="h-px flex-1 bg-border" />
                 <span className="text-xs text-fg-subtle">o accede como</span>
                 <span className="h-px flex-1 bg-border" />
@@ -264,7 +292,7 @@ function AccessPanel() {
                     type="submit"
                     name="role"
                     value={role}
-                    className="group flex items-center gap-2.5 rounded-control border border-border bg-surface px-3 py-2.5 text-left transition-colors duration-150 ease-snap hover:border-romero-400 hover:bg-romero-500/5 active:scale-[0.98]"
+                    className="group flex items-center gap-2.5 rounded-control border border-border bg-surface px-3 py-2 text-left transition-colors duration-150 ease-snap hover:border-romero-400 hover:bg-romero-500/5 active:scale-[0.98]"
                   >
                     <span
                       aria-hidden
@@ -298,13 +326,13 @@ function AccessPanel() {
 
               {/* El cliente, aparte. No elige puesto ni deja sesión: abre el
                   mismo enlace que le llegaría al móvil. */}
-              <p className="mt-5 text-xs text-fg-subtle">O realiza otras acciones</p>
+              <p className="mt-4 text-xs text-fg-subtle">O realiza otras acciones</p>
               <div className="mt-2 grid gap-2">
                 {VISTAS_CLIENTE.map(({ href, icon, label, hint }) => (
                   <Link
                     key={href}
                     href={href}
-                    className="group flex items-center gap-2.5 rounded-control border border-border bg-surface px-3 py-2.5 transition-colors duration-150 ease-snap hover:border-romero-400 hover:bg-romero-500/5 active:scale-[0.98]"
+                    className="group flex items-center gap-2.5 rounded-control border border-border bg-surface px-3 py-2 transition-colors duration-150 ease-snap hover:border-romero-400 hover:bg-romero-500/5 active:scale-[0.98]"
                   >
                     <span
                       aria-hidden
@@ -324,7 +352,7 @@ function AccessPanel() {
           )}
         </div>
 
-        <footer className="mt-6 text-center">
+        <footer className="mt-4 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-fg-muted">
             Romero Motors
           </p>
