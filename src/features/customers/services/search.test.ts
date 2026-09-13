@@ -189,3 +189,61 @@ describe('el filtro de la cartera', () => {
     }
   });
 });
+
+describe('buscar por el documento entero', () => {
+  const C = (id: string, documentLast: string): SearchableCustomer => ({
+    id, kind: 'persona', name: `Cliente ${id}`, documentType: 'DNI', documentLast,
+    phone: null, email: null, corporateClient: null, plates: [],
+  });
+
+  /*
+   * ESTA es la prueba de un fallo que se veía desde la recepción.
+   *
+   * La pantalla solo conoce los TRES ÚLTIMOS caracteres del documento, así
+   * que quien teclea el DNI entero escribe algo MÁS LARGO que lo guardado.
+   * La comparación estaba al revés —«156».endsWith('71234156')—, o sea falsa
+   * siempre: la recepción decía «no encontrado» con el documento correcto
+   * delante, y el asesor creaba un cliente que ya existía.
+   */
+  it('encuentra tecleando el DNI completo', () => {
+    const r = searchCustomers([C('a', '156'), C('b', '999')], '71234156');
+    assert.deepEqual(r.map((c) => c.id), ['a']);
+  });
+
+  it('encuentra el RUC completo', () => {
+    const r = searchCustomers([C('a', '610'), C('b', '999')], '20100113610');
+    assert.deepEqual(r.map((c) => c.id), ['a']);
+  });
+
+  it('sigue encontrando por los tres que se ven en la ficha', () => {
+    assert.deepEqual(searchCustomers([C('a', '156'), C('b', '999')], '156').map((c) => c.id), ['a']);
+  });
+
+  /*
+   * La regresión que cazó la prueba de la cartera: «V2K481» es una PLACA de
+   * seis, y sin filtro casaba con cualquier documento acabado en 481. Buscar
+   * una placa devolvía dos clientes: el dueño del coche y un desconocido.
+   */
+  it('una placa no se confunde con un documento que acaba igual', () => {
+    const conPlaca: SearchableCustomer = { ...C('placa', '000'), plates: ['V2K481'] };
+    const r = searchCustomers([conPlaca, C('doc', '481')], 'V2K481');
+    assert.deepEqual(r.map((c) => c.id), ['placa']);
+  });
+
+  it('un carné o pasaporte con letras sí entra, desde siete caracteres', () => {
+    // A partir de siete ya no puede ser una placa peruana.
+    assert.deepEqual(searchCustomers([C('a', '456')], 'AB123456').map((c) => c.id), ['a']);
+  });
+
+  it('un documento que no casa no aparece', () => {
+    assert.deepEqual(searchCustomers([C('a', '156')], '71234999'), []);
+  });
+
+  it('el teléfono gana al documento cuando compiten', () => {
+    // Quien busca «987654321» con el cliente al teléfono espera al dueño de
+    // ese número antes que a quien tiene un DNI que acaba en 321.
+    const conTelefono: SearchableCustomer = { ...C('tel', '000'), phone: '987654321' };
+    const r = searchCustomers([C('doc', '321'), conTelefono], '987654321');
+    assert.equal(r[0]?.id, 'tel');
+  });
+});

@@ -9,6 +9,7 @@ import { Tooltip } from '@/components/ui/tooltip';
 import { Drawer } from '@/components/overlay/modal';
 import { Sidebar } from './sidebar';
 import { CommandPalette, type CommandTarget } from './command-palette';
+import type { DemoCustomer } from '@/features/customers/demo';
 import { ROLE_LABELS, type RoleCode } from '@/lib/auth/permissions';
 import type { NavGroup } from '@/lib/auth/navigation';
 import { leaveDemo } from '@/app/login/actions';
@@ -25,6 +26,7 @@ export function Topbar({
   groups,
   badges,
   targets,
+  customers,
   userName,
   role,
   isDemo,
@@ -33,6 +35,7 @@ export function Topbar({
   readonly groups: readonly NavGroup[];
   readonly badges: Readonly<Record<string, number>>;
   readonly targets: readonly CommandTarget[];
+  readonly customers: readonly DemoCustomer[];
   readonly userName: string;
   readonly role: RoleCode;
   readonly isDemo: boolean;
@@ -51,7 +54,7 @@ export function Topbar({
         <Menu aria-hidden className="size-5" />
       </button>
 
-      <CommandPalette targets={targets} />
+      <CommandPalette targets={targets} customers={customers} />
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
         <button

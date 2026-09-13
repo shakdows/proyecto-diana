@@ -13,7 +13,7 @@
  * búsqueda no encuentra nada. Por eso van separadas.
  */
 
-import { phoneKey } from './identity';
+import { normalizeDocument, phoneKey } from './identity';
 import type { CustomerKind, DocumentType } from './identity';
 
 export interface SearchableCustomer {
@@ -70,8 +70,43 @@ function score(customer: SearchableCustomer, query: string): number {
     if (key.includes(qDigits)) return 70;
   }
 
-  // Documento por los últimos dígitos, que es lo único que hay en pantalla.
-  if (qDigits.length >= 2 && customer.documentLast.endsWith(qDigits)) return 75;
+  /*
+   * Documento. La pantalla solo conoce los TRES ÚLTIMOS caracteres —la base
+   * guarda el número entero con `REVOKE SELECT`—, así que hay dos formas de
+   * teclearlo y cada una compara al revés que la otra:
+   *
+   *   · Los tres que se ven en la ficha: «275» contra `documentLast`.
+   *   · EL DOCUMENTO ENTERO, que es lo que hace quien tiene el DNI en la mano
+   *     en el mostrador. Ahí lo tecleado es más largo que lo guardado, así
+   *     que se compara la COLA de lo tecleado. Al revés —como estaba— nunca
+   *     casaba: «156».endsWith('71234156') es falso siempre, y la recepción
+   *     decía «no encontrado» con el documento correcto delante.
+   *
+   * Es una lista de candidatos, no una identificación: varios documentos
+   * acaban en los mismos tres. Por eso puntúa por debajo del teléfono y por
+   * eso la ficha enseña el enmascarado, para confirmar mirando. Cuando haya
+   * base, esto lo resuelve exacto el HMAC de `document_hash`.
+   */
+  const qDoc = normalizeDocument(query);
+  if (customer.documentLast !== '') {
+    if (qDigits.length >= 2 && customer.documentLast.endsWith(qDigits)) return 75;
+
+    /*
+     * Lo tecleado tiene que PARECER un documento antes de compararlo como tal.
+     *
+     * Sin este filtro, «V2K481» —una placa de seis— casaba con cualquier
+     * documento acabado en 481, y buscar una placa devolvía dos clientes: el
+     * dueño del coche y un desconocido. Lo cazó la prueba que exige que cada
+     * placa lleve a un solo cliente.
+     *
+     * Una placa peruana son seis con letras; un DNI son ocho cifras y un RUC
+     * once. Así que: todo cifras, desde seis; con letras —carné, pasaporte—,
+     * desde siete, que es donde ya no puede ser una placa.
+     */
+    const soloCifras = qDoc === qDigits;
+    const pareceDocumento = soloCifras ? qDoc.length >= 6 : qDoc.length >= 7;
+    if (pareceDocumento && qDoc.endsWith(customer.documentLast)) return 72;
+  }
 
   const name = fold(customer.name);
   if (name === q) return 90;

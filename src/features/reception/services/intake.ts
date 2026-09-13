@@ -141,3 +141,48 @@ export function arrivedToday(now: Date, minutesAgo: number): boolean {
     at.getDate() === now.getDate()
   );
 }
+
+export interface ReceptionMatches {
+  /** Vehículos cuya placa casa. Es lo que se pinta primero y grande. */
+  readonly vehicles: readonly VehicleMatch[];
+  /**
+   * Clientes que casan por nombre, documento o teléfono y que NO están ya
+   * representados arriba por uno de sus vehículos.
+   */
+  readonly people: readonly DemoCustomer[];
+}
+
+/**
+ * Buscar en la recepción como la pantalla promete.
+ *
+ * ── El fallo que arregla ───────────────────────────────────────────────────
+ *
+ * Debajo del campo pone «Escribe la placa. También sirve el nombre, el
+ * documento o el teléfono», y no servía: solo se buscaba por placa. Tecleabas
+ * el nombre de un cliente y la pantalla decía «no encontrado», que no es que
+ * no ayude —es que MIENTE, y lleva a crear otra vez un cliente que ya existe—.
+ *
+ * Peor todavía con un cliente recién dado de alta SIN vehículo: no tiene
+ * placa, así que era literalmente imposible llegar a él desde aquí.
+ *
+ * ── Por qué la placa sigue mandando ────────────────────────────────────────
+ *
+ * Porque es el único dato que el asesor tiene SIEMPRE: está pintado en el
+ * vehículo que tiene delante, mientras que el nombre puede no recordarlo y el
+ * documento está en la guantera. Las personas van debajo, como alternativa, y
+ * nunca por encima de una placa que casa.
+ */
+export function lookupReception(
+  customers: readonly DemoCustomer[],
+  query: string,
+  searchPeople: (customers: readonly DemoCustomer[], query: string) => readonly DemoCustomer[],
+): ReceptionMatches {
+  const vehicles = lookupPlate(customers, query);
+
+  /* Quien ya sale arriba con su vehículo no se repite abajo: la misma persona
+     dos veces en la misma pantalla hace dudar de si son dos. */
+  const arriba = new Set(vehicles.map((m) => m.customer.id));
+  const people = searchPeople(customers, query).filter((c) => !arriba.has(c.id));
+
+  return { vehicles, people };
+}

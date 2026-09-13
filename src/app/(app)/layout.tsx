@@ -3,6 +3,7 @@ import { Topbar } from '@/components/layout/topbar';
 import type { CommandTarget } from '@/components/layout/command-palette';
 import { ToastProvider } from '@/components/feedback/toast';
 import { attentionItems, demoBoard } from '@/features/demo/board';
+import { demoCustomers } from '@/features/customers/demo';
 import { visibleNavigation } from '@/lib/auth/navigation';
 import { getSessionUser } from '@/lib/auth/session';
 
@@ -71,6 +72,7 @@ export default async function AppLayout({ children }: { readonly children: React
             groups={groups}
             badges={badges}
             targets={targets}
+            customers={demoCustomers(now)}
             userName={user.fullName}
             role={user.role}
             isDemo={user.isDemo}

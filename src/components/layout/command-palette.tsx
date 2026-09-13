@@ -4,6 +4,9 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CornerDownLeft, Search } from 'lucide-react';
 import { Plate } from '@/components/ui/plate';
+import type { DemoCustomer } from '@/features/customers/demo';
+import { customerTargets } from '@/features/customers/services/targets';
+import { useAllCustomers } from '@/features/customers/use-created';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -21,7 +24,7 @@ import { cn } from '@/lib/utils/cn';
 export interface CommandTarget {
   readonly id: string;
   readonly href: string;
-  readonly kind: 'orden' | 'pantalla';
+  readonly kind: 'orden' | 'pantalla' | 'cliente';
   readonly title: string;
   readonly subtitle?: string;
   readonly plate?: string;
@@ -36,8 +39,24 @@ const normalize = (value: string): string =>
     .replace(/[̀-ͯ]/gu, '')
     .replace(/[^a-z0-9]/gu, '');
 
-export function CommandPalette({ targets }: { readonly targets: readonly CommandTarget[] }) {
+export function CommandPalette({
+  targets,
+  customers: seeded,
+}: {
+  readonly targets: readonly CommandTarget[];
+  /** La cartera del servidor. Los creados en este navegador se suman aquí. */
+  readonly customers: readonly DemoCustomer[];
+}) {
   const router = useRouter();
+  /*
+   * Los clientes se indexan AQUÍ y no en el servidor.
+   *
+   * Los que alguien acaba de dar de alta viven en `localStorage`, que el
+   * servidor no puede leer. Si el índice se armara arriba, la búsqueda que
+   * promete encontrar clientes no encontraría precisamente los que se acaban
+   * de crear —que son los que uno busca—.
+   */
+  const { customers } = useAllCustomers(seeded);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState(0);
@@ -78,11 +97,22 @@ export function CommandPalette({ targets }: { readonly targets: readonly Command
     return () => node.removeEventListener('close', onClose);
   }, []);
 
+  const todos = useMemo(
+    () => [...targets, ...customerTargets(customers)],
+    [targets, customers],
+  );
+
   const results = useMemo(() => {
     const q = normalize(query);
-    if (q === '') return targets.filter((t) => t.kind === 'pantalla').slice(0, 6);
-    return targets.filter((t) => normalize(t.haystack).includes(q)).slice(0, 8);
-  }, [targets, query]);
+    if (q === '') return todos.filter((t) => t.kind === 'pantalla').slice(0, 6);
+    /* Las órdenes primero: quien teclea una placa casi siempre busca el
+       trabajo en curso, no la ficha del dueño. */
+    const orden = { orden: 0, cliente: 1, pantalla: 2 } as const;
+    return todos
+      .filter((t) => normalize(t.haystack).includes(q))
+      .sort((a, b) => orden[a.kind] - orden[b.kind])
+      .slice(0, 8);
+  }, [todos, query]);
 
   const go = (href: string): void => {
     setOpen(false);
@@ -149,7 +179,8 @@ export function CommandPalette({ targets }: { readonly targets: readonly Command
 
         {results.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-fg-subtle">
-            Nada coincide con «{query}». Prueba con una placa o un número de orden.
+            Nada coincide con «{query}». Prueba con una placa, un número de orden o el
+            nombre de un cliente.
           </p>
         ) : (
           <ul className="max-h-80 overflow-y-auto p-2">

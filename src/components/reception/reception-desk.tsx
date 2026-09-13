@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CarFront, Plus, Search, UserRound } from 'lucide-react';
+import { ArrowRight, CarFront, ChevronRight, Plus, Search, UserRound } from 'lucide-react';
 import { AssetImage } from '@/components/ui/asset-image';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,12 +14,17 @@ import {
   newCustomerId,
   summarizeCreation,
 } from '@/features/customers/services/create';
-import { displayName, formatPhone, maskDocument } from '@/features/customers/services/identity';
+import {
+  displayName,
+  formatPhone,
+  initialsOf,
+  maskDocument,
+} from '@/features/customers/services/identity';
 import { useAllCustomers } from '@/features/customers/use-created';
 import {
   formatPlate,
   isCompletePlate,
-  lookupPlate,
+  lookupReception,
   searchState,
   type VehicleMatch,
 } from '@/features/reception/services/intake';
@@ -27,6 +32,7 @@ import { formatNumber } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
 import { TodayIntakes } from './today-intakes';
 import type { TodayIntake } from '@/features/reception/services/intake';
+import { searchPeople } from '@/features/reception/services/people';
 
 /**
  * La puerta del taller.
@@ -77,12 +83,16 @@ export function ReceptionDesk({
     return () => clearTimeout(id);
   }, [query]);
 
-  const matches = useMemo(() => lookupPlate(customers, settled), [customers, settled]);
+  /* Busca como la pantalla promete: placa primero, y también nombre,
+     documento y teléfono. Ver `lookupReception`, que explica por qué. */
+  const found = useMemo(() => lookupReception(customers, settled, searchPeople), [customers, settled]);
+  const matches = found.vehicles;
+  const people = found.people;
 
   const state = searchState({
     query,
     pending: query !== settled,
-    matches: matches.length,
+    matches: matches.length + people.length,
   });
 
   return (
@@ -137,11 +147,7 @@ export function ReceptionDesk({
             )}
             {state === 'buscando' && <span className="text-fg-subtle">Buscando…</span>}
             {state === 'encontrado' && (
-              <span className="text-ok-700">
-                {matches.length === 1
-                  ? 'Un vehículo encontrado'
-                  : `${String(matches.length)} vehículos encontrados`}
-              </span>
+              <span className="text-ok-700">{resumenHallazgo(matches.length, people.length)}</span>
             )}
           </p>
         </div>
@@ -154,13 +160,35 @@ export function ReceptionDesk({
           )}
 
           {state === 'encontrado' && (
-            <ul className="grid gap-3 lg:grid-cols-2">
-              {matches.slice(0, 4).map((match) => (
-                <li key={match.vehicle.id}>
-                  <VehicleCard match={match} />
-                </li>
-              ))}
-            </ul>
+            <div className="space-y-4">
+              {matches.length > 0 && (
+                <ul className="grid gap-3 lg:grid-cols-2">
+                  {matches.slice(0, 4).map((match) => (
+                    <li key={match.vehicle.id}>
+                      <VehicleCard match={match} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/* Las personas van DEBAJO y nunca por encima de una placa que
+                  casa: la placa es el único dato que el asesor tiene siempre
+                  —está pintado en el vehículo que tiene delante—. */}
+              {people.length > 0 && (
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-fg-subtle">
+                    {matches.length > 0 ? 'También coinciden estos clientes' : 'Clientes que coinciden'}
+                  </p>
+                  <ul className="mt-2 grid gap-2 lg:grid-cols-2">
+                    {people.slice(0, 4).map((customer) => (
+                      <li key={customer.id}>
+                        <PersonCard customer={customer} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           )}
 
           {state === 'sin_resultados' && (
@@ -327,5 +355,66 @@ function VehicleCard({ match }: { readonly match: VehicleMatch }) {
         </Link>
       </div>
     </article>
+  );
+}
+
+/**
+ * Cuántas cosas salieron, en una frase.
+ *
+ * Decir «3 vehículos encontrados» cuando dos de los tres son personas hace
+ * que el asesor busque un coche que no está en la lista.
+ */
+function resumenHallazgo(vehiculos: number, personas: number): string {
+  const partes: string[] = [];
+  if (vehiculos > 0) {
+    partes.push(vehiculos === 1 ? 'Un vehículo' : `${String(vehiculos)} vehículos`);
+  }
+  if (personas > 0) {
+    partes.push(personas === 1 ? 'un cliente' : `${String(personas)} clientes`);
+  }
+  const frase = partes.join(' y ');
+  return vehiculos + personas === 1 ? `${frase} encontrado` : `${frase} encontrados`;
+}
+
+/**
+ * Un cliente que casó por nombre, documento o teléfono.
+ *
+ * Enseña si tiene vehículos y cuántos, porque eso decide el siguiente paso:
+ * con vehículo se abre su ficha y se elige cuál llega; sin ninguno, lo que
+ * toca es registrarle uno, y el enlace lleva justo ahí.
+ */
+function PersonCard({ customer }: { readonly customer: DemoCustomer }) {
+  const nombre = displayName(customer);
+  const sinVehiculos = customer.vehicles.length === 0;
+
+  return (
+    <Link
+      href={`/clientes/${customer.id}`}
+      className="flex items-center gap-3 rounded-panel border border-border bg-surface-raised px-4 py-3 transition-shadow duration-150 hover:shadow-panel"
+    >
+      <span
+        aria-hidden
+        className="grid size-10 shrink-0 place-items-center rounded-full bg-graphite-100 text-xs font-semibold text-graphite-700"
+      >
+        {initialsOf(nombre)}
+      </span>
+
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold text-fg">{nombre}</span>
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-fg-muted">
+          <span data-numeric>{maskDocument(customer.documentType, customer.documentLast)}</span>
+          {customer.phone !== null && <span data-numeric>{formatPhone(customer.phone)}</span>}
+          <span className={sinVehiculos ? 'text-warn-700' : undefined}>
+            {sinVehiculos
+              ? 'Sin vehículos · regístrale uno'
+              : customer.vehicles.length === 1
+                ? customer.vehicles[0]?.plate
+                : `${String(customer.vehicles.length)} vehículos`}
+          </span>
+        </span>
+      </span>
+
+      <ChevronRight aria-hidden className="size-4 shrink-0 text-fg-subtle" />
+    </Link>
   );
 }
