@@ -189,22 +189,16 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --surface: #101820;
-    --surface-raised: #17212b;
-    --surface-sunken: #0b1118;
-    --surface-inverted: #f5f7fa;
-    --fg: #f1f5f9;
-    --fg-muted: #cbd5e1;
-    --fg-subtle: #94a3b8;
-    --fg-inverted: #101820;
-    --border: #1e293b;
-    --border-strong: #334155;
-    --focus: #6aa4f9;
-    color-scheme: dark;
-  }
-}
+/*
+ * DIANA no sigue el modo oscuro del sistema. La identidad de Romero Motors
+ * es clara —crema, grafito y rojo—, y el taller se mira en tabletas y
+ * pantallas de recepción donde el tema del sistema es un accidente, no una
+ * decisión. El único lienzo oscuro es deliberado y está acotado:
+ * `.theme-night`, que viste el centro de operaciones. Si alguna vez hace
+ * falta un modo oscuro de verdad, se declara con una clase en `html` que el
+ * usuario pueda elegir; nunca reaccionando a `prefers-color-scheme`, que ya
+ * nos dejó la pantalla de Clientes en negro sobre negro.
+ */
 
 @layer base {
   * {
