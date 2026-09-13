@@ -9,10 +9,12 @@ export const metadata: Metadata = { title: 'Clientes' };
 export const dynamic = 'force-dynamic';
 
 export default function ClientesPage() {
+  const now = new Date();
   return (
     <CustomerDirectory
-      customers={demoCustomers(new Date())}
+      customers={demoCustomers(now)}
       corporateClients={demoCorporateClients()}
+      now={now}
     />
   );
 }

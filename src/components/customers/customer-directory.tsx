@@ -9,7 +9,11 @@ import { Plate } from '@/components/ui/plate';
 import { useToast } from '@/components/feedback/toast';
 import type { DemoCustomer } from '@/features/customers/demo';
 import { toSearchable } from '@/features/customers/demo';
-import { customerFromInput, newCustomerId } from '@/features/customers/services/create';
+import {
+  customerFromInput,
+  newCustomerId,
+  summarizeCreation,
+} from '@/features/customers/services/create';
 import { useAllCustomers } from '@/features/customers/use-created';
 import {
   displayName,
@@ -45,9 +49,11 @@ const FILTROS: readonly DirectoryFilter[] = ['todos', 'personas', 'empresas'];
 export function CustomerDirectory({
   customers: seeded,
   corporateClients,
+  now,
 }: {
   readonly customers: readonly DemoCustomer[];
   readonly corporateClients: readonly string[];
+  readonly now: Date;
 }) {
   /* Lo creado desde esta pantalla va delante de lo sembrado. Vive en el
      navegador porque todavía no hay base; ver `use-created.ts`. */
@@ -166,26 +172,26 @@ export function CustomerDirectory({
       <NewCustomerModal
         open={open}
         onClose={() => setOpen(false)}
-        existing={searchable}
+        customers={customers}
         corporateClients={corporateClients}
+        now={now}
         onCreate={(draft) => {
           /*
            * FASE 3: aquí va la Server Action que inserta con RLS y deja
            * rastro en la auditoría. Mientras tanto se guarda en el navegador,
            * igual que el checklist, la autorización y la entrega.
            *
-           * El aviso dice DÓNDE quedó, y no solo que quedó: alguien va a
-           * abrirlo desde otro equipo y no lo va a encontrar, y hay que
-           * haberlo avisado antes de que pase.
+           * El aviso enumera lo que quedó guardado —cliente, empresa,
+           * vehículo, licencia— porque el alta ya son hasta cuatro cosas y no
+           * una: quien se saltó un paso tiene que verlo aquí y no descubrirlo
+           * mañana al abrir la ficha.
            */
           const cliente = customerFromInput(draft, newCustomerId(Date.now()));
           add(cliente);
           setQuery('');
           setFilter('todos');
           toast(
-            draft.corporateClientIsNew && draft.corporateClient !== null
-              ? `${displayName(cliente)} y la empresa «${draft.corporateClient}» quedan en este navegador hasta que haya base de datos.`
-              : `${displayName(cliente)} queda en este navegador hasta que haya base de datos.`,
+            `${summarizeCreation(draft, displayName(cliente), draft.corporateClientIsNew)} Todo queda en este navegador hasta que haya base de datos.`,
             'ok',
           );
         }}

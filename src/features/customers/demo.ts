@@ -15,6 +15,7 @@
 import { CORPORATE_CLIENTS } from '../../../db/seed/catalog';
 import { demoOrders } from '@/features/demo/board';
 import type { DocumentType } from './services/identity';
+import type { DriverLicense } from './services/license';
 import { displayName } from './services/identity';
 import type { SearchableCustomer } from './services/search';
 
@@ -47,6 +48,14 @@ export interface DemoCustomer {
   readonly address: string | null;
   readonly contactPreference: 'whatsapp' | 'telefono' | 'correo';
   readonly corporateClient: string | null;
+  /**
+   * La licencia de quien conduce, si se registró.
+   *
+   * Es dato personal como el documento: NO sale en listas ni en resultados de
+   * búsqueda, solo en la ficha de su dueño —donde hace falta para compararla
+   * con el plástico que enseña en el mostrador—.
+   */
+  readonly license: DriverLicense | null;
   readonly lastVisitDaysAgo: number | null;
   readonly vehicles: readonly DemoVehicle[];
   readonly isDemo: true;
@@ -78,7 +87,7 @@ const SIN_ORDEN: readonly DemoCustomer[] = [
     businessName: null, documentType: 'DNI', documentLast: '318',
     phone: '+51 946 220 118', altPhone: null, email: 'ana.flores@ejemplo.com',
     address: 'Av. Primavera 1120, Surco', contactPreference: 'whatsapp',
-    corporateClient: null, lastVisitDaysAgo: 46, isDemo: true,
+    corporateClient: null, license: null, lastVisitDaysAgo: 46, isDemo: true,
     vehicles: [{
       id: 'veh-101', plate: 'H2L509', brand: 'Toyota', model: 'Yaris', modelYear: 2021,
       color: 'Plata', mileage: 41200, lastServiceDaysAgo: 46, equipmentKind: 'vehiculo',
@@ -90,7 +99,7 @@ const SIN_ORDEN: readonly DemoCustomer[] = [
     businessName: null, documentType: 'DNI', documentLast: '904',
     phone: '+51 951 703 884', altPhone: '+51 1 4457722', email: 'c.mendoza@ejemplo.com',
     address: 'Jr. Huallaga 455, Cercado', contactPreference: 'telefono',
-    corporateClient: null, lastVisitDaysAgo: 121, isDemo: true,
+    corporateClient: null, license: null, lastVisitDaysAgo: 121, isDemo: true,
     vehicles: [
       {
         id: 'veh-102', plate: 'J7T264', brand: 'Hyundai', model: 'Accent', modelYear: 2018,
@@ -109,7 +118,7 @@ const SIN_ORDEN: readonly DemoCustomer[] = [
     businessName: null, documentType: 'CE', documentLast: '576',
     phone: '+51 999 412 067', altPhone: null, email: null,
     address: null, contactPreference: 'whatsapp',
-    corporateClient: null, lastVisitDaysAgo: null, isDemo: true,
+    corporateClient: null, license: null, lastVisitDaysAgo: null, isDemo: true,
     vehicles: [],
   },
   {
@@ -117,7 +126,7 @@ const SIN_ORDEN: readonly DemoCustomer[] = [
     businessName: 'Distribuidora Andina S.A.C.', documentType: 'RUC', documentLast: '447',
     phone: '+51 1 6117700', altPhone: null, email: 'flota@distribuidoraandina.com',
     address: 'Av. Argentina 3450, Callao', contactPreference: 'correo',
-    corporateClient: null, lastVisitDaysAgo: 18, isDemo: true,
+    corporateClient: null, license: null, lastVisitDaysAgo: 18, isDemo: true,
     vehicles: [
       {
         id: 'veh-104', plate: 'L5P330', brand: 'Hino', model: '300', modelYear: 2020,
@@ -131,7 +140,7 @@ const SIN_ORDEN: readonly DemoCustomer[] = [
     businessName: 'Minera Altoandina S.A.', documentType: 'RUC', documentLast: '802',
     phone: '+51 1 2093400', altPhone: null, email: 'mantenimiento@altoandina.com.pe',
     address: 'Av. El Derby 254, Surco', contactPreference: 'correo',
-    corporateClient: 'Invetsa', lastVisitDaysAgo: 9, isDemo: true,
+    corporateClient: 'Invetsa', license: null, lastVisitDaysAgo: 9, isDemo: true,
     vehicles: [
       {
         id: 'veh-105', plate: 'M8Q117', brand: 'CAT', model: '950 GC', modelYear: 2021,
@@ -168,6 +177,7 @@ export function demoCustomers(now: Date): readonly DemoCustomer[] {
       address: order.customerAddress,
       contactPreference: 'whatsapp',
       corporateClient: order.corporateClient,
+      license: null,
       lastVisitDaysAgo: 0,
       isDemo: true,
       vehicles: [{

@@ -1,5 +1,16 @@
 import Link from 'next/link';
-import { Car, FileText, Mail, MapPin, MessageCircle, Pencil, Phone, Plus } from 'lucide-react';
+import {
+  Car,
+  FileText,
+  IdCard,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Pencil,
+  Phone,
+  Plus,
+  TriangleAlert,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { AssetImage } from '@/components/ui/asset-image';
 import { Tabs } from '@/components/ui/tabs';
@@ -11,6 +22,13 @@ import {
   initialsOf,
   maskDocument,
 } from '@/features/customers/services/identity';
+import {
+  categoryLabel,
+  expiryPhrase,
+  licenseStatus,
+  type DriverLicense,
+  type LicenseStatus,
+} from '@/features/customers/services/license';
 import { formatNumber } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
 
@@ -29,10 +47,12 @@ import { cn } from '@/lib/utils/cn';
  */
 export function CustomerProfile({
   customer,
+  now,
   onEdit,
   onAddVehicle,
 }: {
   readonly customer: DemoCustomer;
+  readonly now: Date;
   /* Opcionales: la ficha se puede pintar sin nada que tocar —un informe, una
      vista de solo lectura—, y entonces no aparecen los botones en vez de
      aparecer y no hacer nada. */
@@ -42,6 +62,8 @@ export function CustomerProfile({
   const name = displayName(customer);
   const empresa = customer.kind === 'empresa';
   const abiertas = customer.vehicles.filter((v) => v.openOrderId !== null);
+  const licencia = customer.license;
+  const estadoLicencia = licencia === null ? null : licenseStatus(licencia, now);
 
   const PREFERENCIA = {
     whatsapp: { icon: <MessageCircle />, label: 'WhatsApp' },
@@ -69,6 +91,26 @@ export function CustomerProfile({
               <span className="rounded-chip bg-ok-100 px-2 py-0.5 text-xs font-medium text-ok-700">
                 Cliente activo
               </span>
+              {/*
+                El vencimiento sube a la cabecera cuando ya no está vigente, y
+                no se queda abajo con el resto de los datos: una licencia
+                vencida convierte una prueba de ruta en un problema del TALLER,
+                y eso hay que verlo antes de sacar el coche a la calle, no
+                después de bajar a buscarlo.
+              */}
+              {licencia !== null && estadoLicencia !== 'vigente' && estadoLicencia !== 'sin-fecha' && (
+                <span
+                  className={cn(
+                    'flex items-center gap-1 rounded-chip px-2 py-0.5 text-xs font-medium',
+                    estadoLicencia === 'vencida'
+                      ? 'bg-crit-100 text-crit-700'
+                      : 'bg-warn-100 text-warn-700',
+                  )}
+                >
+                  <TriangleAlert aria-hidden className="size-3" />
+                  Licencia · {expiryPhrase(licencia, now).toLowerCase()}
+                </span>
+              )}
             </div>
 
             <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-fg-muted">
@@ -178,6 +220,31 @@ export function CustomerProfile({
             ),
           },
           {
+            id: 'licencia',
+            label: 'Licencia',
+            content:
+              licencia === null ? (
+                <EmptyState
+                  title="Sin licencia registrada"
+                  hint="Se apunta cuando el cliente la trae. Es lo que dice si puede hacer la prueba de ruta."
+                  action={
+                    onEdit === undefined ? undefined : (
+                      <button
+                        type="button"
+                        onClick={onEdit}
+                        className="inline-flex h-11 items-center gap-2 rounded-control border border-border-strong px-4 text-sm font-semibold text-fg transition-colors duration-150 hover:bg-surface-sunken"
+                      >
+                        <IdCard aria-hidden className="size-4" />
+                        Registrar licencia
+                      </button>
+                    )
+                  }
+                />
+              ) : (
+                <LicenseCard license={licencia} now={now} />
+              ),
+          },
+          {
             id: 'vehiculos',
             label: 'Vehículos',
             badge: customer.vehicles.length > 0 ? customer.vehicles.length : undefined,
@@ -237,6 +304,63 @@ export function CustomerProfile({
         ]}
       />
     </>
+  );
+}
+
+/**
+ * La licencia, con el vencimiento primero.
+ *
+ * El número está porque hay que compararlo con el plástico en el mostrador,
+ * pero lo que decide algo es la FECHA y la CATEGORÍA: si puede conducir, y si
+ * puede conducir ESTO. El número no se repite en ninguna lista ni sale en los
+ * resultados de búsqueda: es dato personal y solo tiene sentido aquí.
+ */
+function LicenseCard({
+  license,
+  now,
+}: {
+  readonly license: DriverLicense;
+  readonly now: Date;
+}) {
+  const estado = licenseStatus(license, now);
+  const tono: Readonly<Record<LicenseStatus, string>> = {
+    vigente: 'border-ok-500/40 bg-ok-100 text-ok-700',
+    'por-vencer': 'border-warn-500/40 bg-warn-100 text-warn-700',
+    vencida: 'border-crit-500/40 bg-crit-100 text-crit-700',
+    'sin-fecha': 'border-border bg-surface-sunken text-fg-muted',
+  };
+
+  return (
+    <div className="space-y-4">
+      <p
+        className={cn(
+          'inline-flex items-center gap-2 rounded-panel border px-3.5 py-2 text-sm font-semibold',
+          tono[estado],
+        )}
+      >
+        {estado === 'vigente' ? (
+          <IdCard aria-hidden className="size-4" />
+        ) : (
+          <TriangleAlert aria-hidden className="size-4" />
+        )}
+        {expiryPhrase(license, now)}
+      </p>
+
+      <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Dato label="Número">
+          <span data-numeric className="font-mono tracking-[0.06em]">
+            {license.number}
+          </span>
+        </Dato>
+        <Dato label="Categoría">
+          {license.category}
+          <span className="ml-1.5 text-fg-muted">{categoryLabel(license.category)}</span>
+        </Dato>
+        <Dato label="Restricciones">
+          {license.restrictions === null ? <Falta texto="Ninguna" /> : license.restrictions}
+        </Dato>
+      </dl>
+    </div>
   );
 }
 

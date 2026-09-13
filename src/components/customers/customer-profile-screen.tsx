@@ -92,6 +92,7 @@ export function CustomerProfileScreen({
     <>
       <CustomerProfile
         customer={customer}
+        now={now}
         onEdit={() => setEditando(true)}
         onAddVehicle={() => setRegistrando(true)}
       />

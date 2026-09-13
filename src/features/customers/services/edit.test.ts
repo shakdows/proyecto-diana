@@ -39,6 +39,7 @@ const JUAN: DemoCustomer = {
   address: null,
   contactPreference: 'whatsapp',
   corporateClient: null,
+  license: null,
   lastVisitDaysAgo: 0,
   vehicles: [VEHICULO('ABC123', 'ord-9')],
   isDemo: true,

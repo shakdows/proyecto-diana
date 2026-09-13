@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { customerFromInput, documentLastOf, newCustomerId, type CustomerInput } from './create';
+import {
+  customerFromInput,
+  documentLastOf,
+  newCustomerId,
+  summarizeCreation,
+  type CustomerInput,
+} from './create';
 
 const PERSONA: CustomerInput = {
   kind: 'persona',
@@ -15,6 +21,8 @@ const PERSONA: CustomerInput = {
   phone: '987 654 321',
   email: 'juan@ejemplo.com',
   corporateClient: null,
+  license: null,
+  vehicle: null,
 };
 
 const EMPRESA: CustomerInput = {
@@ -121,5 +129,52 @@ describe('el cliente que sale del formulario', () => {
       );
       assert.ok(ids.size > 190, `solo ${String(ids.size)} identificadores distintos de 200`);
     });
+  });
+});
+
+describe('lo que se guardó, en una frase', () => {
+  const VEH = {
+    id: 'v1', plate: 'ABC123', brand: 'Toyota', model: 'Hilux', modelYear: 2022,
+    color: 'Blanco', mileage: 0, lastServiceDaysAgo: null,
+    equipmentKind: 'vehiculo' as const, openOrderId: null,
+  };
+  const LIC = { number: 'Q43802725', category: 'A-I', expiresOn: null, restrictions: null };
+
+  /*
+   * El alta ya son hasta cuatro cosas y quien se saltó un paso tiene que
+   * verlo en el aviso, no descubrirlo mañana al abrir la ficha a medias.
+   * Decir solo «cliente creado» es exacto y a la vez inútil.
+   */
+  it('enumera lo que de verdad se guardó', () => {
+    assert.equal(summarizeCreation(PERSONA, 'Juan Pérez', false), 'Juan Pérez queda registrado.');
+    assert.equal(
+      summarizeCreation({ ...PERSONA, vehicle: VEH }, 'Juan Pérez', false),
+      'Juan Pérez queda registrado con el vehículo ABC-123.',
+    );
+    assert.equal(
+      summarizeCreation({ ...PERSONA, vehicle: VEH, license: LIC }, 'Juan Pérez', false),
+      'Juan Pérez queda registrado con el vehículo ABC-123 y su licencia.',
+    );
+  });
+
+  it('nombra la empresa solo cuando se crea, no cuando ya existía', () => {
+    const conEmpresa = { ...PERSONA, corporateClient: 'Mitsui' };
+    assert.equal(
+      summarizeCreation(conEmpresa, 'Juan Pérez', false).includes('Mitsui'),
+      false,
+      'Mitsui ya existía: nombrarla haría creer que se creó',
+    );
+    assert.match(summarizeCreation(conEmpresa, 'Juan Pérez', true), /«Mitsui»/);
+  });
+
+  it('con tres cosas usa la coma y la «y», no tres «con»', () => {
+    assert.equal(
+      summarizeCreation(
+        { ...PERSONA, corporateClient: 'Scotiabank', vehicle: VEH, license: LIC },
+        'Juan Pérez',
+        true,
+      ),
+      'Juan Pérez queda registrado con la empresa «Scotiabank», el vehículo ABC-123 y su licencia.',
+    );
   });
 });

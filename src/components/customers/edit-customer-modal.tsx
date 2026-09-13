@@ -1,18 +1,36 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Check, Mail, MessageCircle, Phone } from 'lucide-react';
+import { Check, IdCard, Mail, MessageCircle, Phone } from 'lucide-react';
 import { Field } from '@/components/ui/field';
 import { Input, Select } from '@/components/ui/input';
 import { Modal, ModalActions } from '@/components/ui/modal';
 import type { DemoCustomer } from '@/features/customers/demo';
 import { editableFrom, type EditableFields } from '@/features/customers/services/edit';
 import { checkEmail, checkPhone } from '@/features/customers/services/identity';
+import {
+  LICENSE_CATEGORIES,
+  canSaveLicense,
+  checkExpiry,
+  checkLicenseNumber,
+  licenseFrom,
+} from '@/features/customers/services/license';
 import { cn } from '@/lib/utils/cn';
 
-/** El formulario trabaja con cadenas; `null` es «sin registrar». */
+/**
+ * El formulario trabaja con cadenas; `null` es «sin registrar».
+ *
+ * La licencia se desmonta en sus cuatro campos porque un `<input>` no sabe
+ * guardar un objeto: se vuelve a montar al guardar, con `licenseFrom`, que es
+ * quien decide que sin número no hay licencia.
+ */
 type Form = {
-  readonly [K in keyof EditableFields]: string;
+  readonly [K in keyof Omit<EditableFields, 'license'>]: string;
+} & {
+  readonly licenseNumber: string;
+  readonly licenseCategory: string;
+  readonly licenseExpiry: string;
+  readonly licenseRestrictions: string;
 };
 
 function formFrom(customer: DemoCustomer): Form {
@@ -27,6 +45,10 @@ function formFrom(customer: DemoCustomer): Form {
     address: f.address ?? '',
     contactPreference: f.contactPreference,
     corporateClient: f.corporateClient ?? '',
+    licenseNumber: f.license?.number ?? '',
+    licenseCategory: f.license?.category ?? 'A-I',
+    licenseExpiry: f.license?.expiresOn ?? '',
+    licenseRestrictions: f.license?.restrictions ?? '',
   };
 }
 
@@ -92,7 +114,12 @@ function EditCustomerForm({
   const altCheck = checkPhone(draft.altPhone);
   const emailCheck = checkEmail(draft.email);
   const nombreListo = empresa ? draft.businessName.trim() !== '' : draft.firstName.trim() !== '';
-  const puede = nombreListo && phoneCheck.valid && altCheck.valid && emailCheck.valid;
+  const hayLicencia = draft.licenseNumber.trim() !== '';
+  const licCheck = checkLicenseNumber(draft.licenseNumber);
+  const vencCheck = checkExpiry(draft.licenseExpiry);
+  const licenciaListo = canSaveLicense(draft.licenseNumber, draft.licenseExpiry);
+  const puede =
+    nombreListo && phoneCheck.valid && altCheck.valid && emailCheck.valid && licenciaListo;
 
   const guardar = (): void => {
     setTouched(true);
@@ -107,6 +134,12 @@ function EditCustomerForm({
       address: orNull(draft.address),
       contactPreference: draft.contactPreference as DemoCustomer['contactPreference'],
       corporateClient: orNull(draft.corporateClient),
+      license: licenseFrom(
+        draft.licenseNumber,
+        draft.licenseCategory,
+        draft.licenseExpiry,
+        draft.licenseRestrictions,
+      ),
     });
     onClose();
   };
@@ -234,6 +267,67 @@ function EditCustomerForm({
             </button>
           ))}
         </div>
+      </fieldset>
+
+      {/*
+        La licencia vive en el mismo formulario y no en uno aparte porque
+        vence: si corregirla costara abrir otra pantalla, la fecha se quedaría
+        vieja hasta que alguien tropiece con ella el día de la prueba de ruta.
+      */}
+      <fieldset className="space-y-4 rounded-panel border border-border px-4 py-4">
+        <legend className="flex items-center gap-1.5 px-1.5 text-sm font-medium text-fg">
+          <IdCard aria-hidden className="size-4 text-fg-subtle" />
+          Licencia de conducir
+        </legend>
+
+        <Field
+          label="Número"
+          error={touched && hayLicencia && !licCheck.valid ? licCheck.problem : undefined}
+          hint={hayLicencia ? undefined : 'Déjalo en blanco si no la tienes.'}
+        >
+          <Input
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            value={draft.licenseNumber}
+            onChange={(e) => set('licenseNumber', e.target.value.toUpperCase())}
+            placeholder="Q43802725"
+            className="font-mono tracking-[0.06em]"
+          />
+        </Field>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Categoría">
+            <Select
+              value={draft.licenseCategory}
+              onChange={(e) => set('licenseCategory', e.target.value)}
+            >
+              {LICENSE_CATEGORIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.code} · {c.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field
+            label="Vence"
+            error={touched && !vencCheck.valid ? vencCheck.problem : undefined}
+          >
+            <Input
+              type="date"
+              value={draft.licenseExpiry}
+              onChange={(e) => set('licenseExpiry', e.target.value)}
+            />
+          </Field>
+        </div>
+
+        <Field label="Restricciones">
+          <Input
+            value={draft.licenseRestrictions}
+            onChange={(e) => set('licenseRestrictions', e.target.value)}
+            placeholder="Lentes correctores"
+          />
+        </Field>
       </fieldset>
 
       <Field label="Empresa corporativa" hint="Solo si pertenece a un cliente corporativo.">

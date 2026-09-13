@@ -23,6 +23,7 @@
  * identidades, y eso no se hace desde una ficha—.
  */
 
+import type { DriverLicense } from './license';
 import type { DemoCustomer, DemoVehicle } from '../demo';
 
 /** Lo que la ficha deja tocar. El documento no está, y es deliberado. */
@@ -36,6 +37,9 @@ export interface EditableFields {
   readonly address: string | null;
   readonly contactPreference: DemoCustomer['contactPreference'];
   readonly corporateClient: string | null;
+  /* La licencia SÍ se edita: vence, se renueva y cambia de categoría. El
+     documento no, y por eso están en sitios distintos de este tipo. */
+  readonly license: DriverLicense | null;
 }
 
 export interface CustomerEdit {
@@ -60,6 +64,7 @@ export function editableFrom(customer: DemoCustomer): EditableFields {
     address: customer.address,
     contactPreference: customer.contactPreference,
     corporateClient: customer.corporateClient,
+    license: customer.license,
   };
 }
 

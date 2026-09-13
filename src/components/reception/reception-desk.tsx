@@ -9,8 +9,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { NewCustomerModal } from '@/components/customers/new-customer-modal';
 import { useToast } from '@/components/feedback/toast';
 import type { DemoCustomer } from '@/features/customers/demo';
-import { toSearchable } from '@/features/customers/demo';
-import { customerFromInput, newCustomerId } from '@/features/customers/services/create';
+import {
+  customerFromInput,
+  newCustomerId,
+  summarizeCreation,
+} from '@/features/customers/services/create';
 import { displayName, formatPhone, maskDocument } from '@/features/customers/services/identity';
 import { useAllCustomers } from '@/features/customers/use-created';
 import {
@@ -75,7 +78,6 @@ export function ReceptionDesk({
   }, [query]);
 
   const matches = useMemo(() => lookupPlate(customers, settled), [customers, settled]);
-  const searchable = useMemo(() => customers.map(toSearchable), [customers]);
 
   const state = searchState({
     query,
@@ -198,15 +200,24 @@ export function ReceptionDesk({
       <NewCustomerModal
         open={modalCliente}
         onClose={() => setModalCliente(false)}
-        existing={searchable}
+        customers={customers}
         corporateClients={corporateClients}
+        now={now}
         onCreate={(draft) => {
+          /*
+           * FASE 3: aquí va la Server Action que inserta con RLS y deja
+           * rastro en la auditoría. Mientras tanto se guarda en el navegador,
+           * igual que el checklist, la autorización y la entrega.
+           *
+           * El aviso enumera lo que quedó guardado —cliente, empresa,
+           * vehículo, licencia— porque el alta ya son hasta cuatro cosas y no
+           * una: quien se saltó un paso tiene que verlo aquí y no descubrirlo
+           * mañana al abrir la ficha.
+           */
           const cliente = customerFromInput(draft, newCustomerId(Date.now()));
           add(cliente);
           toast(
-            draft.corporateClientIsNew && draft.corporateClient !== null
-              ? `${displayName(cliente)} y la empresa «${draft.corporateClient}» quedan en este navegador hasta que haya base de datos.`
-              : `${displayName(cliente)} queda en este navegador hasta que haya base de datos.`,
+            `${summarizeCreation(draft, displayName(cliente), draft.corporateClientIsNew)} Todo queda en este navegador hasta que haya base de datos.`,
             'ok',
           );
         }}

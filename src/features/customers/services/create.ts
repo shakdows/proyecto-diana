@@ -20,7 +20,9 @@
  */
 
 import { normalizeDocument, type CustomerKind, type DocumentType } from './identity';
-import type { DemoCustomer } from '../demo';
+import type { DriverLicense } from './license';
+import { formatPlate } from '@/features/vehicles/services/vehicle';
+import type { DemoCustomer, DemoVehicle } from '../demo';
 
 /** Lo que el formulario entrega. Deliberadamente no es `NewCustomerDraft`:
  *  esta capa no debe depender de un componente. */
@@ -36,6 +38,10 @@ export interface CustomerInput {
   readonly phone: string;
   readonly email: string;
   readonly corporateClient: string | null;
+  /** La licencia de quien conduce, si se registró en el alta. */
+  readonly license: DriverLicense | null;
+  /** El vehículo con el que llega, si se registró en el alta. */
+  readonly vehicle: DemoVehicle | null;
 }
 
 /** Vacío es `null`, no `''`. Una cadena vacía se cuela en las pantallas como
@@ -90,13 +96,44 @@ export function customerFromInput(
        día; se cambia desde la ficha. */
     contactPreference: 'whatsapp',
     corporateClient: input.corporateClient,
+    license: input.license,
     /* No ha venido nunca: `null` es «sin visitas», que es la verdad. Un `0`
        diría «vino hoy» y pintaría al cliente como si ya hubiera pasado por
        el taller. */
     lastVisitDaysAgo: null,
-    /* Sin vehículo: se le añade en la recepción, que es donde hay una placa
-       delante. Pedirlo aquí obligaría a inventárselo. */
-    vehicles: [],
+    /* El vehículo del alta, si lo hubo. Sigue siendo opcional: quien crea el
+       cliente por teléfono todavía no tiene la placa delante, y obligarle a
+       inventársela es peor que no tenerla. */
+    vehicles: input.vehicle === null ? [] : [input.vehicle],
     isDemo: true,
   };
+}
+
+/**
+ * Qué quedó guardado, en una frase.
+ *
+ * El alta ya son hasta cuatro cosas —cliente, empresa nueva, vehículo,
+ * licencia— y quien se saltó un paso tiene que verlo AQUÍ, no descubrirlo
+ * mañana al abrir la ficha y encontrarla a medias. Decir solo «cliente
+ * creado» es exacto y a la vez inútil.
+ */
+export function summarizeCreation(
+  input: CustomerInput,
+  name: string,
+  corporateIsNew: boolean,
+): string {
+  const extras: string[] = [];
+  if (corporateIsNew && input.corporateClient !== null) {
+    extras.push(`la empresa «${input.corporateClient}»`);
+  }
+  /* Con el guión: la placa se guarda comparable —ABC123— pero quien lee el
+     aviso la reconoce como está pintada en el parachoques. */
+  if (input.vehicle !== null) extras.push(`el vehículo ${formatPlate(input.vehicle.plate)}`);
+  if (input.license !== null) extras.push('su licencia');
+
+  if (extras.length === 0) return `${name} queda registrado.`;
+  if (extras.length === 1) return `${name} queda registrado con ${extras[0] ?? ''}.`;
+
+  const ultimo = extras[extras.length - 1] ?? '';
+  return `${name} queda registrado con ${extras.slice(0, -1).join(', ')} y ${ultimo}.`;
 }
