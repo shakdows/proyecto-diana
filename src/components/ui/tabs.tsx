@@ -71,7 +71,23 @@ export function Tabs({
               )}
             >
               {item.label}
-              {item.badge}
+              {/*
+                El contador va en su propio elemento y no suelto al lado de la
+                etiqueta: dos nodos de texto contiguos dentro de un contenedor
+                flex se funden en UNA sola caja anónima, así que el `gap-2` no
+                se aplica entre ellos y en pantalla salía «Vehículos2».
+              */}
+              {item.badge !== undefined && (
+                <span
+                  data-numeric
+                  className={cn(
+                    'rounded-chip px-1.5 py-0.5 text-xs',
+                    selected ? 'bg-brand-600/10 text-brand-700' : 'bg-surface-sunken text-fg-subtle',
+                  )}
+                >
+                  {item.badge}
+                </span>
+              )}
             </button>
           );
         })}

@@ -2,7 +2,16 @@
 
 import { useCallback, useMemo } from 'react';
 import { usePersistentState } from '@/lib/demo/store';
-import type { DemoCustomer } from './demo';
+import type { DemoCustomer, DemoVehicle } from './demo';
+import {
+  SIN_CAMBIOS,
+  applyEdit,
+  applyEdits,
+  withFields,
+  withVehicle,
+  type CustomerEdits,
+  type EditableFields,
+} from './services/edit';
 
 /**
  * Los clientes creados desde la pantalla, mientras no haya base de datos.
@@ -32,12 +41,44 @@ import type { DemoCustomer } from './demo';
  * borra y las pantallas que lo usan cambian una línea.
  */
 
-/** La ranura en `localStorage`. La barre «Comenzar de nuevo». */
+/** Las ranuras en `localStorage`. Las barre «Comenzar de nuevo». */
 const RANURA = 'clientes.nuevos';
+const RANURA_CAMBIOS = 'clientes.cambios';
 
 /* Referencia estable: `usePersistentState` la lleva en las dependencias de su
    `useCallback`, y un `[]` nuevo en cada render lo recrearía sin parar. */
 const NINGUNO: readonly DemoCustomer[] = [];
+
+/**
+ * Lo editado y los vehículos añadidos, por cliente.
+ *
+ * Va aparte de los creados a propósito: un cambio en el teléfono de un
+ * cliente SEMBRADO no puede guardarse como un cliente nuevo —ver
+ * `services/edit.ts`, que explica por qué se guarda el parche y no la fila—.
+ */
+export function useCustomerEdits(): {
+  readonly edits: CustomerEdits;
+  readonly editFields: (id: string, fields: Partial<EditableFields>) => void;
+  readonly addVehicle: (id: string, vehicle: DemoVehicle) => void;
+} {
+  const [edits, setEdits] = usePersistentState<CustomerEdits>(RANURA_CAMBIOS, SIN_CAMBIOS);
+
+  const editFields = useCallback(
+    (id: string, fields: Partial<EditableFields>): void => {
+      setEdits((prev) => withFields(prev, id, fields));
+    },
+    [setEdits],
+  );
+
+  const addVehicle = useCallback(
+    (id: string, vehicle: DemoVehicle): void => {
+      setEdits((prev) => withVehicle(prev, id, vehicle));
+    },
+    [setEdits],
+  );
+
+  return useMemo(() => ({ edits, editFields, addVehicle }), [edits, editFields, addVehicle]);
+}
 
 export function useCreatedCustomers(): {
   /** Los creados, el más reciente primero. */
@@ -66,8 +107,62 @@ export function useCreatedCustomers(): {
 export function useAllCustomers(seeded: readonly DemoCustomer[]): {
   readonly customers: readonly DemoCustomer[];
   readonly add: (customer: DemoCustomer) => void;
+  readonly editFields: (id: string, fields: Partial<EditableFields>) => void;
+  readonly addVehicle: (id: string, vehicle: DemoVehicle) => void;
 } {
   const { created, add } = useCreatedCustomers();
-  const customers = useMemo(() => [...created, ...seeded], [created, seeded]);
-  return useMemo(() => ({ customers, add }), [customers, add]);
+  const { edits, editFields, addVehicle } = useCustomerEdits();
+
+  const customers = useMemo(
+    () => applyEdits([...created, ...seeded], edits),
+    [created, seeded, edits],
+  );
+
+  return useMemo(
+    () => ({ customers, add, editFields, addVehicle }),
+    [customers, add, editFields, addVehicle],
+  );
+}
+
+/**
+ * Un cliente suelto, con sus cambios ya aplicados.
+ *
+ * Lo usa la ficha, que recibe el cliente del servidor —o no lo recibe, si se
+ * creó en este navegador— y necesita enseñarlo con lo editado encima.
+ */
+export function useCustomer(
+  id: string,
+  seeded: DemoCustomer | undefined,
+): {
+  readonly customer: DemoCustomer | undefined;
+  readonly editFields: (fields: Partial<EditableFields>) => void;
+  readonly addVehicle: (vehicle: DemoVehicle) => void;
+} {
+  const { created } = useCreatedCustomers();
+  const { edits, editFields, addVehicle } = useCustomerEdits();
+
+  const base = seeded ?? created.find((c) => c.id === id);
+  const customer = useMemo(
+    () => (base === undefined ? undefined : applyEdit(base, edits[id])),
+    [base, edits, id],
+  );
+
+  const editarCampos = useCallback(
+    (fields: Partial<EditableFields>): void => {
+      editFields(id, fields);
+    },
+    [editFields, id],
+  );
+
+  const añadirVehiculo = useCallback(
+    (vehicle: DemoVehicle): void => {
+      addVehicle(id, vehicle);
+    },
+    [addVehicle, id],
+  );
+
+  return useMemo(
+    () => ({ customer, editFields: editarCampos, addVehicle: añadirVehiculo }),
+    [customer, editarCampos, añadirVehiculo],
+  );
 }

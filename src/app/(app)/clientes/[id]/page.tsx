@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { CreatedCustomerProfile } from '@/components/customers/created-customer-profile';
-import { CustomerProfile } from '@/components/customers/customer-profile';
-import { findDemoCustomer } from '@/features/customers/demo';
+import { CustomerProfileScreen } from '@/components/customers/customer-profile-screen';
+import { demoCorporateClients, demoCustomers, findDemoCustomer } from '@/features/customers/demo';
 import { displayName } from '@/features/customers/services/identity';
 
 export const dynamic = 'force-dynamic';
@@ -24,16 +23,15 @@ export default async function ClientePage({
   readonly params: Promise<{ readonly id: string }>;
 }) {
   const { id } = await params;
-  const customer = findDemoCustomer(id, new Date());
+  const now = new Date();
 
   /*
-   * Un cliente creado durante la prueba no está en el catálogo sembrado: vive
-   * en `localStorage`, que el servidor no puede leer. Antes esto era un 404, o
-   * sea: la fila recién creada llevaba a una página de error, que es la forma
-   * más rápida de convencer a alguien de que el alta tampoco funcionó.
+   * El servidor aporta la base y nada más. Encima de ella puede haber cosas
+   * que solo el navegador sabe —un cliente creado durante la prueba, un
+   * teléfono corregido, un vehículo registrado—, y eso lo resuelve la pantalla.
+   * Antes esto era un `notFound()`, o sea: la fila recién creada llevaba a una
+   * página de error.
    */
-  if (customer === undefined) return <CreatedCustomerProfile id={id} />;
-
   return (
     <>
       <Link
@@ -44,7 +42,13 @@ export default async function ClientePage({
         Clientes
       </Link>
 
-      <CustomerProfile customer={customer} />
+      <CustomerProfileScreen
+        id={id}
+        seeded={findDemoCustomer(id, now)}
+        seededAll={demoCustomers(now)}
+        corporateClients={demoCorporateClients()}
+        now={now}
+      />
     </>
   );
 }

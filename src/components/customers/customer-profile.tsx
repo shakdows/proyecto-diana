@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Car, FileText, Mail, MapPin, MessageCircle, Phone, Plus } from 'lucide-react';
+import { Car, FileText, Mail, MapPin, MessageCircle, Pencil, Phone, Plus } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { AssetImage } from '@/components/ui/asset-image';
 import { Tabs } from '@/components/ui/tabs';
@@ -27,7 +27,18 @@ import { cn } from '@/lib/utils/cn';
  * es que la base tiene `REVOKE SELECT` sobre esa columna y la interfaz no
  * puede leerla aunque quiera.
  */
-export function CustomerProfile({ customer }: { readonly customer: DemoCustomer }) {
+export function CustomerProfile({
+  customer,
+  onEdit,
+  onAddVehicle,
+}: {
+  readonly customer: DemoCustomer;
+  /* Opcionales: la ficha se puede pintar sin nada que tocar —un informe, una
+     vista de solo lectura—, y entonces no aparecen los botones en vez de
+     aparecer y no hacer nada. */
+  readonly onEdit?: () => void;
+  readonly onAddVehicle?: () => void;
+}) {
   const name = displayName(customer);
   const empresa = customer.kind === 'empresa';
   const abiertas = customer.vehicles.filter((v) => v.openOrderId !== null);
@@ -74,6 +85,16 @@ export function CustomerProfile({ customer }: { readonly customer: DemoCustomer 
           </div>
 
           <div className="flex shrink-0 flex-wrap gap-2">
+            {onEdit !== undefined && (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="inline-flex h-11 items-center gap-2 rounded-control border border-border px-4 text-sm font-medium text-fg transition-colors duration-150 hover:bg-surface-sunken"
+              >
+                <Pencil aria-hidden className="size-4" />
+                Editar
+              </button>
+            )}
             <Link
               href="/recepcion/nueva"
               className="inline-flex h-11 items-center gap-2 rounded-control bg-romero-500 px-4 text-sm font-semibold text-white transition-colors duration-150 hover:bg-romero-600"
@@ -164,16 +185,24 @@ export function CustomerProfile({ customer }: { readonly customer: DemoCustomer 
               customer.vehicles.length === 0 ? (
                 <EmptyState
                   title="Todavía no tiene vehículos"
-                  hint="Se asocian al recibir el primero, o desde aquí."
+                  hint="Se asocian al recibir el primero, o se registran desde aquí."
+                  action={
+                    onAddVehicle === undefined ? undefined : (
+                      <AddVehicleButton onClick={onAddVehicle} />
+                    )
+                  }
                 />
               ) : (
-                <ul className="grid gap-3 md:grid-cols-2">
-                  {customer.vehicles.map((v) => (
-                    <li key={v.id}>
-                      <VehicleCard vehicle={v} />
-                    </li>
-                  ))}
-                </ul>
+                <div className="space-y-3">
+                  <ul className="grid gap-3 md:grid-cols-2">
+                    {customer.vehicles.map((v) => (
+                      <li key={v.id}>
+                        <VehicleCard vehicle={v} />
+                      </li>
+                    ))}
+                  </ul>
+                  {onAddVehicle !== undefined && <AddVehicleButton onClick={onAddVehicle} />}
+                </div>
               ),
           },
           {
@@ -208,6 +237,19 @@ export function CustomerProfile({ customer }: { readonly customer: DemoCustomer 
         ]}
       />
     </>
+  );
+}
+
+function AddVehicleButton({ onClick }: { readonly onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex h-11 items-center gap-2 rounded-control border border-border-strong px-4 text-sm font-semibold text-fg transition-colors duration-150 hover:bg-surface-sunken"
+    >
+      <Plus aria-hidden className="size-4" />
+      Registrar vehículo
+    </button>
   );
 }
 
