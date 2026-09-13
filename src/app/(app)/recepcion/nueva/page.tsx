@@ -1,17 +1,25 @@
 import type { Metadata } from 'next';
-import { NewReception, type KnownVehicle } from '@/components/reception/new-reception';
-import { demoBoard } from '@/features/demo/board';
-import { vocabularyFor } from '@/features/equipment/services/equipment-kind';
+import { NewReception } from '@/components/reception/new-reception';
+import { demoCustomers } from '@/features/customers/demo';
 
 export const metadata: Metadata = { title: 'Nueva recepción' };
 
+/* La cartera incluye a quien está hoy en el taller, y eso se calcula contra
+   `now`: prerrenderizar dejaría la lista congelada en la hora de compilación. */
+export const dynamic = 'force-dynamic';
+
 /**
- * Las fichas conocidas se arman EN EL SERVIDOR y bajan como datos.
+ * La cartera se arma EN EL SERVIDOR y baja como datos.
  *
- * La alternativa —que el navegador consulte al escribir— es lo que hará la
- * Fase 4 contra la base de datos con RLS. Mientras tanto, mandar el catálogo
- * de demostración entero es honesto y evita fingir una búsqueda remota que
- * todavía no existe.
+ * Antes bajaba solo el TABLERO —los vehículos con orden abierta—, y eso
+ * dejaba fuera a cualquier cliente que no tuviera trabajo en el taller hoy:
+ * el de siempre que viene una vez al año, y el que alguien acaba de dar de
+ * alta. El asesor tecleaba una placa que existe, la pantalla respondía «puede
+ * ser la primera visita del vehículo», y se creaba un duplicado.
+ *
+ * Los creados durante la prueba viven en el navegador y los suma la pantalla;
+ * ver `useAllCustomers`. La Fase 4 sustituye las dos cosas por una consulta
+ * con RLS.
  */
 export default async function NuevaRecepcionPage({
   searchParams,
@@ -20,28 +28,7 @@ export default async function NuevaRecepcionPage({
 }) {
   const params = await searchParams;
   const placa = typeof params['placa'] === 'string' ? params['placa'] : undefined;
-  const rows = demoBoard(new Date());
+  const now = new Date();
 
-  const known: readonly KnownVehicle[] = rows.map((row) => {
-    const { order } = row;
-    const [brand = order.vehicle, ...rest] = order.vehicle.split(' ');
-
-    return {
-      plate: order.plate,
-      vehicle: order.vehicle,
-      brand,
-      model: rest.join(' ') || order.vehicle,
-      modelYear: order.modelYear,
-      usage: order.usage,
-      usageUnit: vocabularyFor(order.equipmentKind).usageUnit,
-      color: order.color,
-      customer: order.customer,
-      corporateClient: order.corporateClient,
-      phone: order.customerPhone,
-      email: order.customerEmail,
-      docLast3: order.customerDocLast3,
-    };
-  });
-
-  return <NewReception known={known} initialPlate={placa} />;
+  return <NewReception customers={demoCustomers(now)} now={now} initialPlate={placa} />;
 }

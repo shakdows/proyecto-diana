@@ -73,6 +73,7 @@ export function newCustomerId(now: number, seed = ''): string {
 export function customerFromInput(
   input: CustomerInput,
   id: string,
+  now: Date = new Date(),
 ): DemoCustomer {
   const empresa = input.kind === 'empresa';
 
@@ -97,6 +98,9 @@ export function customerFromInput(
     contactPreference: 'whatsapp',
     corporateClient: input.corporateClient,
     license: input.license,
+    /* La fecha del alta. La recepción la usa para distinguir a quien se acaba
+       de dar de alta de los que llevan años; ver `services/recency.ts`. */
+    createdAt: now.toISOString(),
     /* No ha venido nunca: `null` es «sin visitas», que es la verdad. Un `0`
        diría «vino hoy» y pintaría al cliente como si ya hubiera pasado por
        el taller. */

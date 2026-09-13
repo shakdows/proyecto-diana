@@ -56,6 +56,14 @@ export interface DemoCustomer {
    * con el plástico que enseña en el mostrador—.
    */
   readonly license: DriverLicense | null;
+  /**
+   * Cuándo entró en la cartera, en ISO. `null` en los sembrados: se derivan
+   * de las órdenes y no tienen un «alta» que fechar.
+   *
+   * Lo usa la recepción para distinguir a quien se acaba de dar de alta —ver
+   * `services/recency.ts`—, no para ordenar la cartera.
+   */
+  readonly createdAt: string | null;
   readonly lastVisitDaysAgo: number | null;
   readonly vehicles: readonly DemoVehicle[];
   readonly isDemo: true;
@@ -87,7 +95,7 @@ const SIN_ORDEN: readonly DemoCustomer[] = [
     businessName: null, documentType: 'DNI', documentLast: '318',
     phone: '+51 946 220 118', altPhone: null, email: 'ana.flores@ejemplo.com',
     address: 'Av. Primavera 1120, Surco', contactPreference: 'whatsapp',
-    corporateClient: null, license: null, lastVisitDaysAgo: 46, isDemo: true,
+    corporateClient: null, license: null, createdAt: null, lastVisitDaysAgo: 46, isDemo: true,
     vehicles: [{
       id: 'veh-101', plate: 'H2L509', brand: 'Toyota', model: 'Yaris', modelYear: 2021,
       color: 'Plata', mileage: 41200, lastServiceDaysAgo: 46, equipmentKind: 'vehiculo',
@@ -99,7 +107,7 @@ const SIN_ORDEN: readonly DemoCustomer[] = [
     businessName: null, documentType: 'DNI', documentLast: '904',
     phone: '+51 951 703 884', altPhone: '+51 1 4457722', email: 'c.mendoza@ejemplo.com',
     address: 'Jr. Huallaga 455, Cercado', contactPreference: 'telefono',
-    corporateClient: null, license: null, lastVisitDaysAgo: 121, isDemo: true,
+    corporateClient: null, license: null, createdAt: null, lastVisitDaysAgo: 121, isDemo: true,
     vehicles: [
       {
         id: 'veh-102', plate: 'J7T264', brand: 'Hyundai', model: 'Accent', modelYear: 2018,
@@ -118,7 +126,7 @@ const SIN_ORDEN: readonly DemoCustomer[] = [
     businessName: null, documentType: 'CE', documentLast: '576',
     phone: '+51 999 412 067', altPhone: null, email: null,
     address: null, contactPreference: 'whatsapp',
-    corporateClient: null, license: null, lastVisitDaysAgo: null, isDemo: true,
+    corporateClient: null, license: null, createdAt: null, lastVisitDaysAgo: null, isDemo: true,
     vehicles: [],
   },
   {
@@ -126,11 +134,50 @@ const SIN_ORDEN: readonly DemoCustomer[] = [
     businessName: 'Distribuidora Andina S.A.C.', documentType: 'RUC', documentLast: '447',
     phone: '+51 1 6117700', altPhone: null, email: 'flota@distribuidoraandina.com',
     address: 'Av. Argentina 3450, Callao', contactPreference: 'correo',
-    corporateClient: null, license: null, lastVisitDaysAgo: 18, isDemo: true,
+    corporateClient: null, license: null, createdAt: null, lastVisitDaysAgo: 18, isDemo: true,
+    /*
+     * Una flota de verdad, y no un vehículo suelto.
+     *
+     * Sin esto la demostración no enseñaba el caso que más cuesta de resolver
+     * en una recepción: el cliente corporativo cuyo nombre no distingue nada
+     * —«llegó una unidad de Distribuidora Andina», ¿cuál de las siete?—. Con
+     * una sola unidad la pantalla siempre acierta por casualidad, y el
+     * problema no aparece hasta que está en producción.
+     */
     vehicles: [
       {
         id: 'veh-104', plate: 'L5P330', brand: 'Hino', model: '300', modelYear: 2020,
         color: 'Blanco', mileage: 186500, lastServiceDaysAgo: 18, equipmentKind: 'vehiculo',
+        openOrderId: null,
+      },
+      {
+        id: 'veh-104b', plate: 'L5P331', brand: 'Hino', model: '300', modelYear: 2020,
+        color: 'Blanco', mileage: 171200, lastServiceDaysAgo: 44, equipmentKind: 'vehiculo',
+        openOrderId: null,
+      },
+      {
+        id: 'veh-104c', plate: 'L5P332', brand: 'Hino', model: '500', modelYear: 2021,
+        color: 'Blanco', mileage: 98400, lastServiceDaysAgo: 9, equipmentKind: 'vehiculo',
+        openOrderId: null,
+      },
+      {
+        id: 'veh-104d', plate: 'C8M204', brand: 'Mitsubishi', model: 'L200', modelYear: 2022,
+        color: 'Plata', mileage: 62300, lastServiceDaysAgo: 27, equipmentKind: 'vehiculo',
+        openOrderId: null,
+      },
+      {
+        id: 'veh-104e', plate: 'C8M205', brand: 'Mitsubishi', model: 'L200', modelYear: 2022,
+        color: 'Plata', mileage: 58900, lastServiceDaysAgo: 61, equipmentKind: 'vehiculo',
+        openOrderId: null,
+      },
+      {
+        id: 'veh-104f', plate: 'B7T118', brand: 'Toyota', model: 'Hiace', modelYear: 2019,
+        color: 'Blanco', mileage: 204800, lastServiceDaysAgo: 6, equipmentKind: 'vehiculo',
+        openOrderId: null,
+      },
+      {
+        id: 'veh-104g', plate: 'B7T119', brand: 'Toyota', model: 'Hiace', modelYear: 2023,
+        color: 'Blanco', mileage: 41700, lastServiceDaysAgo: 15, equipmentKind: 'vehiculo',
         openOrderId: null,
       },
     ],
@@ -140,7 +187,7 @@ const SIN_ORDEN: readonly DemoCustomer[] = [
     businessName: 'Minera Altoandina S.A.', documentType: 'RUC', documentLast: '802',
     phone: '+51 1 2093400', altPhone: null, email: 'mantenimiento@altoandina.com.pe',
     address: 'Av. El Derby 254, Surco', contactPreference: 'correo',
-    corporateClient: 'Invetsa', license: null, lastVisitDaysAgo: 9, isDemo: true,
+    corporateClient: 'Invetsa', license: null, createdAt: null, lastVisitDaysAgo: 9, isDemo: true,
     vehicles: [
       {
         id: 'veh-105', plate: 'M8Q117', brand: 'CAT', model: '950 GC', modelYear: 2021,
@@ -177,7 +224,7 @@ export function demoCustomers(now: Date): readonly DemoCustomer[] {
       address: order.customerAddress,
       contactPreference: 'whatsapp',
       corporateClient: order.corporateClient,
-      license: null,
+      license: null, createdAt: null,
       lastVisitDaysAgo: 0,
       isDemo: true,
       vehicles: [{

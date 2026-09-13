@@ -16,7 +16,7 @@ const cli = (extra: Partial<DemoCustomer> = {}): DemoCustomer => ({
   email: 'juan@ejemplo.com', address: null, contactPreference: 'whatsapp',
   corporateClient: null,
   license: { number: 'Q43802725', category: 'A-I', expiresOn: null, restrictions: null },
-  lastVisitDaysAgo: null, vehicles: [], isDemo: true, ...extra,
+  createdAt: null, lastVisitDaysAgo: null, vehicles: [], isDemo: true, ...extra,
 });
 
 describe('los clientes en la búsqueda universal', () => {

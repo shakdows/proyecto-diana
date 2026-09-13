@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowRight,
   Building2,
@@ -33,25 +33,12 @@ import {
   stepState,
   type ReceptionDraft,
 } from '@/features/reception/services/steps';
+import type { DemoCustomer, DemoVehicle } from '@/features/customers/demo';
+import { useAllCustomers } from '@/features/customers/use-created';
+import { knownFrom, knownVehicles, type KnownVehicle } from '@/features/reception/services/known';
+import { CustomerPicker } from './customer-picker';
 import { formatNumber, maskDocument, normalizePlate } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
-
-/** Ficha que se encuentra al buscar por placa. */
-export interface KnownVehicle {
-  readonly plate: string;
-  readonly vehicle: string;
-  readonly brand: string;
-  readonly model: string;
-  readonly modelYear: number;
-  readonly usage: number;
-  readonly usageUnit: string;
-  readonly color: string;
-  readonly customer: string;
-  readonly corporateClient: string | null;
-  readonly phone: string;
-  readonly email: string;
-  readonly docLast3: string;
-}
 
 const DRAFT_KEY = 'diana:recepcion-borrador';
 
@@ -68,10 +55,13 @@ const DRAFT_KEY = 'diana:recepcion-borrador';
  * dispositivo, y en un taller el asesor cambia de tablet.
  */
 export function NewReception({
-  known,
+  customers: seeded,
+  now,
   initialPlate,
 }: {
-  readonly known: readonly KnownVehicle[];
+  /** La cartera del servidor. Los creados en este navegador se suman aquí. */
+  readonly customers: readonly DemoCustomer[];
+  readonly now: Date;
   /**
    * La placa que el asesor ya tecleó en el mostrador.
    *
@@ -92,6 +82,12 @@ export function NewReception({
    * `useState` separados hay instantes en los que la pantalla muestra una
    * placa sin su vehículo.
    */
+  /* La cartera entera: sembrada + lo creado en este navegador. El asesor que
+     acaba de dar de alta a alguien tiene que encontrarlo aquí, y esos
+     clientes el servidor no los ve. */
+  const { customers } = useAllCustomers(seeded);
+  const known = useMemo(() => knownVehicles(customers), [customers]);
+
   const [state, setState] = useState<{
     draft: ReceptionDraft;
     query: string;
@@ -128,7 +124,10 @@ export function NewReception({
      */
     const enCurso = saved !== null && hasProgress(saved.draft) ? saved : null;
     const plate = enCurso?.plate ?? initialPlate ?? saved?.plate ?? '';
-    const match = plate === '' ? null : (known.find((k) => k.plate === normalizePlate(plate)) ?? null);
+    const match =
+      plate === ''
+        ? null
+        : (known.find((k: KnownVehicle) => k.plate === normalizePlate(plate)) ?? null);
 
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hidratación de `localStorage`, que no existe en el servidor
     setState({
@@ -159,7 +158,7 @@ export function NewReception({
     setDocVisible(false);
     setState((s) => {
       const plate = normalizePlate(s.query);
-      const match = known.find((k) => k.plate === plate) ?? null;
+      const match = known.find((k: KnownVehicle) => k.plate === plate) ?? null;
       return {
         ...s,
         found: match,
@@ -167,6 +166,20 @@ export function NewReception({
         draft: { ...s.draft, plate, customerConfirmed: match !== null },
       };
     });
+  };
+
+  /* Elegir del listado hace lo MISMO que teclear la placa: no hay dos caminos
+     con dos resultados distintos, solo dos formas de llegar al mismo sitio. */
+  const pick = (customer: DemoCustomer, vehicle: DemoVehicle): void => {
+    const ficha = knownFrom(customer, vehicle);
+    setDocVisible(false);
+    setState((s) => ({
+      ...s,
+      query: ficha.plate,
+      found: ficha,
+      searched: true,
+      draft: { ...s.draft, plate: ficha.plate, customerConfirmed: true },
+    }));
   };
 
   const p = progress(draft);
@@ -240,7 +253,8 @@ export function NewReception({
                   No encontramos esa placa
                 </p>
                 <p className="mt-0.5 text-sm text-warn-700/85">
-                  Puede ser la primera visita del vehículo.
+                  Puede ser la primera visita del vehículo. Búscalo abajo por nombre o
+                  documento antes de darlo de alta otra vez.
                 </p>
                 <Link
                   href="/clientes"
@@ -252,6 +266,31 @@ export function NewReception({
               </div>
             )}
           </section>
+
+          {/*
+            La salida para cuando no hay placa: el cliente que llama para
+            anunciar que viene, y el que alguien acaba de dar de alta. Sin
+            esto, lo único que la pantalla ofrecía era registrar un cliente
+            que ya existe.
+
+            Se pliega en cuanto hay ficha cargada: ya se eligió, y dejarlo
+            abierto invita a cambiar de cliente a media recepción.
+          */}
+          {found === null && (
+            <section className="rounded-panel border border-border bg-surface-raised p-5 lg:p-6">
+              <h2 className="font-display text-lg font-semibold tracking-tight text-fg">
+                ¿No sabes la placa?
+              </h2>
+              <p className="mt-1 text-sm text-fg-muted">
+                Busca por nombre, DNI/RUC, empresa o teléfono. Los clientes dados de alta en
+                los últimos dos días salen marcados y arriba.
+              </p>
+
+              <div className="mt-5">
+                <CustomerPicker customers={customers} now={now} onPick={pick} />
+              </div>
+            </section>
+          )}
 
           {found !== null && (
             <div className="grid gap-5 lg:grid-cols-2">

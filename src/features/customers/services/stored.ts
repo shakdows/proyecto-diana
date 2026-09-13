@@ -26,6 +26,7 @@
 import type { DemoCustomer, DemoVehicle } from '../demo';
 import type { DocumentType } from './identity';
 import type { DriverLicense } from './license';
+import { createdAtFromId } from './recency';
 
 const TIPOS_DOC: readonly string[] = ['DNI', 'RUC', 'CE', 'PASAPORTE'];
 const PREFERENCIAS: readonly string[] = ['whatsapp', 'telefono', 'correo'];
@@ -111,6 +112,10 @@ export function hydrateCustomer(raw: unknown): DemoCustomer | null {
     contactPreference,
     corporateClient: texto(raw.corporateClient),
     license: hydrateLicense(raw.license),
+    /* Si se guardó antes de que existiera el campo, se saca del identificador
+       —`nuevo-<milisegundos>-<azar>`—, que sí lo lleva. Sin esto, todo lo
+       creado antes de este cambio se quedaría sin fecha para siempre. */
+    createdAt: texto(raw.createdAt) ?? createdAtFromId(id),
     lastVisitDaysAgo: numero(raw.lastVisitDaysAgo),
     vehicles: Array.isArray(raw.vehicles)
       ? raw.vehicles.map(hidrataVehiculo).filter((v): v is DemoVehicle => v !== null)

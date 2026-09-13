@@ -19,7 +19,7 @@ const cli = (
   id, kind: 'persona', firstName, lastName: 'Ramírez', businessName: null,
   documentType: 'DNI', documentLast: '156', phone: '936 512 527', altPhone: null,
   email: null, address: null, contactPreference: 'whatsapp', corporateClient: null,
-  license: null, lastVisitDaysAgo: null, vehicles: [], isDemo: true, ...extra,
+  license: null, createdAt: null, lastVisitDaysAgo: null, vehicles: [], isDemo: true, ...extra,
 });
 
 const ALEXIS = cli('nuevo-1', 'alexis');

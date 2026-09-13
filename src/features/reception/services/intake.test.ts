@@ -22,7 +22,7 @@ const veh = (plate: string) => ({
 const cli = (id: string, plates: readonly string[]): DemoCustomer => ({
   id, kind: 'persona', firstName: 'Ana', lastName: 'Ruiz', businessName: null,
   documentType: 'DNI', documentLast: '111', phone: null, altPhone: null, email: null,
-  address: null, contactPreference: 'whatsapp', corporateClient: null, license: null,
+  address: null, contactPreference: 'whatsapp', corporateClient: null, license: null, createdAt: null,
   lastVisitDaysAgo: null, isDemo: true, vehicles: plates.map(veh),
 });
 
