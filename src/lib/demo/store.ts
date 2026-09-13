@@ -136,6 +136,26 @@ export function usePersistentState<T>(
   return [value, setValue] as const;
 }
 
+/**
+ * Si el navegador ya tomó el control de la página.
+ *
+ * Lo de `localStorage` no existe durante el renderizado en servidor ni durante
+ * la hidratación: React usa la instantánea del servidor —el valor inicial— y
+ * solo después vuelve a leer la del cliente. Una pantalla que decida «no
+ * existe» con esa primera instantánea enseña un «no encontrado» durante un
+ * fotograma y luego el contenido, que es peor que esperar.
+ *
+ * Esto NO es un efecto a propósito: con `useSyncExternalStore` el valor ya es
+ * correcto en el primer renderizado del cliente, sin un render de más.
+ */
+export function useHydrated(): boolean {
+  return useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
+}
+
 const VACIO: StoredSummary = { slots: 0, bytes: 0, lastSavedAt: null };
 
 /**

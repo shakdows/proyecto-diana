@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
+import { CreatedCustomerProfile } from '@/components/customers/created-customer-profile';
 import { CustomerProfile } from '@/components/customers/customer-profile';
 import { findDemoCustomer } from '@/features/customers/demo';
 import { displayName } from '@/features/customers/services/identity';
@@ -25,7 +25,14 @@ export default async function ClientePage({
 }) {
   const { id } = await params;
   const customer = findDemoCustomer(id, new Date());
-  if (customer === undefined) notFound();
+
+  /*
+   * Un cliente creado durante la prueba no está en el catálogo sembrado: vive
+   * en `localStorage`, que el servidor no puede leer. Antes esto era un 404, o
+   * sea: la fila recién creada llevaba a una página de error, que es la forma
+   * más rápida de convencer a alguien de que el alta tampoco funcionó.
+   */
+  if (customer === undefined) return <CreatedCustomerProfile id={id} />;
 
   return (
     <>

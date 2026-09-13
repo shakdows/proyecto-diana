@@ -10,7 +10,9 @@ import { NewCustomerModal } from '@/components/customers/new-customer-modal';
 import { useToast } from '@/components/feedback/toast';
 import type { DemoCustomer } from '@/features/customers/demo';
 import { toSearchable } from '@/features/customers/demo';
+import { customerFromInput, newCustomerId } from '@/features/customers/services/create';
 import { displayName, formatPhone, maskDocument } from '@/features/customers/services/identity';
+import { useAllCustomers } from '@/features/customers/use-created';
 import {
   formatPlate,
   isCompletePlate,
@@ -48,7 +50,7 @@ import type { TodayIntake } from '@/features/reception/services/intake';
  * duplicado de un vehículo que sí existía.
  */
 export function ReceptionDesk({
-  customers,
+  customers: seeded,
   intakes,
   corporateClients,
   now,
@@ -58,6 +60,9 @@ export function ReceptionDesk({
   readonly corporateClients: readonly string[];
   readonly now: Date;
 }) {
+  /* La misma cartera que ve el directorio, con lo creado en el navegador
+     incluido: un cliente dado de alta aquí tiene que encontrarse aquí. */
+  const { customers, add } = useAllCustomers(seeded);
   const [query, setQuery] = useState('');
   const [settled, setSettled] = useState('');
   const [modalCliente, setModalCliente] = useState(false);
@@ -196,11 +201,13 @@ export function ReceptionDesk({
         existing={searchable}
         corporateClients={corporateClients}
         onCreate={(draft) => {
+          const cliente = customerFromInput(draft, newCustomerId(Date.now()));
+          add(cliente);
           toast(
             draft.corporateClientIsNew && draft.corporateClient !== null
-              ? `Sin base de datos todavía: ni el cliente ni la empresa «${draft.corporateClient}» se guardaron.`
-              : 'Sin base de datos todavía: el cliente no se guardó.',
-            'info',
+              ? `${displayName(cliente)} y la empresa «${draft.corporateClient}» quedan en este navegador hasta que haya base de datos.`
+              : `${displayName(cliente)} queda en este navegador hasta que haya base de datos.`,
+            'ok',
           );
         }}
       />
