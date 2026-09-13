@@ -106,6 +106,29 @@ export function usePersistentState<T>(
   slot: string,
   initial: T,
 ): readonly [T, (next: T | ((prev: T) => T)) => void] {
+  const [value, setChecked] = usePersistentStateChecked(slot, initial);
+  const setValue = useCallback(
+    (next: T | ((prev: T) => T)): void => {
+      setChecked(next);
+    },
+    [setChecked],
+  );
+  return [value, setValue] as const;
+}
+
+/**
+ * Igual, pero dice si de verdad quedó guardado.
+ *
+ * Casi ninguna pantalla necesita saberlo —que un desplegable no persista no
+ * cambia nada—, y por eso la versión normal devuelve `void` y no obliga a
+ * nadie a mirar. Las FOTOS sí lo necesitan: quien toma una y ve la miniatura
+ * da por hecho que está guardada, y `localStorage` falla EN SILENCIO al
+ * llenarse el cupo. Sin este valor de vuelta, la pantalla mentiría.
+ */
+export function usePersistentStateChecked<T>(
+  slot: string,
+  initial: T,
+): readonly [T, (next: T | ((prev: T) => T)) => boolean] {
   const value = useSyncExternalStore(
     subscribe,
     () => snapshotOf(slot, initial),
@@ -117,18 +140,27 @@ export function usePersistentState<T>(
     () => initial,
   );
 
+  /**
+   * Devuelve si de verdad quedó guardado.
+   *
+   * Casi ningún llamador lo mira, y está bien: que un desplegable no persista
+   * no cambia nada. Pero las FOTOS sí —quien toma una y ve la miniatura da
+   * por hecho que está guardada—, y `localStorage` falla en silencio al
+   * llenarse el cupo. Sin este valor de vuelta, la pantalla mentiría.
+   */
   const setValue = useCallback(
-    (next: T | ((prev: T) => T)): void => {
+    (next: T | ((prev: T) => T)): boolean => {
       const key = keyFor(slot);
       const previous = snapshotOf(slot, initial);
       const resolved =
         typeof next === 'function' ? (next as (prev: T) => T)(previous) : next;
 
-      if (Object.is(resolved, previous)) return;
+      if (Object.is(resolved, previous)) return true;
 
       snapshots.set(key, resolved);
-      writeRaw(key, JSON.stringify(wrap(resolved, Date.now())));
+      const guardado = writeRaw(key, JSON.stringify(wrap(resolved, Date.now())));
       notify();
+      return guardado;
     },
     [slot, initial],
   );

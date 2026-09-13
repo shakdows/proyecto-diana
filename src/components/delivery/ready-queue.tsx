@@ -72,10 +72,11 @@ export function ReadyQueue({ initial }: { readonly initial: readonly ReadyVehicl
     (v) => v.totalCents - v.paidCents > 0 && !v.hasCorporateCredit,
   ).length;
 
-  const notify = (orderId: string): void =>
+  const notify = (orderId: string): void => {
     setVehicles((prev) =>
       prev.map((v) => (v.orderId === orderId ? { ...v, notifiedMinutesAgo: 0 } : v)),
     );
+  };
 
   return (
     <div className="space-y-5">

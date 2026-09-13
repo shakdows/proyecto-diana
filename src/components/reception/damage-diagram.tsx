@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { Camera, RotateCcw } from 'lucide-react';
 import {
   CANVAS,
   DAMAGE_KINDS,
@@ -14,6 +14,8 @@ import {
   type DamageKind,
   type DamageMark,
 } from '@/features/reception/services/damage-map';
+import { PhotoCapture } from '@/components/evidence/photo-capture';
+import { Modal } from '@/components/ui/modal';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -33,12 +35,20 @@ import { cn } from '@/lib/utils/cn';
 export function DamageDiagram({
   marks,
   onChange,
+  plate,
 }: {
   readonly marks: readonly DamageMark[];
   readonly onChange: (next: readonly DamageMark[]) => void;
+  /** Ancla las fotos a ESTE vehículo y no a «la zona» en abstracto. */
+  readonly plate: string;
 }) {
   const [kind, setKind] = useState<DamageKind>('rayon');
   const totals = summarize(marks);
+  /* El tipo elegido ahora mismo. Se enseña dentro de cada círculo vacío para
+     que se vea QUÉ va a pasar al tocar, antes de tocar. */
+  const elegido = kindInfo(kind);
+  /** La zona cuyas fotos se están mirando. */
+  const [fotografiando, setFotografiando] = useState<(typeof ZONES)[number] | null>(null);
 
   const TONE = {
     leve: { dot: 'bg-warn-500', ring: 'stroke-warn-500', fill: 'fill-warn-500/20' },
@@ -168,45 +178,126 @@ export function DamageDiagram({
         </div>
 
         <div className="min-w-0">
-          {/* Los mismos botones en lista: el diagrama no sirve con lector de
-              pantalla ni con teclado, y la recepción no puede depender de
-              poder tocar una figura. */}
-          <ul className="grid gap-1.5 sm:grid-cols-2">
+          {/*
+            Los mismos botones en lista.
+
+            No es una leyenda ni un resumen: es la MISMA acción que la figura,
+            escrita. Existe por tres razones y ninguna es decorativa —el
+            diagrama no se puede recorrer con teclado ni leer con lector de
+            pantalla; el dedo falla al acertar en una aleta pequeña; y quien
+            no conoce el dibujo reconoce «Aleta trasera derecha» al leerlo—.
+
+            ⚠️ Se veía como un radio apagado y por eso parecía que no servía
+            para nada: círculo vacío, texto gris y sin borde. Ahora cada fila
+            es un botón con su contorno, y el círculo enseña EN GRIS la letra
+            del daño elegido, de modo que se ve qué va a pasar antes de tocar.
+          */}
+          <p className="text-xs text-fg-muted">
+            <span className="font-semibold text-fg">O elige la zona por su nombre.</span>{' '}
+            Es la misma lista del dibujo. Toca una para marcarla con{' '}
+            <span
+              data-numeric
+              className={cn(
+                'mx-0.5 inline-grid size-4 translate-y-0.5 place-items-center rounded-full text-[0.5rem] font-bold text-white',
+                TONE[elegido.severity].dot,
+              )}
+            >
+              {elegido.mark}
+            </span>{' '}
+            <span className="font-medium text-fg">{elegido.label}</span>, y vuelve a tocarla para
+            quitarla.
+          </p>
+
+          <ul className="mt-3 space-y-1.5">
             {ZONES.map((zone) => {
               const mark = markAt(marks, zone.id);
+              const tone = mark === undefined ? null : TONE[kindInfo(mark.kind).severity];
+
               return (
                 <li key={zone.id}>
-                  <button
-                    type="button"
-                    onClick={() => onChange(toggleMark(marks, zone.id, kind))}
-                    aria-pressed={mark !== undefined}
+                  {/*
+                    Una zona por fila y la cámara a su lado. En dos columnas la
+                    fila era estrecha y no cabía nada más; en una cabe el botón
+                    de la foto, que es lo que de verdad sostiene el parte: «así
+                    llegó» se prueba con una imagen, no con una letra.
+                  */}
+                  <div
                     className={cn(
-                      'flex w-full items-center gap-2 rounded-control px-2 py-1.5 text-left text-xs transition-colors duration-150',
+                      'flex items-center gap-2 rounded-control border pr-1.5 transition-colors duration-150',
                       mark === undefined
-                        ? 'text-fg-muted hover:bg-surface-sunken'
-                        : 'bg-surface-sunken font-medium text-fg',
+                        ? 'border-border hover:border-brand-600/50'
+                        : 'border-transparent bg-surface-sunken',
                     )}
                   >
-                    <span
-                      aria-hidden
-                      data-numeric
-                      className={cn(
-                        'grid size-5 shrink-0 place-items-center rounded-full text-[0.5625rem] font-bold',
+                    <button
+                      type="button"
+                      onClick={() => onChange(toggleMark(marks, zone.id, kind))}
+                      aria-pressed={mark !== undefined}
+                      title={
                         mark === undefined
-                          ? 'border border-border-strong text-transparent'
-                          : cn(TONE[kindInfo(mark.kind).severity].dot, 'text-white'),
+                          ? `Marcar ${zone.label} como ${elegido.label}`
+                          : `Quitar la marca de ${zone.label}`
+                      }
+                      className={cn(
+                        /* Alto de 40 px: es un objetivo táctil para un dedo de
+                           pie junto al vehículo, no una línea de texto. */
+                        'flex min-w-0 flex-1 items-center gap-2 rounded-control px-2.5 py-2 text-left text-xs',
+                        'transition-colors duration-150',
+                        mark === undefined
+                          ? 'text-fg-muted hover:text-fg'
+                          : 'font-medium text-fg',
                       )}
                     >
-                      {mark === undefined ? '·' : kindInfo(mark.kind).mark}
-                    </span>
-                    <span className="min-w-0 truncate">{zone.label}</span>
-                  </button>
+                      <span
+                        aria-hidden
+                        data-numeric
+                        className={cn(
+                          'grid size-5 shrink-0 place-items-center rounded-full text-[0.5625rem] font-bold',
+                          /* Vacío: contorno discontinuo y la letra del daño
+                             elegido en gris. Dice «aquí cabe una marca» en vez
+                             de «esto no hace nada». */
+                          tone === null
+                            ? 'border border-dashed border-border-strong text-fg-subtle'
+                            : cn(tone.dot, 'text-white'),
+                        )}
+                      >
+                        {mark === undefined ? elegido.mark : kindInfo(mark.kind).mark}
+                      </span>
+                      <span className="min-w-0 truncate">{zone.label}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFotografiando(zone)}
+                      aria-label={`Fotos de ${zone.label}`}
+                      title={`Fotos de ${zone.label}`}
+                      className="grid size-9 shrink-0 place-items-center rounded-control text-fg-subtle transition-colors duration-150 hover:bg-surface hover:text-brand-700"
+                    >
+                      <Camera aria-hidden className="size-4" />
+                    </button>
+                  </div>
                 </li>
               );
             })}
           </ul>
         </div>
       </div>
+
+      {fotografiando !== null && (
+        <Modal
+          open
+          width="sm"
+          onClose={() => setFotografiando(null)}
+          title={fotografiando.label}
+          subtitle="Cómo llegó, o de qué viene el daño."
+        >
+          <PhotoCapture
+            anchor={`danos:${plate}:${fotografiando.id}`}
+            title={`${fotografiando.label} · ${plate}`}
+            hint="En el móvil se abre la cámara; en la computadora, el visor o un archivo."
+          />
+        </Modal>
+      )}
 
       <footer className="mt-5 border-t border-border pt-4">
         <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">

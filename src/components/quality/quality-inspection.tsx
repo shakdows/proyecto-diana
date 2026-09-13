@@ -5,7 +5,6 @@ import { usePersistentState } from '@/lib/demo/store';
 import Link from 'next/link';
 import {
   ArrowLeft,
-  Camera,
   Check,
   CircleCheckBig,
   ShieldAlert,
@@ -32,6 +31,7 @@ import {
   type Rulings,
 } from '@/features/quality/services/inspection';
 import { STATUS_LABELS } from '@/features/orders/services/order-status';
+import { PhotoCapture } from '@/components/evidence/photo-capture';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -169,6 +169,7 @@ export function QualityInspection({
                   <CheckRow
                     key={item.id}
                     check={item}
+                    orderId={orderId}
                     ruling={rulingFor(item, rulings)}
                     onRule={(change) => rule(item.id, change)}
                   />
@@ -274,10 +275,13 @@ export function QualityInspection({
 
 function CheckRow({
   check,
+  orderId,
   ruling,
   onRule,
 }: {
   readonly check: QualityCheck;
+  /** Ancla la foto a ESTA orden: el mismo punto se revisa en muchas. */
+  readonly orderId: string;
   readonly ruling: CheckRuling;
   readonly onRule: (change: Partial<CheckRuling>) => void;
 }) {
@@ -356,24 +360,19 @@ function CheckRow({
             />
           </Field>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onRule({ photoCount: (ruling.photoCount ?? 0) + 1 })}
-            >
-              <Camera aria-hidden className="size-4" />
-              Agregar foto
-            </Button>
-            <span
-              data-numeric
-              className={cn('text-sm', faltaFoto ? 'text-crit-600' : 'text-fg-muted')}
-            >
-              {faltaFoto
-                ? 'Falta la foto del defecto.'
-                : `${ruling.photoCount} ${ruling.photoCount === 1 ? 'foto' : 'fotos'}`}
-            </span>
-          </div>
+          {/* El mismo contador falso que en el checklist: subía un número y no
+              guardaba ninguna imagen. Aquí duele más, porque la foto del
+              defecto es lo que el técnico mira para corregirlo. */}
+          <PhotoCapture
+            anchor={`calidad:${orderId}:${check.id}`}
+            title={check.label}
+            hint={
+              faltaFoto
+                ? 'Falta la foto del defecto: es lo que el técnico mira para corregirlo.'
+                : undefined
+            }
+            onCountChange={(photoCount) => onRule({ photoCount })}
+          />
         </div>
       )}
     </li>

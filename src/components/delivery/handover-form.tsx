@@ -87,8 +87,9 @@ export function HandoverForm({
 
   const state = useMemo(() => readiness(facts), [facts]);
   const saldo = balanceCents(facts);
-  const patch = (change: Partial<HandoverFacts>): void =>
+  const patch = (change: Partial<HandoverFacts>): void => {
     setFacts((f) => ({ ...f, ...change }));
+  };
 
   if (delivered) {
     return (

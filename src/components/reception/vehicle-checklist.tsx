@@ -2,8 +2,15 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, Camera, Check, ChevronDown, Save, TriangleAlert } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  ChevronDown,
+  Loader2,
+  Save,
+  TriangleAlert,
+} from 'lucide-react';
 import { ChoiceBar } from '@/components/ui/choice';
 import { Field } from '@/components/ui/field';
 import { Input, Textarea } from '@/components/ui/input';
@@ -25,6 +32,7 @@ import {
 } from '@/features/reception/services/checklist';
 import type { DamageMark } from '@/features/reception/services/damage-map';
 import { usePersistentState } from '@/lib/demo/store';
+import { PhotoCapture } from '@/components/evidence/photo-capture';
 import { DamageDiagram } from './damage-diagram';
 import { cn } from '@/lib/utils/cn';
 
@@ -54,6 +62,21 @@ export function VehicleChecklist({
     `recepcion.${plate}.danos`,
     [],
   );
+  /*
+   * El estado del botón de guardar.
+   *
+   * `guardando` dura un instante a propósito: sin esa pausa el texto salta a
+   * «Guardado completado» tan rápido que no se lee como respuesta a lo que
+   * uno acaba de pulsar, y quien lo mira no sabe si el botón hizo algo.
+   */
+  const [guardado, setGuardado] = useState<'reposo' | 'guardando' | 'listo'>('reposo');
+
+  const confirmarGuardado = (): void => {
+    setGuardado('guardando');
+    window.setTimeout(() => setGuardado('listo'), 420);
+    window.setTimeout(() => setGuardado('reposo'), 2600);
+  };
+
   const [open, setOpen] = useState<string>(CHECKLIST[0]?.id ?? '');
   const [restored, setRestored] = useState(false);
 
@@ -134,7 +157,7 @@ export function VehicleChecklist({
       {/* Antes de las 42 comprobaciones: el estado en que llega la carrocería.
           Va primero porque es lo que se mira dando una vuelta al vehículo, que
           es lo primero que hace el asesor al recibirlo. */}
-      <DamageDiagram marks={damage} onChange={setDamage} />
+      <DamageDiagram marks={damage} onChange={setDamage} plate={plate} />
 
       <div className="space-y-3">
         {CHECKLIST.map((section) => {
@@ -202,6 +225,7 @@ export function VehicleChecklist({
                     <li key={item.id} className="px-5 py-4">
                       <ChecklistRow
                         item={item}
+                        plate={plate}
                         result={state[item.id]}
                         onChange={(change) => patch(item.id, change)}
                       />
@@ -215,10 +239,40 @@ export function VehicleChecklist({
       </div>
 
       <section className="sticky bottom-0 -mx-4 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur lg:-mx-6 lg:px-6">
-        <Button type="button" variant="ghost" size="sm">
-          <Save aria-hidden className="size-4" />
-          Guardar borrador
-        </Button>
+        {/*
+          Guardar no hace falta: todo lo de esta pantalla se guarda solo en
+          cada cambio. Pero quien está de pie con una tablet no puede SABER
+          eso, y sin un botón se queda con la duda de si perderá el trabajo al
+          salir. Así que el botón existe y lo que hace es CONFIRMARLO —una
+          señal de que ya está—, en vez de fingir un guardado que ya ocurrió.
+        */}
+        <button
+          type="button"
+          onClick={confirmarGuardado}
+          disabled={guardado === 'guardando'}
+          className={cn(
+            'inline-flex h-11 items-center gap-2 rounded-control px-3 text-sm font-medium',
+            'transition-colors duration-150',
+            guardado === 'listo'
+              ? 'text-ok-700'
+              : 'text-fg-muted hover:bg-surface-sunken hover:text-fg',
+          )}
+        >
+          {guardado === 'guardando' ? (
+            <Loader2 aria-hidden className="size-4 animate-spin" />
+          ) : guardado === 'listo' ? (
+            <Check aria-hidden className="size-4" />
+          ) : (
+            <Save aria-hidden className="size-4" />
+          )}
+          <span aria-live="polite">
+            {guardado === 'guardando'
+              ? 'Guardando…'
+              : guardado === 'listo'
+                ? 'Guardado completado'
+                : 'Guardar borrador'}
+          </span>
+        </button>
 
         <div className="flex flex-wrap items-center gap-2">
           <Link
@@ -228,18 +282,33 @@ export function VehicleChecklist({
             <ArrowLeft aria-hidden className="size-4" />
             Anterior
           </Link>
-          <Button
-            type="button"
-            disabled={p.done < p.total}
+          {/*
+            Decía «Continuar a daños» y los daños están EN ESTA PÁGINA, unos
+            centímetros más arriba: quien lo leía se quedaba buscando una
+            pantalla de daños que no existe, después de haberlos marcado ya.
+            Encima no llevaba a ninguna parte —ni `onClick` ni destino—, así
+            que tampoco se podía descubrir el error pulsándolo.
+          */}
+          <Link
+            href={p.done < p.total ? '#' : '/recepcion/nueva/evidencia'}
+            aria-disabled={p.done < p.total}
             title={
-              p.done < p.total
-                ? `Faltan ${p.total - p.done} puntos por revisar`
-                : undefined
+              p.done < p.total ? `Faltan ${p.total - p.done} puntos por revisar` : undefined
             }
+            onClick={(e) => {
+              if (p.done < p.total) e.preventDefault();
+            }}
+            className={cn(
+              'inline-flex h-11 items-center gap-2 rounded-control px-4 text-sm font-semibold',
+              'transition-colors duration-150',
+              p.done < p.total
+                ? 'pointer-events-auto cursor-not-allowed bg-surface-sunken text-fg-subtle'
+                : 'bg-brand-600 text-white hover:bg-brand-700 active:scale-[0.98]',
+            )}
           >
-            Continuar a daños
+            Continuar a evidencia
             <ArrowRight aria-hidden className="size-4" />
-          </Button>
+          </Link>
         </div>
       </section>
     </>
@@ -248,10 +317,12 @@ export function VehicleChecklist({
 
 function ChecklistRow({
   item,
+  plate,
   result,
   onChange,
 }: {
   readonly item: ChecklistItem;
+  readonly plate: string;
   readonly result: ItemResult | undefined;
   readonly onChange: (change: Partial<ItemResult>) => void;
 }) {
@@ -351,20 +422,19 @@ function ChecklistRow({
             />
           </Field>
 
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => onChange({ photoCount: (result?.photoCount ?? 0) + 1 })}
-          >
-            <Camera aria-hidden className="size-3.5" />
-            Agregar foto
-            {(result?.photoCount ?? 0) > 0 && (
-              <span data-numeric className="ml-1 text-fg-subtle">
-                ({result?.photoCount})
-              </span>
-            )}
-          </Button>
+          {/*
+            Antes esto sumaba uno a un contador y no había ninguna foto en
+            ninguna parte. Un contador que sube da EXACTAMENTE la misma señal
+            que una foto guardada —«ya está»—, así que nadie descubría que no
+            había nada hasta que el cliente volvía reclamando y no había qué
+            enseñar.
+          */}
+          <PhotoCapture
+            anchor={`checklist:${plate}:${item.id}`}
+            title={`${item.label} · ${plate}`}
+            hint="Así llegó. En el móvil se abre la cámara; en la computadora, el visor o un archivo."
+            onCountChange={(photoCount) => onChange({ photoCount })}
+          />
         </div>
       )}
     </div>
