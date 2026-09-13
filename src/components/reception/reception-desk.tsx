@@ -195,8 +195,13 @@ export function ReceptionDesk({
         onClose={() => setModalCliente(false)}
         existing={searchable}
         corporateClients={corporateClients}
-        onCreate={() => {
-          toast('Sin base de datos todavía: el cliente no se guardó.', 'info');
+        onCreate={(draft) => {
+          toast(
+            draft.corporateClientIsNew && draft.corporateClient !== null
+              ? `Sin base de datos todavía: ni el cliente ni la empresa «${draft.corporateClient}» se guardaron.`
+              : 'Sin base de datos todavía: el cliente no se guardó.',
+            'info',
+          );
         }}
       />
     </>

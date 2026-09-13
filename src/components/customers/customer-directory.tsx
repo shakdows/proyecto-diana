@@ -163,10 +163,19 @@ export function CustomerDirectory({
         onClose={() => setOpen(false)}
         existing={searchable}
         corporateClients={corporateClients}
-        onCreate={() => {
+        onCreate={(draft) => {
           // FASE 3: aquí va la Server Action que inserta con RLS y deja
           // rastro en la auditoría. Hasta entonces no se finge que se guardó.
-          toast('Sin base de datos todavía: el cliente no se guardó.', 'info');
+          //
+          // La empresa nueva se nombra en el aviso a propósito: es lo que dice
+          // que el alta son DOS cosas y no una, que es justo lo que habrá que
+          // resolver en una transacción cuando haya base.
+          toast(
+            draft.corporateClientIsNew && draft.corporateClient !== null
+              ? `Sin base de datos todavía: ni el cliente ni la empresa «${draft.corporateClient}» se guardaron.`
+              : 'Sin base de datos todavía: el cliente no se guardó.',
+            'info',
+          );
         }}
       />
     </>

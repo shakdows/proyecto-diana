@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Building2, Check, UserRound, X } from 'lucide-react';
+import { Building2, Check, Plus, UserRound, X } from 'lucide-react';
 import { Field } from '@/components/ui/field';
 import { Input, Select } from '@/components/ui/input';
 import {
@@ -13,6 +13,11 @@ import {
   type CustomerKind,
   type DocumentType,
 } from '@/features/customers/services/identity';
+import {
+  NUEVA_EMPRESA,
+  checkCorporateName,
+  resolveCorporate,
+} from '@/features/customers/services/corporate';
 import {
   DUPLICATE_LABELS,
   findDuplicates,
@@ -31,10 +36,32 @@ export interface NewCustomerDraft {
   readonly contactName: string;
   readonly phone: string;
   readonly email: string;
-  readonly corporateClient: string;
+  /** La empresa corporativa ya resuelta, o `null` si no tiene ninguna. */
+  readonly corporateClient: string | null;
+  /**
+   * `true` cuando esa empresa NO está en el catálogo y hay que darla de alta
+   * además del cliente. Quien recibe el alta necesita saberlo: una empresa
+   * nueva lleva su RUC, su acuerdo y su color de marca, y eso no cabe en este
+   * formulario.
+   */
+  readonly corporateClientIsNew: boolean;
 }
 
-const VACIO: NewCustomerDraft = {
+/**
+ * Lo que la pantalla tiene escrito, que no es lo mismo que lo que se guarda.
+ *
+ * La empresa vive aquí en dos piezas —lo elegido en la lista y lo escrito a
+ * mano— porque son dos cosas que el usuario puede cambiar por separado. Se
+ * juntan en una sola respuesta al crear, y de eso se encarga
+ * `resolveCorporate`, no la pantalla.
+ */
+interface FormState extends Omit<NewCustomerDraft, 'corporateClient' | 'corporateClientIsNew'> {
+  /** `''`, un nombre del catálogo, o el centinela de «otra empresa». */
+  readonly corporatePick: string;
+  readonly corporateTyped: string;
+}
+
+const VACIO: FormState = {
   kind: 'persona',
   documentType: 'DNI',
   document: '',
@@ -45,7 +72,8 @@ const VACIO: NewCustomerDraft = {
   contactName: '',
   phone: '',
   email: '',
-  corporateClient: '',
+  corporatePick: '',
+  corporateTyped: '',
 };
 
 /**
@@ -101,7 +129,7 @@ export function NewCustomerModal({
   const firstFieldRef = useRef<HTMLInputElement>(null);
   const titleId = useId();
 
-  const [draft, setDraft] = useState<NewCustomerDraft>({
+  const [draft, setDraft] = useState<FormState>({
     ...VACIO,
     document: initialDocument ?? '',
   });
@@ -127,7 +155,7 @@ export function NewCustomerModal({
     return () => node.removeEventListener('close', onClose);
   }, [onClose]);
 
-  const set = <K extends keyof NewCustomerDraft>(key: K, value: NewCustomerDraft[K]): void => {
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]): void => {
     setDraft((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -155,13 +183,40 @@ export function NewCustomerModal({
   );
 
   const nombreListo = empresa ? draft.businessName.trim() !== '' : draft.firstName.trim() !== '';
-  const puedeCrear = docCheck.valid && nombreListo && phoneCheck.valid && emailCheck.valid;
+
+  const escribiendoEmpresa = draft.corporatePick === NUEVA_EMPRESA;
+  const empresaCheck = checkCorporateName(draft.corporateTyped);
+  const empresaElegida = resolveCorporate(
+    corporateClients,
+    draft.corporatePick,
+    draft.corporateTyped,
+  );
+  /* Elegir «otra empresa» y no escribir nada sí bloquea: es el único estado
+     del formulario donde lo que se ve —un campo abierto y vacío— no coincide
+     con lo que se guardaría, que es «sin empresa». */
+  const empresaLista = !escribiendoEmpresa || empresaCheck.valid;
+
+  const puedeCrear =
+    docCheck.valid && nombreListo && phoneCheck.valid && emailCheck.valid && empresaLista;
 
   const crear = (): void => {
     setTouched(true);
     if (!puedeCrear || saving) return;
     setSaving(true);
-    onCreate(draft);
+    onCreate({
+      kind: draft.kind,
+      documentType: draft.documentType,
+      document: draft.document,
+      firstName: draft.firstName,
+      lastName: draft.lastName,
+      businessName: draft.businessName,
+      tradeName: draft.tradeName,
+      contactName: draft.contactName,
+      phone: draft.phone,
+      email: draft.email,
+      corporateClient: empresaElegida.name,
+      corporateClientIsNew: empresaElegida.isNew,
+    });
     setDraft({ ...VACIO });
     setTouched(false);
     setSaving(false);
@@ -348,10 +403,29 @@ export function NewCustomerModal({
             </Field>
           )}
 
-          <Field label="Empresa corporativa" hint="Solo si pertenece a un cliente corporativo.">
+          {/*
+            La lista de empresas NO se cierra.
+
+            El catálogo lo mantiene administración, y eso está bien: los
+            nombres quedan limpios y nadie inventa acuerdos. Pero el cliente
+            está delante, y la empresa que lo manda puede haber firmado esta
+            semana y no estar cargada todavía. Con la lista cerrada, el asesor
+            solo puede dejarlo en «sin empresa» y avisar a alguien —y ese aviso
+            no llega—: el dato se pierde justo cuando alguien lo tenía.
+
+            Así que se puede escribir. Lo que no se puede es duplicar: si lo
+            escrito ya está en el catálogo, se reconoce el que está en vez de
+            crear un gemelo con otra mayúscula.
+          */}
+          <Field
+            label="Empresa corporativa"
+            hint={
+              escribiendoEmpresa ? undefined : 'Solo si pertenece a un cliente corporativo.'
+            }
+          >
             <Select
-              value={draft.corporateClient}
-              onChange={(e) => set('corporateClient', e.target.value)}
+              value={draft.corporatePick}
+              onChange={(e) => set('corporatePick', e.target.value)}
             >
               <option value="">Sin empresa corporativa</option>
               {corporateClients.map((c) => (
@@ -359,8 +433,53 @@ export function NewCustomerModal({
                   {c}
                 </option>
               ))}
+              <option value={NUEVA_EMPRESA}>Otra empresa…</option>
             </Select>
           </Field>
+
+          {escribiendoEmpresa && (
+            <Field
+              label="Nombre de la empresa"
+              required
+              error={touched && !empresaCheck.valid ? empresaCheck.problem : undefined}
+              hint={
+                draft.corporateTyped.trim() === ''
+                  ? 'Se dará de alta con el cliente. Administración completará su RUC y su acuerdo.'
+                  : undefined
+              }
+            >
+              <Input
+                autoFocus
+                autoComplete="organization"
+                value={draft.corporateTyped}
+                onChange={(e) => set('corporateTyped', e.target.value)}
+                placeholder="Scotiabank"
+              />
+              {/*
+                Escribir «mitsui» cuando ya existe «Mitsui» no es un error: es
+                el nombre correcto, escrito como lo escribe la gente. Se
+                reconoce y se dice cuál se va a usar, en vez de pararlo con un
+                aviso rojo por algo que nadie hizo mal.
+              */}
+              {empresaElegida.matched !== undefined && (
+                <p className="flex items-start gap-1.5 text-xs text-ok-700">
+                  <Check aria-hidden className="mt-px size-3.5 shrink-0" />
+                  <span>
+                    <span className="font-medium">{empresaElegida.matched}</span> ya está en la
+                    lista: se usará esa y no se crea una nueva.
+                  </span>
+                </p>
+              )}
+              {empresaElegida.isNew && (
+                <p className="flex items-start gap-1.5 text-xs text-fg-muted">
+                  <Plus aria-hidden className="mt-px size-3.5 shrink-0" />
+                  <span>
+                    Se creará la empresa <span className="font-medium">{empresaElegida.name}</span>.
+                  </span>
+                </p>
+              )}
+            </Field>
+          )}
 
           {duplicates.length > 0 && (
             <aside
