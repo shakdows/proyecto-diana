@@ -6,7 +6,7 @@ import { ArrowRight, CarFront, Plus, Search, UserRound } from 'lucide-react';
 import { AssetImage } from '@/components/ui/asset-image';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { NewCustomerDrawer } from '@/components/customers/new-customer-drawer';
+import { NewCustomerModal } from '@/components/customers/new-customer-modal';
 import { useToast } from '@/components/feedback/toast';
 import type { DemoCustomer } from '@/features/customers/demo';
 import { toSearchable } from '@/features/customers/demo';
@@ -60,7 +60,7 @@ export function ReceptionDesk({
 }) {
   const [query, setQuery] = useState('');
   const [settled, setSettled] = useState('');
-  const [drawer, setDrawer] = useState(false);
+  const [modalCliente, setModalCliente] = useState(false);
   const toast = useToast();
 
   // El retardo: `settled` va por detrás de lo que se teclea.
@@ -176,7 +176,7 @@ export function ReceptionDesk({
                 </Link>
                 <button
                   type="button"
-                  onClick={() => setDrawer(true)}
+                  onClick={() => setModalCliente(true)}
                   className="inline-flex h-11 items-center gap-2 rounded-control border border-border px-4 text-sm font-medium text-fg transition-colors duration-150 hover:bg-surface-sunken"
                 >
                   <UserRound aria-hidden className="size-4" />
@@ -190,9 +190,9 @@ export function ReceptionDesk({
 
       <TodayIntakes intakes={intakes} now={now} />
 
-      <NewCustomerDrawer
-        open={drawer}
-        onClose={() => setDrawer(false)}
+      <NewCustomerModal
+        open={modalCliente}
+        onClose={() => setModalCliente(false)}
         existing={searchable}
         corporateClients={corporateClients}
         onCreate={() => {

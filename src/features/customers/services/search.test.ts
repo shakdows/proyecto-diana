@@ -2,6 +2,9 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  FILTER_LABELS,
+  applyFilter,
+  countByKind,
   findDuplicates,
   fold,
   plateKey,
@@ -142,5 +145,47 @@ describe('normalizadores', () => {
   it('plateKey deja la placa comparable', () => {
     assert.equal(plateKey('abc-123'), 'ABC123');
     assert.equal(plateKey('ABC 123'), 'ABC123');
+  });
+});
+
+describe('el filtro de la cartera', () => {
+  const cartera = [
+    { kind: 'persona' as const },
+    { kind: 'empresa' as const },
+    { kind: 'persona' as const },
+  ];
+
+  it('las tres cifras suman el total', () => {
+    const n = countByKind(cartera);
+    assert.equal(n.todos, 3);
+    assert.equal(n.personas, 2);
+    assert.equal(n.empresas, 1);
+    assert.equal(n.personas + n.empresas, n.todos);
+  });
+
+  it('«Todos» no filtra nada', () => {
+    assert.equal(applyFilter(cartera, 'todos').length, 3);
+  });
+
+  it('cada pestaña deja solo lo suyo', () => {
+    assert.deepEqual(
+      applyFilter(cartera, 'personas').map((c) => c.kind),
+      ['persona', 'persona'],
+    );
+    assert.deepEqual(
+      applyFilter(cartera, 'empresas').map((c) => c.kind),
+      ['empresa'],
+    );
+  });
+
+  it('una cartera vacía cuenta cero y no revienta', () => {
+    assert.deepEqual(countByKind([]), { todos: 0, personas: 0, empresas: 0 });
+    assert.deepEqual(applyFilter([], 'empresas'), []);
+  });
+
+  it('cada filtro tiene rótulo', () => {
+    for (const f of ['todos', 'personas', 'empresas'] as const) {
+      assert.ok(FILTER_LABELS[f].length > 0);
+    }
   });
 });

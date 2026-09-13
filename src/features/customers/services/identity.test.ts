@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import {
   DOCUMENT_RULES,
   checkDocument,
+  checkEmail,
+  checkPhone,
   displayName,
   formatPhone,
   initialsOf,
@@ -143,5 +145,38 @@ describe('reglas', () => {
   it('un tipo desconocido falla en vez de devolver algo vacío', () => {
     // @ts-expect-error -- comprobación deliberada de un valor imposible
     assert.throws(() => ruleFor('CEDULA'));
+  });
+});
+
+describe('el contacto', () => {
+  it('un teléfono vacío no es un error: nadie lo pidió', () => {
+    assert.equal(checkPhone('').valid, true);
+    assert.equal(checkEmail('').valid, true);
+  });
+
+  it('acepta el teléfono como lo escribe la gente', () => {
+    for (const v of ['987654321', '987 654 321', '+51 987 654 321', '(01) 642-8800']) {
+      assert.equal(checkPhone(v).valid, true, v);
+    }
+  });
+
+  it('rechaza lo que no es un teléfono', () => {
+    assert.equal(checkPhone('12345').valid, false);
+    assert.equal(checkPhone('9876543210987654').valid, false);
+    assert.equal(checkPhone('987-ABC-321').valid, false);
+  });
+
+  it('el correo necesita arroba y dominio', () => {
+    assert.equal(checkEmail('juan.perez@ejemplo.com').valid, true);
+    assert.equal(checkEmail('flota@transportesdelsur.com.pe').valid, true);
+    assert.equal(checkEmail('juan.perez').valid, false);
+    assert.equal(checkEmail('juan@ejemplo').valid, false);
+    assert.equal(checkEmail('juan @ejemplo.com').valid, false);
+  });
+
+  it('cada rechazo dice qué arreglar', () => {
+    for (const check of [checkPhone('123'), checkEmail('nope')]) {
+      assert.ok((check.problem ?? '').length > 0);
+    }
   });
 });

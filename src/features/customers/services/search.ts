@@ -172,3 +172,45 @@ export const DUPLICATE_LABELS: Readonly<Record<DuplicateReason, string>> = {
   telefono: 'mismo teléfono',
   correo: 'mismo correo',
 };
+
+/* ------------------------------------------------------------------ *
+ * Filtro por naturaleza
+ * ------------------------------------------------------------------ */
+
+export type DirectoryFilter = 'todos' | 'personas' | 'empresas';
+
+export const FILTER_LABELS: Readonly<Record<DirectoryFilter, string>> = {
+  todos: 'Todos',
+  personas: 'Personas',
+  empresas: 'Empresas',
+};
+
+/**
+ * Cuántos hay de cada clase.
+ *
+ * Se cuenta sobre la cartera ENTERA y no sobre lo que la búsqueda deja a la
+ * vista: los números de las pestañas dicen cuánta gente hay, no cuánta
+ * coincide con lo que se está tecleando. Contarlos sobre el resultado haría
+ * que las tres cifras cambiaran con cada letra, que es exactamente lo que
+ * convierte un dato en ruido.
+ */
+export function countByKind(
+  customers: readonly { readonly kind: 'persona' | 'empresa' }[],
+): Readonly<Record<DirectoryFilter, number>> {
+  let personas = 0;
+  for (const c of customers) if (c.kind === 'persona') personas += 1;
+  return {
+    todos: customers.length,
+    personas,
+    empresas: customers.length - personas,
+  };
+}
+
+export function applyFilter<T extends { readonly kind: 'persona' | 'empresa' }>(
+  customers: readonly T[],
+  filter: DirectoryFilter,
+): readonly T[] {
+  if (filter === 'todos') return customers;
+  const want = filter === 'personas' ? 'persona' : 'empresa';
+  return customers.filter((c) => c.kind === want);
+}

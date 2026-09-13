@@ -154,3 +154,67 @@ export function formatPhone(value: string): string {
   const prefix = digits.startsWith('+') ? `${digits.slice(0, digits.length - 9)} ` : '';
   return `${prefix}${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`;
 }
+
+/* ------------------------------------------------------------------ *
+ * Contacto
+ * ------------------------------------------------------------------ */
+
+/**
+ * Resultado de comprobar un campo opcional.
+ *
+ * `valid` es cierto cuando el campo está VACÍO: ni el teléfono ni el correo
+ * son obligatorios para dar de alta a alguien, y marcar en rojo un campo que
+ * nadie pidió rellenar enseña a ignorar los rojos.
+ */
+export interface FieldCheck {
+  readonly valid: boolean;
+  readonly problem?: string;
+}
+
+/**
+ * ¿Es un teléfono con el que se puede llamar?
+ *
+ * Se comprueba la LONGITUD, no el formato: la gente escribe «987 654 321»,
+ * «987654321» y «+51 987 654 321», y las tres son el mismo número. Rechazar
+ * por los espacios sería rechazar a quien escribe como escribe todo el mundo.
+ *
+ * Nueve dígitos es el mínimo peruano —un móvil—; quince es el máximo de la
+ * norma E.164 y cubre cualquier internacional.
+ */
+export function checkPhone(value: string): FieldCheck {
+  const raw = value.trim();
+  if (raw === '') return { valid: true };
+
+  /*
+   * Se mira el valor CRUDO, no el normalizado. `normalizePhone` se come todo
+   * lo que no sea dígito o «+», así que «987-ABC-321» le sale como «987321»:
+   * seis dígitos, válido. Y no lo es —alguien escribió letras en el teléfono—.
+   * Comprobar después de limpiar habría dado por bueno justo el error que
+   * esto existe para atrapar.
+   */
+  if (/[^0-9+\-\s().]/u.test(raw)) {
+    return { valid: false, problem: 'El teléfono solo lleva números, espacios y el prefijo con «+».' };
+  }
+
+  const digits = raw.replace(/[^0-9]/gu, '');
+  if (digits.length < 6) return { valid: false, problem: 'El teléfono es demasiado corto.' };
+  if (digits.length > 15) return { valid: false, problem: 'El teléfono es demasiado largo.' };
+  return { valid: true };
+}
+
+/**
+ * ¿Es un correo al que se puede escribir?
+ *
+ * Comprobación deliberadamente FLOJA: algo, arroba, algo, punto, algo. La
+ * expresión regular «completa» del RFC 5322 tiene cuatrocientos caracteres,
+ * rechaza direcciones válidas y no evita ni un solo error de tecleo real. Lo
+ * único que importa aquí es no guardar «juan.perez» pensando que es un correo.
+ */
+export function checkEmail(value: string): FieldCheck {
+  const clean = value.trim();
+  if (clean === '') return { valid: true };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/u.test(clean)) {
+    return { valid: false, problem: 'Revisa el correo: falta la arroba o el dominio.' };
+  }
+  return { valid: true };
+}
