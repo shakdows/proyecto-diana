@@ -9,6 +9,7 @@ import {
   Pencil,
   Phone,
   Plus,
+  Trash2,
   TriangleAlert,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -50,6 +51,7 @@ export function CustomerProfile({
   now,
   onEdit,
   onAddVehicle,
+  onDelete,
 }: {
   readonly customer: DemoCustomer;
   readonly now: Date;
@@ -58,6 +60,7 @@ export function CustomerProfile({
      aparecer y no hacer nada. */
   readonly onEdit?: () => void;
   readonly onAddVehicle?: () => void;
+  readonly onDelete?: () => void;
 }) {
   const name = displayName(customer);
   const empresa = customer.kind === 'empresa';
@@ -127,6 +130,21 @@ export function CustomerProfile({
           </div>
 
           <div className="flex shrink-0 flex-wrap gap-2">
+            {/* Borrar va al final y en gris, no en rojo junto a «Editar»:
+                un botón destructivo con el mismo peso visual que el de al
+                lado se pulsa por error. El rojo aparece DENTRO del diálogo,
+                cuando ya se sabe a quién se va a quitar. */}
+            {onDelete !== undefined && (
+              <button
+                type="button"
+                onClick={onDelete}
+                aria-label={`Eliminar a ${name}`}
+                title="Eliminar cliente"
+                className="grid size-11 place-items-center rounded-control border border-border text-fg-muted transition-colors duration-150 hover:border-crit-500/40 hover:bg-crit-100 hover:text-crit-700"
+              >
+                <Trash2 aria-hidden className="size-4" />
+              </button>
+            )}
             {onEdit !== undefined && (
               <button
                 type="button"

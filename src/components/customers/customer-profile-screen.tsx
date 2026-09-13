@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { EmptyState } from '@/components/feedback/states';
@@ -10,9 +11,15 @@ import { NewVehicleModal } from '@/components/vehicles/new-vehicle-modal';
 import type { DemoCustomer } from '@/features/customers/demo';
 import { displayName } from '@/features/customers/services/identity';
 import { formatPlate } from '@/features/vehicles/services/vehicle';
-import { useAllCustomers, useCustomer } from '@/features/customers/use-created';
+import {
+  useAllCustomers,
+  useCustomer,
+  useRemoveCustomer,
+} from '@/features/customers/use-created';
+import { removalKind } from '@/features/customers/services/removal';
 import { useHydrated } from '@/lib/demo/store';
 import { CustomerProfile } from './customer-profile';
+import { DeleteCustomerModal } from './delete-customer-modal';
 import { EditCustomerModal } from './edit-customer-modal';
 
 /**
@@ -49,11 +56,14 @@ export function CustomerProfileScreen({
 }) {
   const { customer, editFields, addVehicle } = useCustomer(id, seeded);
   const { customers } = useAllCustomers(seededAll);
+  const removeCustomer = useRemoveCustomer();
   const hydrated = useHydrated();
   const toast = useToast();
+  const router = useRouter();
 
   const [editando, setEditando] = useState(false);
   const [registrando, setRegistrando] = useState(false);
+  const [borrando, setBorrando] = useState(false);
 
   /*
    * Antes de hidratar no se sabe si un cliente creado aquí existe: lo suyo
@@ -95,6 +105,33 @@ export function CustomerProfileScreen({
         now={now}
         onEdit={() => setEditando(true)}
         onAddVehicle={() => setRegistrando(true)}
+        onDelete={() => setBorrando(true)}
+      />
+
+      <DeleteCustomerModal
+        open={borrando}
+        onClose={() => setBorrando(false)}
+        customer={customer}
+        onConfirm={() => {
+          /*
+           * FASE 3: aquí va la Server Action que comprueba `customers:delete`,
+           * pasa por RLS, escribe en `audit_logs` y ARCHIVA en vez de borrar
+           * —un cliente con órdenes no se borra, o los informes dejan de
+           * cuadrar—. Ver `services/removal.ts`.
+           */
+          const quitado = removalKind(customer.id);
+          removeCustomer(customer.id);
+          toast(
+            quitado === 'creado'
+              ? `${displayName(customer)} se eliminó de este navegador.`
+              : `${displayName(customer)} deja de aparecer aquí. Vuelve con «Comenzar de nuevo».`,
+            'ok',
+          );
+          /* Fuera de la ficha de alguien que ya no está: quedarse la dejaría
+             pintada entera, que es exactamente lo contrario de lo que acaba
+             de pasar. */
+          router.push('/clientes');
+        }}
       />
 
       <EditCustomerModal

@@ -3,6 +3,8 @@
 import { useCallback, useMemo } from 'react';
 import { usePersistentState } from '@/lib/demo/store';
 import type { DemoCustomer, DemoVehicle } from './demo';
+import { removalKind } from './services/removal';
+import { hydrateCustomers } from './services/stored';
 import {
   SIN_CAMBIOS,
   applyEdit,
@@ -44,10 +46,13 @@ import {
 /** Las ranuras en `localStorage`. Las barre «Comenzar de nuevo». */
 const RANURA = 'clientes.nuevos';
 const RANURA_CAMBIOS = 'clientes.cambios';
+/** Los que se quitaron. Solo ids: la fila del catálogo la manda el servidor. */
+const RANURA_QUITADOS = 'clientes.quitados';
 
 /* Referencia estable: `usePersistentState` la lleva en las dependencias de su
    `useCallback`, y un `[]` nuevo en cada render lo recrearía sin parar. */
 const NINGUNO: readonly DemoCustomer[] = [];
+const NINGUNO_ID: readonly string[] = [];
 
 /**
  * Lo editado y los vehículos añadidos, por cliente.
@@ -84,8 +89,18 @@ export function useCreatedCustomers(): {
   /** Los creados, el más reciente primero. */
   readonly created: readonly DemoCustomer[];
   readonly add: (customer: DemoCustomer) => void;
+  readonly remove: (id: string) => void;
 } {
-  const [created, setCreated] = usePersistentState<readonly DemoCustomer[]>(RANURA, NINGUNO);
+  const [guardados, setCreated] = usePersistentState<readonly DemoCustomer[]>(RANURA, NINGUNO);
+
+  /*
+   * Se pone en forma al LEER, no al escribir.
+   *
+   * Un cliente guardado ayer no tiene los campos que el código añadió hoy, y
+   * con eso la ficha reventaba entera. Ver `services/stored.ts`, que explica
+   * por qué se migra en vez de descartar.
+   */
+  const created = useMemo(() => hydrateCustomers(guardados), [guardados]);
 
   const add = useCallback(
     (customer: DemoCustomer): void => {
@@ -94,7 +109,38 @@ export function useCreatedCustomers(): {
     [setCreated],
   );
 
-  return useMemo(() => ({ created, add }), [created, add]);
+  const remove = useCallback(
+    (id: string): void => {
+      setCreated((prev) => prev.filter((c) => c.id !== id));
+    },
+    [setCreated],
+  );
+
+  return useMemo(() => ({ created, add, remove }), [created, add, remove]);
+}
+
+/**
+ * Los clientes del catálogo que se quitaron de la vista.
+ *
+ * Un cliente sembrado no se puede borrar: lo manda el servidor en cada carga.
+ * Lo único que cabe es no enseñarlo, y eso se guarda como una lista de ids
+ * —no como una copia de la fila—, para que el día que el servidor cambie ese
+ * cliente no quede aquí una versión congelada de algo que además está oculto.
+ */
+export function useHiddenCustomers(): {
+  readonly hidden: readonly string[];
+  readonly hide: (id: string) => void;
+} {
+  const [hidden, setHidden] = usePersistentState<readonly string[]>(RANURA_QUITADOS, NINGUNO_ID);
+
+  const hide = useCallback(
+    (id: string): void => {
+      setHidden((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    },
+    [setHidden],
+  );
+
+  return useMemo(() => ({ hidden, hide }), [hidden, hide]);
 }
 
 /**
@@ -112,15 +158,40 @@ export function useAllCustomers(seeded: readonly DemoCustomer[]): {
 } {
   const { created, add } = useCreatedCustomers();
   const { edits, editFields, addVehicle } = useCustomerEdits();
+  const { hidden } = useHiddenCustomers();
 
-  const customers = useMemo(
-    () => applyEdits([...created, ...seeded], edits),
-    [created, seeded, edits],
-  );
+  const customers = useMemo(() => {
+    const quitados = new Set(hidden);
+    return applyEdits(
+      [...created, ...seeded].filter((c) => !quitados.has(c.id)),
+      edits,
+    );
+  }, [created, seeded, edits, hidden]);
 
   return useMemo(
     () => ({ customers, add, editFields, addVehicle }),
     [customers, add, editFields, addVehicle],
+  );
+}
+
+/**
+ * Quitar un cliente, sea de donde sea.
+ *
+ * Una sola función para las dos cosas que pueden pasar —borrar el creado aquí,
+ * ocultar el del catálogo— porque quien la llama no debería tener que
+ * decidirlo: `removalKind` ya lo sabe mirando el identificador, y la pantalla
+ * ya se lo dijo al usuario antes de pulsar.
+ */
+export function useRemoveCustomer(): (id: string) => void {
+  const { remove } = useCreatedCustomers();
+  const { hide } = useHiddenCustomers();
+
+  return useCallback(
+    (id: string): void => {
+      if (removalKind(id) === 'creado') remove(id);
+      else hide(id);
+    },
+    [remove, hide],
   );
 }
 
@@ -140,8 +211,11 @@ export function useCustomer(
 } {
   const { created } = useCreatedCustomers();
   const { edits, editFields, addVehicle } = useCustomerEdits();
+  const { hidden } = useHiddenCustomers();
 
-  const base = seeded ?? created.find((c) => c.id === id);
+  /* Un cliente quitado no tiene ficha: entrar por la URL a la de alguien que
+     acabas de eliminar y verla entera diría que no se eliminó. */
+  const base = hidden.includes(id) ? undefined : (seeded ?? created.find((c) => c.id === id));
   const customer = useMemo(
     () => (base === undefined ? undefined : applyEdit(base, edits[id])),
     [base, edits, id],
