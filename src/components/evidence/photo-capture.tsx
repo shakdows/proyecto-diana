@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Camera, ImagePlus, Trash2, TriangleAlert, X } from 'lucide-react';
+import { Camera, Check, ImagePlus, Trash2, TriangleAlert, X } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import {
   MAX_PHOTOS,
@@ -23,6 +23,9 @@ import {
   prefersSystemCamera,
 } from '@/lib/media/capture';
 import { usePersistentStateChecked } from '@/lib/demo/store';
+import { checkDeleteCode } from '@/lib/auth/confirm-code';
+import { Field } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils/cn';
 
 const NINGUNA: readonly EvidencePhoto[] = [];
@@ -70,6 +73,10 @@ export function PhotoCapture({
   const [busy, setBusy] = useState(false);
   const [visor, setVisor] = useState(false);
   const [viendo, setViendo] = useState<EvidencePhoto | null>(null);
+  /** La foto que se está borrando. Pide la clave antes de quitarla. */
+  const [borrando, setBorrando] = useState<EvidencePhoto | null>(null);
+  /** Se enciende un momento al guardar: es el «ya está» que se busca. */
+  const [recien, setRecien] = useState<string | null>(null);
 
   const camaraRef = useRef<HTMLInputElement>(null);
   const archivoRef = useRef<HTMLInputElement>(null);
@@ -88,7 +95,18 @@ export function PhotoCapture({
         ? null
         : 'No cupo en el navegador. Borra alguna foto o usa «Comenzar de nuevo» para liberar espacio.',
     );
-    if (ok) onCountChange?.(Math.min(photos.length + nuevas.length, MAX_PHOTOS));
+    if (ok) {
+      onCountChange?.(Math.min(photos.length + nuevas.length, MAX_PHOTOS));
+      /* La foto se guarda AL TOMARLA, no al pulsar un botón de guardar: si
+         hiciera falta confirmar, cerrar la pestaña o quedarse sin batería
+         —de pie, en la nave— se llevaría la evidencia. Lo que sí hace falta
+         es DECIRLO, y para eso este destello. */
+      const ultima = nuevas[0];
+      if (ultima !== undefined) {
+        setRecien(ultima.id);
+        window.setTimeout(() => setRecien(null), 2200);
+      }
+    }
   };
 
   const desdeArchivos = async (
@@ -238,16 +256,22 @@ export function PhotoCapture({
 
               <button
                 type="button"
-                onClick={() => {
-                  setPhotos((prev) => removePhoto(prev, photo.id));
-                  setError(null);
-                  onCountChange?.(photos.length - 1);
-                }}
+                onClick={() => setBorrando(photo)}
                 aria-label={`Borrar la foto de ${photoWhen(photo.takenAt, new Date())}`}
                 className="absolute right-1 top-1 grid size-6 place-items-center rounded-full bg-graphite-950/70 text-white transition-colors duration-150 hover:bg-crit-600"
               >
                 <Trash2 aria-hidden className="size-3" />
               </button>
+
+              {/* «Guardada» dura un par de segundos sobre la foto recién
+                  tomada. Es lo que cierra el gesto: sin esto, quien la toma
+                  se queda mirando la miniatura sin saber si ya está. */}
+              {recien === photo.id && (
+                <span className="pointer-events-none absolute inset-x-1 bottom-7 flex items-center justify-center gap-1 rounded-chip bg-ok-600/90 py-0.5 text-[0.625rem] font-semibold text-white">
+                  <Check aria-hidden className="size-3" />
+                  Guardada
+                </span>
+              )}
             </li>
           ))}
         </ul>
@@ -259,6 +283,26 @@ export function PhotoCapture({
           onClose={() => setVisor(false)}
           onShoot={(photo) => {
             guardar([photo]);
+          }}
+        />
+      )}
+
+      {/*
+        Borrar una evidencia pide la clave.
+        Es la misma que borra un cliente y por la misma razón: no protege de
+        nadie que quiera saltársela —está en el navegador—, evita el resbalón.
+        Y aquí el resbalón cuesta caro: la foto del golpe que el cliente va a
+        reclamar dentro de dos meses no se puede volver a tomar.
+      */}
+      {borrando !== null && (
+        <DeletePhotoDialog
+          photo={borrando}
+          title={title}
+          onClose={() => setBorrando(null)}
+          onConfirm={() => {
+            setPhotos((prev) => removePhoto(prev, borrando.id));
+            setError(null);
+            onCountChange?.(photos.length - 1);
           }}
         />
       )}
@@ -386,6 +430,99 @@ function CameraModal({
           <span>{error}</span>
         </p>
       )}
+    </Modal>
+  );
+}
+
+/**
+ * Confirmar que se borra una evidencia.
+ *
+ * La foto se ve mientras se decide, y no solo su nombre: «¿borrar la foto de
+ * hoy 18:41?» no le dice nada a nadie. Viéndola se sabe si es la que sobra.
+ */
+function DeletePhotoDialog({
+  photo,
+  title,
+  onClose,
+  onConfirm,
+}: {
+  readonly photo: EvidencePhoto;
+  readonly title: string;
+  readonly onClose: () => void;
+  readonly onConfirm: () => void;
+}) {
+  const claveRef = useRef<HTMLInputElement>(null);
+  const [clave, setClave] = useState('');
+  const check = checkDeleteCode(clave);
+  const mostrarError = clave.trim().length >= 4 && !check.valid;
+
+  return (
+    <Modal
+      open
+      width="sm"
+      onClose={onClose}
+      onSubmit={() => {
+        if (!check.valid) return;
+        onConfirm();
+        onClose();
+      }}
+      initialFocusRef={claveRef}
+      title="Borrar la foto"
+      subtitle={`${title} · ${photoWhen(photo.takenAt, new Date())}`}
+      footer={
+        <>
+          <span className="hidden flex-1 sm:block" />
+          <div className="flex flex-1 gap-3 sm:flex-none">
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-11 flex-1 whitespace-nowrap rounded-control border border-border-strong px-4 text-sm font-semibold text-fg transition-colors duration-150 hover:bg-surface-sunken sm:flex-none sm:px-5"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={!check.valid}
+              className={cn(
+                'inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-control text-sm font-semibold',
+                'whitespace-nowrap px-4 sm:flex-none sm:px-5',
+                check.valid
+                  ? 'bg-crit-600 text-white hover:bg-crit-700 active:scale-[0.98]'
+                  : 'cursor-not-allowed bg-surface-sunken text-fg-subtle',
+              )}
+            >
+              <Trash2 aria-hidden className="size-4" />
+              Borrar
+            </button>
+          </div>
+        </>
+      }
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={photo.dataUrl} alt={title} className="w-full rounded-control" />
+
+      <p className="flex items-start gap-2 rounded-panel border border-warn-500/40 bg-warn-100 px-4 py-3 text-sm text-warn-700">
+        <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
+        <span>Una evidencia borrada no se puede volver a tomar: el vehículo ya no está así.</span>
+      </p>
+
+      <Field
+        label="Clave de confirmación"
+        required
+        hint="No es una contraseña: solo evita que se borre de un toque sin querer."
+        error={mostrarError ? check.problem : undefined}
+      >
+        <Input
+          ref={claveRef}
+          type="password"
+          inputMode="numeric"
+          autoComplete="off"
+          value={clave}
+          onChange={(e) => setClave(e.target.value)}
+          placeholder="••••"
+          className="font-mono tracking-[0.3em]"
+        />
+      </Field>
     </Modal>
   );
 }

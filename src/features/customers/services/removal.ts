@@ -21,28 +21,13 @@
  *     cuadrar.
  *
  * Nada de eso lo hace esta pantalla. Esta pantalla solo evita el resbalón.
- */
-
-/**
- * La clave de confirmación.
  *
- * Sale del entorno para que cambiarla no sea un despliegue de código, y tiene
- * un valor por defecto porque una demostración sin base ni configuración
- * tiene que arrancar igual.
+ * La clave en sí vive en `lib/auth/confirm-code.ts`: la usan cosas que no
+ * tienen nada que ver entre sí —borrar un cliente, borrar una evidencia— y
+ * dos copias se separan el día que alguien cambia una.
  */
-export const DELETE_CODE: string =
-  process.env.NEXT_PUBLIC_DIANA_DELETE_CODE?.trim() ?? '1234';
 
-export interface RemovalCheck {
-  readonly valid: boolean;
-  readonly problem: string;
-}
-
-export function checkDeleteCode(typed: string): RemovalCheck {
-  if (typed.trim() === '') return { valid: false, problem: 'Escribe la clave para confirmar.' };
-  if (typed.trim() !== DELETE_CODE) return { valid: false, problem: 'La clave no es correcta.' };
-  return { valid: true, problem: '' };
-}
+export { DELETE_CODE, checkDeleteCode } from '@/lib/auth/confirm-code';
 
 /**
  * Qué pasa de verdad al borrar, según de dónde venga el cliente.

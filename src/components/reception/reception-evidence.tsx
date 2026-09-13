@@ -1,8 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Camera } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Camera, Check, TriangleAlert } from 'lucide-react';
 import { PhotoCapture } from '@/components/evidence/photo-capture';
+import { coverageOf, coveragePhrase, isDocumented } from '@/features/evidence/services/coverage';
+import { usePhotoCount } from '@/features/evidence/use-photo-count';
+import { ZONES, type DamageMark } from '@/features/reception/services/damage-map';
+import { usePersistentState } from '@/lib/demo/store';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -64,6 +68,8 @@ export function ReceptionEvidence({
         </p>
       </section>
 
+      <Cobertura plate={plate} />
+
       <div className="grid gap-4 lg:grid-cols-2">
         {TOMAS.map((toma) => (
           <section key={toma.id} className="rounded-panel border border-border bg-surface-raised p-5">
@@ -110,3 +116,90 @@ export function ReceptionEvidence({
     </>
   );
 }
+
+/**
+ * Qué falta por documentar, contando las dos clases de foto.
+ *
+ * ── Por qué las dos siguen existiendo ──────────────────────────────────────
+ *
+ * Porque prueban cosas distintas. La foto de una zona prueba UN daño: sin
+ * ella, «rayón en la aleta trasera derecha» es una letra en un dibujo. La
+ * vuelta completa prueba el ESTADO GENERAL, que es lo que cubre justo donde
+ * nadie marcó nada —y ahí es donde aparecen las reclamaciones, en el golpe
+ * que el asesor no vio—.
+ *
+ * Quitar cualquiera de las dos deja un hueco. Sin la de zona: ocho daños
+ * marcados y seis fotos generales, y nadie sabe cuál prueba cuál. Sin la
+ * vuelta: solo hay prueba de lo que alguien se acordó de marcar.
+ *
+ * Así que no compiten: se CUENTAN aquí. Este bloque es lo que convierte dos
+ * listas sueltas en una sola tarea que se puede terminar, y lo que hace que
+ * ninguna de las dos parezca de más.
+ *
+ * Y NO BLOQUEA. Un daño sin foto puede tener su razón —la zona no se ve, el
+ * cliente tiene prisa—, y parar la recepción por una foto deja el vehículo en
+ * el patio sin orden, que es peor. Se avisa, se cuenta y se decide.
+ */
+function Cobertura({ plate }: { readonly plate: string }) {
+  const [marks] = usePersistentState<readonly DamageMark[]>(`recepcion.${plate}.danos`, SIN_DANOS);
+
+  /* Un hook por zona marcada y por toma: son catorce y seis como mucho, y
+     leerlos así mantiene la cuenta viva sin volver a montar la pantalla. */
+  const zonas = ZONES.map((zone) => ({
+    id: zone.id,
+    label: zone.label,
+    marcada: marks.some((m) => m.zone === zone.id),
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- ZONES es una constante: el número de llamadas no cambia entre renders
+    photos: usePhotoCount(`danos:${plate}:${zone.id}`),
+  }));
+  // eslint-disable-next-line react-hooks/rules-of-hooks -- TOMAS es una constante: el número de llamadas no cambia entre renders
+  const tomas = TOMAS.map((t) => usePhotoCount(`recepcion:${plate}:${t.id}`));
+
+  const cobertura = coverageOf(
+    zonas.filter((z) => z.marcada).map(({ id, label, photos }) => ({ id, label, photos })),
+    tomas,
+  );
+  const listo = isDocumented(cobertura);
+
+  return (
+    <section
+      className={cn(
+        'rounded-panel border px-5 py-4',
+        listo ? 'border-ok-500/40 bg-ok-100' : 'border-border bg-surface-raised',
+      )}
+    >
+      <p className="flex flex-wrap items-center gap-2 text-sm">
+        {listo ? (
+          <Check aria-hidden className="size-4 shrink-0 text-ok-600" />
+        ) : (
+          <TriangleAlert aria-hidden className="size-4 shrink-0 text-fg-subtle" />
+        )}
+        <span className={cn('font-semibold', listo ? 'text-ok-700' : 'text-fg')}>
+          {listo ? 'Evidencia completa' : 'Evidencia del ingreso'}
+        </span>
+        <span className={listo ? 'text-ok-700/85' : 'text-fg-muted'}>
+          {coveragePhrase(cobertura)}
+        </span>
+      </p>
+
+      {cobertura.missing.length > 0 && (
+        <p className="mt-2 text-xs text-fg-muted">
+          Sin foto:{' '}
+          <span className="font-medium text-fg">
+            {cobertura.missing.map((m) => m.label.toLowerCase()).join(', ')}
+          </span>
+          .{' '}
+          <Link
+            href="/recepcion/nueva/checklist"
+            className="font-medium text-brand-700 underline-offset-4 hover:underline"
+          >
+            Volver a los daños
+          </Link>{' '}
+          para completarlas. No bloquea la recepción.
+        </p>
+      )}
+    </section>
+  );
+}
+
+const SIN_DANOS: readonly DamageMark[] = [];

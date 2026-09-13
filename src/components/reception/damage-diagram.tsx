@@ -15,6 +15,7 @@ import {
   type DamageMark,
 } from '@/features/reception/services/damage-map';
 import { PhotoCapture } from '@/components/evidence/photo-capture';
+import { usePhotoCount } from '@/features/evidence/use-photo-count';
 import { Modal } from '@/components/ui/modal';
 import { cn } from '@/lib/utils/cn';
 
@@ -266,15 +267,12 @@ export function DamageDiagram({
                       <span className="min-w-0 truncate">{zone.label}</span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setFotografiando(zone)}
-                      aria-label={`Fotos de ${zone.label}`}
-                      title={`Fotos de ${zone.label}`}
-                      className="grid size-9 shrink-0 place-items-center rounded-control text-fg-subtle transition-colors duration-150 hover:bg-surface hover:text-brand-700"
-                    >
-                      <Camera aria-hidden className="size-4" />
-                    </button>
+                    <ZonePhotoButton
+                      plate={plate}
+                      zoneId={zone.id}
+                      label={zone.label}
+                      onOpen={() => setFotografiando(zone)}
+                    />
                   </div>
                 </li>
               );
@@ -326,5 +324,53 @@ export function DamageDiagram({
         <p className="mt-2 text-xs leading-relaxed text-fg-muted">{describe(marks)}</p>
       </footer>
     </section>
+  );
+}
+
+/**
+ * El botón de la foto de una zona, con su cuenta.
+ *
+ * El número va escrito y no solo el icono: «2 fotos» le dice al asesor que
+ * esa zona ya está documentada sin tener que abrirla, y eso es lo que permite
+ * repasar catorce zonas de un vistazo antes de firmar. Un icono a secas
+ * obliga a abrir las catorce para saberlo.
+ */
+function ZonePhotoButton({
+  plate,
+  zoneId,
+  label,
+  onOpen,
+}: {
+  readonly plate: string;
+  readonly zoneId: string;
+  readonly label: string;
+  readonly onOpen: () => void;
+}) {
+  const fotos = usePhotoCount(`danos:${plate}:${zoneId}`);
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={
+        fotos === 0
+          ? `Tomar foto de ${label}`
+          : `${String(fotos)} ${fotos === 1 ? 'foto' : 'fotos'} de ${label}`
+      }
+      className={cn(
+        'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-control px-2 text-xs font-medium',
+        'transition-colors duration-150',
+        fotos === 0
+          ? 'text-fg-subtle hover:bg-surface hover:text-brand-700'
+          : 'bg-ok-100 text-ok-700 hover:bg-ok-100/70',
+      )}
+    >
+      <Camera aria-hidden className="size-4" />
+      {fotos > 0 && (
+        <span data-numeric>
+          {fotos} {fotos === 1 ? 'foto' : 'fotos'}
+        </span>
+      )}
+    </button>
   );
 }
