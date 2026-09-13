@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { isPublicRoute } from '@/lib/auth/public-routes';
 import { DEMO_ROLE_COOKIE } from '@/lib/auth/session';
 
 /**
@@ -13,32 +14,11 @@ import { DEMO_ROLE_COOKIE } from '@/lib/auth/session';
  * `/presentacion`, la salud del servicio y los estáticos quedan fuera: son
  * públicos a propósito.
  */
-const PUBLIC = [
-  '/login',
-  '/presentacion',
-  '/api/health',
-  '/icon.svg',
-  // ⚠️ Recursos de marca: fotos de catálogo, fondos y logotipos.
-  //
-  // Son públicos por definición —los ve el cliente en el portal de
-  // autorización y cualquiera en la portada, ambos sin sesión— y sin estas
-  // líneas el middleware los redirige a /login y salen rotos. Pasó ya una vez
-  // con `/fotos-de-carros`; las tres carpetas tienen el mismo problema.
-  //
-  // La evidencia del cliente NO vive aquí: va a almacenamiento privado con
-  // URL firmada. Ver public/fotos-de-carros/README.md.
-  '/fotos-de-carros',
-  '/fondos',
-  '/marca',
-  // El cliente llega por enlace y no tiene —ni debe tener— sesión del taller.
-  '/autorizacion',
-  '/encuesta',
-];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (PUBLIC.some((route) => pathname === route || pathname.startsWith(`${route}/`))) {
+  if (isPublicRoute(pathname)) {
     return NextResponse.next();
   }
 

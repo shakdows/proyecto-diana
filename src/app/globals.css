@@ -369,17 +369,17 @@
  * del taller no aparece nunca, porque ahí el rojo significa «retrasado».
  */
 .theme-cream {
-  --surface: #ffffff;
+  --surface: #fffefb;
   --surface-raised: #ffffff;
-  --surface-sunken: #faf7f2;
-  --surface-inverted: #1f2937;
-  --fg: #1f2937;
-  --fg-muted: #6b7280;
-  --fg-subtle: #9ca3af;
-  --fg-inverted: #ffffff;
-  --border: #e5e7eb;
-  --border-strong: #dcd7cf;
-  --focus: #c0161c;
+  --surface-sunken: #f7f5f1;
+  --surface-inverted: #151719;
+  --fg: #151719;
+  --fg-muted: #6b7078;
+  --fg-subtle: #9aa0a8;
+  --fg-inverted: #fffefb;
+  --border: #e9e5df;
+  --border-strong: #d8d3cb;
+  --focus: #d22630;
 
   --color-surface: var(--surface);
   --color-surface-raised: var(--surface-raised);
