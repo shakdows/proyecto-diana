@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { NavGroup } from '@/lib/auth/navigation';
-import { DianaLockup } from '@/components/brand/diana-logo';
+import { RomeroWordmark } from '@/components/brand/romero-logo';
 import { cn } from '@/lib/utils/cn';
 import { NavIcon } from './nav-icon';
 
@@ -57,8 +57,20 @@ export function Sidebar({
       className="flex h-full w-[16.5rem] shrink-0 flex-col bg-graphite-950 text-graphite-300"
     >
       <header className="shrink-0 px-5 py-5 [@media(max-height:50rem)]:py-3">
+        {/*
+          El logotipo de la EMPRESA, no el del producto. Quien usa esto todos
+          los días trabaja en Romero Motors; DIANA es la herramienta, y su
+          nombre ya está en el pie y en la pestaña del navegador.
+
+          Es el archivo oficial en su variante clara —`romero-motors-claro.png`—
+          porque la barra es grafito: el archivo normal termina el degradado en
+          negro y ahí se pierden la «O» final y «MOTORS».
+        */}
         <Link href="/" onClick={onNavigate} className="inline-flex rounded-control">
-          <DianaLockup />
+          <RomeroWordmark
+            on="dark"
+            className="h-9 w-auto [@media(max-height:50rem)]:h-8"
+          />
         </Link>
       </header>
 

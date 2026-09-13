@@ -77,3 +77,20 @@ describe('quién ve qué', () => {
     assert.deepEqual(visibleModules(ADMIN_MODULES, []), []);
   });
 });
+
+describe('el orden de la rejilla', () => {
+  it('abre por Clientes', () => {
+    assert.equal(ADMIN_MODULES[0]?.id, 'clientes');
+  });
+
+  it('la primera fila es el trabajo del día y la segunda lo que lo sostiene', () => {
+    assert.deepEqual(
+      ADMIN_MODULES.filter((m) => m.span === 3).map((m) => m.id),
+      ['clientes', 'recepcion', 'ordenes', 'taller'],
+    );
+    assert.deepEqual(
+      ADMIN_MODULES.filter((m) => m.span === 4).map((m) => m.id),
+      ['compras', 'reportes', 'configuracion'],
+    );
+  });
+});

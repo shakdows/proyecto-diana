@@ -31,14 +31,20 @@ export interface AdminModule {
 }
 
 /**
- * En el orden del recorrido del vehículo, no alfabético: entra, se abre la
- * orden, se identifica al cliente, se repara. Después lo que sostiene al
- * taller —compras, informes, configuración—.
+ * Clientes primero, y después el recorrido del vehículo: entra, se abre la
+ * orden, se repara. Al final lo que sostiene al taller —compras, informes,
+ * configuración—.
+ *
+ * El cliente abre la lista no porque sea el primer paso del proceso, sino
+ * porque es lo que más se busca: antes de recibir un vehículo se comprueba
+ * quién lo trae, y media jornada de un asesor empieza por un nombre o un
+ * teléfono. El orden de esta rejilla es el de la frecuencia de uso, no el del
+ * organigrama.
  */
 export const ADMIN_MODULES: readonly AdminModule[] = [
+  { id: 'clientes', label: 'Clientes', href: '/clientes', permission: 'customers:read', span: 3 },
   { id: 'recepcion', label: 'Recepción', href: '/recepcion', permission: 'receptions:read', span: 3 },
   { id: 'ordenes', label: 'Órdenes', href: '/ordenes', permission: 'orders:read', span: 3 },
-  { id: 'clientes', label: 'Clientes', href: '/clientes', permission: 'customers:read', span: 3 },
   { id: 'taller', label: 'Taller', href: '/taller', permission: 'repairs:read', span: 3 },
   { id: 'compras', label: 'Compras', href: '/compras', permission: 'purchases:read', span: 4 },
   { id: 'reportes', label: 'Reportes', href: '/informes', permission: 'reports:read', span: 4 },
