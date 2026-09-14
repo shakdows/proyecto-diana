@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { Panel, PanelHeader } from '@/components/ui/panel';
 import { Plate } from '@/components/ui/plate';
 import { ProgressBar } from '@/components/ui/progress-bar';
-import { StatusChip } from '@/components/ui/status-chip';
+import { LiveOrderStatusChip } from '@/components/order/live-status-chip';
 import { TrafficLightDot } from '@/components/ui/traffic-light';
 import { DataState } from '@/components/feedback/states';
 import { demoBoard, type BoardRow } from '@/features/demo/board';
@@ -58,7 +58,7 @@ export default function OrdenesPage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <StatusChip status={row.order.status} />
+                      <LiveOrderStatusChip orderId={row.order.id} status={row.order.status} />
                       <TrafficLightDot color={row.light.color} reason={row.light.reason} />
                     </div>
 

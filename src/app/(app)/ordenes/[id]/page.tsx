@@ -5,7 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CalendarDays,
-  Camera,
+  Check,
   Car,
   FileText,
   Gauge,
@@ -14,22 +14,27 @@ import {
   MapPin,
   Palette,
   Phone,
-  Plus,
   User,
   Wrench,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { AssetImage } from '@/components/ui/asset-image';
-import { Button } from '@/components/ui/button';
 import { CorporateBadge } from '@/components/ui/plate';
 import { ProgressBar } from '@/components/ui/progress-bar';
-import { StatusChip } from '@/components/ui/status-chip';
 import { TrafficLightDot } from '@/components/ui/traffic-light';
-import { OrderJourney } from '@/components/order/order-journey';
+import {
+  LiveJourney,
+  LiveStatusChip,
+  OrderActionBar,
+  OrderAdvanceHistory,
+  OrderAdvanceProvider,
+} from '@/components/order/order-advance';
+import { OrderNotes } from '@/components/order/order-notes';
+import { OrderPhotos } from '@/components/order/order-photos';
 import { factsFor, findDemoOrder, quotationTotals } from '@/features/demo/board';
 import { vocabularyFor } from '@/features/equipment/services/equipment-kind';
-import { availableActions } from '@/features/orders/services/state-machine';
 import { getSessionUser } from '@/lib/auth/session';
+import { cn } from '@/lib/utils/cn';
 import { formatCurrency, formatDateTime, formatNumber, formatTime, maskDocument } from '@/lib/utils/format';
 
 export const metadata: Metadata = { title: 'Orden de servicio' };
@@ -49,23 +54,28 @@ export default async function OrdenPage({
   const vocab = vocabularyFor(order.equipmentKind);
   const totals = quotationTotals(order.items);
 
-  /*
-   * Las acciones NO están escritas a mano en la pantalla: las calcula la
-   * máquina de estados contra el estado real y los permisos de quien mira.
-   * Una barra con «Marcar como listo» siempre visible mentiría en las seis
-   * órdenes de cada diez en las que esa transición no es legal.
-   */
-  const actions = availableActions(factsFor(order), {
-    profileId: user.profileId,
-    permissions: user.permissions,
-  });
-  const ready = actions.filter((a) => a.available);
-  const blocked = actions.filter((a) => !a.available);
-
   const ago = (minutes: number): Date => new Date(now.getTime() - minutes * 60_000);
 
   return (
-    <>
+    /*
+     * Las acciones NO están escritas a mano en la pantalla: las calcula la
+     * máquina de estados contra el estado real y los permisos de quien mira.
+     * Una barra con «Marcar como listo» siempre visible mentiría en las seis
+     * órdenes de cada diez en las que esa transición no es legal.
+     *
+     * Y AHORA HACEN ALGO. Hasta esta versión los botones eran `<button>` sin
+     * `onClick`: la pantalla sabía perfectamente cuál era el siguiente paso y
+     * no había forma de darlo. El proveedor aplica la transición, guarda el
+     * rastro y mantiene de acuerdo la insignia, el recorrido y la barra.
+     */
+    <OrderAdvanceProvider
+      orderId={order.id}
+      orderCode={order.code}
+      baseStatus={order.status}
+      baseFacts={factsFor(order)}
+      actor={{ profileId: user.profileId, permissions: user.permissions }}
+      actorName={user.fullName}
+    >
       <Link
         href="/ordenes"
         className="inline-flex items-center gap-2 text-sm font-medium text-brand-600 transition-colors hover:text-brand-700"
@@ -78,7 +88,7 @@ export default async function OrdenPage({
       <section className="rounded-panel border border-border bg-surface-raised p-6">
         <div className="flex flex-wrap items-start gap-6">
           <div className="min-w-0 flex-1">
-            <StatusChip status={order.status} />
+            <LiveStatusChip />
             <h1 className="mt-3 font-display text-3xl font-semibold tracking-tight text-fg">
               {order.code}
             </h1>
@@ -145,8 +155,7 @@ export default async function OrdenPage({
         </nav>
 
         <div className="mt-7 border-t border-border pt-6">
-          <OrderJourney
-            status={order.status}
+          <LiveJourney
             timestamps={{
               recepcion: formatTime(row.openedAt),
               ...(order.diagnosticItemCount > 0
@@ -162,59 +171,41 @@ export default async function OrdenPage({
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="min-w-0 space-y-5">
-          <QuotationPanel items={order.items} totals={totals} />
+          <QuotationPanel orderId={order.id} items={order.items} totals={totals} />
           <div className="grid gap-5 lg:grid-cols-2">
-            <PhotosPanel order={order} ago={ago} />
-            <NotesPanel order={order} ago={ago} />
+            <OrderPhotos
+              orderId={order.id}
+              serviceType={order.serviceType}
+              seeded={order.photos.map((photo) => ({
+                id: photo.id,
+                label: photo.label,
+                at: formatTime(ago(photo.minutesAgo)),
+              }))}
+            />
+            <OrderNotes
+              orderId={order.id}
+              author={user.fullName}
+              seeded={order.notes.map((note) => ({
+                id: note.id,
+                text: note.text,
+                at: ago(note.minutesAgo).getTime(),
+                author: note.author,
+              }))}
+            />
           </div>
         </div>
 
         <div className="min-w-0 space-y-5">
           <SummaryPanel row={row} totals={totals} />
+          <OrderAdvanceHistory />
           <CustomerPanel order={order} />
           <VehiclePanel order={order} vocab={vocab} />
           <QualityPanel order={order} />
         </div>
       </div>
 
-      {/* Barra de acciones. Solo lo que la máquina de estados permite AHORA. */}
-      <section className="sticky bottom-0 -mx-4 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur lg:-mx-6 lg:px-6">
-        <p className="text-xs text-fg-subtle">
-          {ready.length === 0
-            ? 'Ninguna acción disponible para tu rol en este estado.'
-            : `${ready.length} ${ready.length === 1 ? 'acción disponible' : 'acciones disponibles'} según el estado y tu rol.`}
-        </p>
-
-        <div className="flex flex-wrap gap-2">
-          {/*
-            Las bloqueadas también se muestran, deshabilitadas y diciendo QUÉ
-            falta. Ocultarlas deja al asesor preguntándose por qué no puede
-            cerrar la orden; enseñarlas con «Falta la firma del cliente» le
-            dice qué hacer a continuación.
-          */}
-          {blocked.slice(0, 2).map((action) => (
-            <Button
-              key={action.action}
-              type="button"
-              variant="secondary"
-              disabled
-              title={action.unmet.join(' · ')}
-            >
-              {action.label}
-            </Button>
-          ))}
-          {ready.slice(0, 3).map((action, index) => (
-            <Button
-              key={action.action}
-              type="button"
-              variant={index === ready.length - 1 ? 'primary' : 'secondary'}
-            >
-              {action.label}
-            </Button>
-          ))}
-        </div>
-      </section>
-    </>
+      <OrderActionBar orderId={order.id} />
+    </OrderAdvanceProvider>
   );
 }
 
@@ -259,9 +250,11 @@ function Panel({
 }
 
 function QuotationPanel({
+  orderId,
   items,
   totals,
 }: {
+  readonly orderId: string;
   readonly items: ReturnType<typeof quotationTotals> extends never ? never : readonly {
     readonly id: string;
     readonly description: string;
@@ -273,7 +266,7 @@ function QuotationPanel({
 }) {
   if (items.length === 0) {
     return (
-      <Panel title="Trabajos y repuestos">
+      <Panel title="Trabajos y repuestos" action={<QuotationLink orderId={orderId} />}>
         <p className="py-6 text-center text-sm text-fg-subtle">
           Todavía no hay trabajos cotizados. Se añaden al cerrar el diagnóstico.
         </p>
@@ -282,15 +275,7 @@ function QuotationPanel({
   }
 
   return (
-    <Panel
-      title="Trabajos y repuestos"
-      action={
-        <Button type="button" variant="secondary" size="sm">
-          <Plus aria-hidden className="size-3.5" />
-          Agregar ítem
-        </Button>
-      }
-    >
+    <Panel title="Trabajos y repuestos" action={<QuotationLink orderId={orderId} />}>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[36rem] text-sm">
           <thead>
@@ -342,87 +327,21 @@ function QuotationPanel({
   );
 }
 
-function PhotosPanel({
-  order,
-  ago,
-}: {
-  readonly order: {
-    readonly serviceType: string;
-    readonly photos: readonly { id: string; label: string; minutesAgo: number }[];
-  };
-  readonly ago: (minutes: number) => Date;
-}) {
-  // El dibujo de la evidencia se elige por el TRABAJO, no por el rótulo de la
-  // foto: «Estado inicial» no dice qué pieza hay que dibujar; «CAMBIO DE
-  // PASTILLAS» sí.
-  const orderSubject = order.serviceType;
+/**
+ * «Agregar ítem» era un botón sin `onClick`, y además no le correspondía: los
+ * ítems se añaden en la cotización, que ya existe, tiene sus reglas y deja
+ * rastro. Un segundo sitio para escribir precios habría sido un segundo sitio
+ * donde discrepar con el cliente.
+ */
+function QuotationLink({ orderId }: { readonly orderId: string }) {
   return (
-    <Panel
-      title={`Fotos del servicio (${order.photos.length})`}
-      action={
-        <Button type="button" variant="secondary" size="sm">
-          <Camera aria-hidden className="size-3.5" />
-          Subir
-        </Button>
-      }
+    <Link
+      href={`/ordenes/${orderId}/cotizacion`}
+      className="inline-flex h-8 items-center gap-1.5 rounded-control border border-border-strong bg-surface px-3 text-sm font-medium text-fg transition-colors duration-150 hover:border-brand-600 hover:bg-surface-sunken"
     >
-      {order.photos.length === 0 ? (
-        <p className="py-6 text-center text-sm text-fg-subtle">
-          Sin evidencia cargada todavía.
-        </p>
-      ) : (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {order.photos.map((photo) => (
-            <li key={photo.id}>
-              <AssetImage
-                alt={photo.label}
-                subject={`${photo.label} ${orderSubject}`}
-                kind="evidencia"
-                rounded="control"
-                className="aspect-4/3 w-full"
-              />
-              <p className="mt-1.5 truncate text-xs font-medium text-fg">{photo.label}</p>
-              <p data-numeric className="text-[0.625rem] text-fg-subtle">
-                {formatTime(ago(photo.minutesAgo))}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Panel>
-  );
-}
-
-function NotesPanel({
-  order,
-  ago,
-}: {
-  readonly order: {
-    readonly notes: readonly { id: string; text: string; minutesAgo: number; author: string }[];
-  };
-  readonly ago: (minutes: number) => Date;
-}) {
-  return (
-    <Panel title="Notas del taller">
-      {order.notes.length === 0 ? (
-        <p className="py-6 text-center text-sm text-fg-subtle">Sin notas registradas.</p>
-      ) : (
-        <ul className="space-y-3">
-          {order.notes.map((note) => (
-            <li key={note.id} className="rounded-control bg-surface-sunken p-3.5">
-              <p className="text-sm leading-relaxed text-fg-muted">{note.text}</p>
-              <p data-numeric className="mt-2 text-xs text-fg-subtle">
-                {formatDateTime(ago(note.minutesAgo))} · {note.author}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
-      <Button type="button" variant="secondary" size="sm" block className="mt-3">
-        <Plus aria-hidden className="size-3.5" />
-        Agregar nota
-      </Button>
-    </Panel>
+      Editar en la cotización
+      <ArrowRight aria-hidden className="size-3.5 text-brand-600" />
+    </Link>
   );
 }
 
@@ -558,7 +477,10 @@ function VehiclePanel({
 function QualityPanel({
   order,
 }: {
-  readonly order: { readonly qualityChecks: readonly { id: string; label: string; done: boolean }[] };
+  readonly order: {
+    readonly id: string;
+    readonly qualityChecks: readonly { id: string; label: string; done: boolean }[];
+  };
 }) {
   const done = order.qualityChecks.filter((c) => c.done).length;
 
@@ -574,17 +496,40 @@ function QualityPanel({
       <ul className="space-y-2.5">
         {order.qualityChecks.map((check) => (
           <li key={check.id} className="flex items-center gap-2.5 text-sm">
+            {/*
+              La casilla se pintaba SIEMPRE vacía: el componente contaba los
+              puntos hechos para la cabecera —«3/5»— y luego dibujaba un
+              cuadrado gris para los cinco. La cabecera y la lista decían cosas
+              distintas sobre el mismo dato, y la lista es la que se mira.
+            */}
             <span
               aria-hidden
-              className="size-4 shrink-0 rounded-[0.3rem] border-2 border-border-strong"
-            />
-            <span className="text-fg-muted">{check.label}</span>
+              className={cn(
+                'grid size-4 shrink-0 place-items-center rounded-[0.3rem] border-2',
+                check.done
+                  ? 'border-ok-600 bg-ok-600 text-white'
+                  : 'border-border-strong',
+              )}
+            >
+              {check.done && <Check className="size-3" strokeWidth={3} />}
+            </span>
+            <span className={cn('text-fg-muted', check.done && 'line-through decoration-border-strong')}>
+              {check.label}
+            </span>
+            <span className="sr-only">{check.done ? 'conforme' : 'pendiente'}</span>
           </li>
         ))}
       </ul>
       <p className="mt-3 text-xs text-fg-subtle">
         Lo marca control de calidad, no el técnico que hizo el trabajo.
       </p>
+      <Link
+        href={`/calidad/${order.id}`}
+        className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 transition-colors hover:text-brand-700"
+      >
+        Abrir control de calidad
+        <ArrowRight aria-hidden className="size-3.5" />
+      </Link>
     </Panel>
   );
 }
