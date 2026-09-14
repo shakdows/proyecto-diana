@@ -24,6 +24,20 @@ export interface ReceptionSignature {
   readonly signedAt: string;
 }
 
+/**
+ * Una corrección al acta, con su rastro.
+ *
+ * Un acta firmada que se reescribe en silencio es PEOR que no tener acta: el
+ * cliente firmó una cosa y el taller enseña otra, y el papel deja de servir
+ * justo el día que hace falta. Corregir se puede —hay errores de tecleo de
+ * verdad—, pero queda escrito qué se cambió y cuándo.
+ */
+export interface ActaCorrection {
+  readonly at: string;
+  readonly note: string;
+  readonly by: string;
+}
+
 export interface CompletedReception {
   readonly code: string;
   readonly plate: string;
@@ -38,6 +52,8 @@ export interface CompletedReception {
   readonly customerSignature: ReceptionSignature | null;
   readonly advisorName: string;
   readonly orderCode: string;
+  /** Lo que se corrigió después de cerrarla. Vacío en la mayoría. */
+  readonly corrections?: readonly ActaCorrection[];
 }
 
 /**
@@ -132,3 +148,47 @@ export function checkActa(input: {
 
 /** Un trazo con cuatro puntos no es una firma: es un dedo apoyado. */
 export const MIN_SIGNATURE_POINTS = 12;
+
+/**
+ * Aplica una corrección dejando constancia.
+ *
+ * No hay forma de cambiar un acta SIN que quede el rastro, y es a propósito:
+ * si existiera, se usaría. Lo que se puede corregir son datos de forma
+ * —el nombre de quien firmó, el vehículo mal escrito—, nunca lo que el
+ * cliente aceptó: los daños y el checklist se corrigen reabriendo la
+ * recepción, que es un acto distinto y visible.
+ */
+export function withCorrection(
+  acta: CompletedReception,
+  patch: Partial<Pick<CompletedReception, 'customer' | 'vehicle' | 'plate'>>,
+  by: string,
+  now: Date,
+): CompletedReception {
+  const cambios: string[] = [];
+  if (patch.customer !== undefined && patch.customer !== acta.customer) {
+    cambios.push(`cliente: «${acta.customer}» → «${patch.customer}»`);
+  }
+  if (patch.vehicle !== undefined && patch.vehicle !== acta.vehicle) {
+    cambios.push(`vehículo: «${acta.vehicle}» → «${patch.vehicle}»`);
+  }
+  if (patch.plate !== undefined && patch.plate !== acta.plate) {
+    cambios.push(`placa: «${acta.plate}» → «${patch.plate}»`);
+  }
+  /* Sin cambios reales no se escribe una corrección: un historial lleno de
+     «no cambió nada» esconde las que sí importan. */
+  if (cambios.length === 0) return acta;
+
+  return {
+    ...acta,
+    ...patch,
+    corrections: [
+      ...(acta.corrections ?? []),
+      { at: now.toISOString(), note: cambios.join('; '), by },
+    ],
+  };
+}
+
+/** Si el acta se tocó después de firmarse. Lo enseña la propia acta. */
+export function wasCorrected(acta: CompletedReception): boolean {
+  return (acta.corrections ?? []).length > 0;
+}

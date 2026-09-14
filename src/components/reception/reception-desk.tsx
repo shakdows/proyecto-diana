@@ -461,5 +461,6 @@ function cerradasHoy(
       checklistDone: r.checklistResolved,
       checklistTotal: r.checklistTotal,
       orderCode: r.orderCode,
+      actaCode: r.code,
     }));
 }

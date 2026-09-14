@@ -113,6 +113,14 @@ export interface TodayIntake {
   readonly checklistDone: number;
   readonly checklistTotal: number;
   readonly orderCode: string;
+  /**
+   * El acta, cuando la recepción se cerró en esta demostración.
+   *
+   * Las sembradas no la tienen: se derivan de órdenes que ya venían abiertas
+   * y nunca pasaron por el recorrido de recepción, así que no hay acta que
+   * enseñar.
+   */
+  readonly actaCode?: string;
 }
 
 export const STAGE_LABELS: Readonly<Record<IntakeStage, string>> = {

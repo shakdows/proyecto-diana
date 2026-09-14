@@ -3,6 +3,8 @@ import { describe, it } from 'node:test';
 
 import {
   checkActa,
+  wasCorrected,
+  withCorrection,
   nextSequence,
   orderCodeFor,
   receptionCode,
@@ -87,5 +89,45 @@ describe('el acta de recepción', () => {
       assert.match(r.warnings[0] ?? '', /^Hay un daño/);
       assert.match(r.warnings[1] ?? '', /^Falta una toma/);
     });
+  });
+});
+
+describe('corregir un acta ya cerrada', () => {
+  const acta = rec('REC-2026-0001');
+  const AYER = new Date('2026-09-13T10:00:00Z');
+
+  /*
+   * ESTA es la regla que justifica que corregir no sea simplemente editar.
+   *
+   * Un acta firmada que se reescribe en silencio es PEOR que no tener acta:
+   * el cliente firmó una cosa y el taller enseña otra, y el papel deja de
+   * servir justo el día que hace falta. Corregir se puede —hay errores de
+   * tecleo de verdad—, pero queda escrito qué se cambió y cuándo.
+   */
+  it('deja rastro de lo que cambió', () => {
+    const r = withCorrection(acta, { customer: 'Juan Pérez García' }, 'Ricardo', AYER);
+    assert.equal(r.customer, 'Juan Pérez García');
+    assert.equal(r.corrections?.length, 1);
+    assert.match(r.corrections?.[0]?.note ?? '', /«Juan Pérez» → «Juan Pérez García»/);
+    assert.equal(r.corrections?.[0]?.by, 'Ricardo');
+    assert.equal(wasCorrected(r), true);
+  });
+
+  it('acumula correcciones en vez de pisar la anterior', () => {
+    const uno = withCorrection(acta, { customer: 'A' }, 'Ricardo', AYER);
+    const dos = withCorrection(uno, { plate: 'XYZ789' }, 'Ana', AYER);
+    assert.equal(dos.corrections?.length, 2);
+    assert.match(dos.corrections?.[1]?.note ?? '', /placa/);
+  });
+
+  it('sin cambios reales no escribe una corrección', () => {
+    // Un historial lleno de «no cambió nada» esconde las que sí importan.
+    const r = withCorrection(acta, { customer: acta.customer }, 'Ricardo', AYER);
+    assert.equal(wasCorrected(r), false);
+    assert.equal(r, acta);
+  });
+
+  it('un acta sin tocar no sale como corregida', () => {
+    assert.equal(wasCorrected(acta), false);
   });
 });

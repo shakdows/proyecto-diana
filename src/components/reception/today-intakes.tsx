@@ -71,7 +71,20 @@ const TONE: Readonly<Record<IntakeStage, string>> = {
 
 function IntakeRow({ intake, now }: { readonly intake: TodayIntake; readonly now: Date }) {
   const generada = intake.stage === 'orden_generada';
-  const href = generada ? `/ordenes/${intake.orderId}` : '/recepcion/nueva/checklist';
+  /*
+   * La fila de una recepción CERRADA AQUÍ lleva a su acta, no a la orden.
+   *
+   * Llevaba a `/ordenes/OT-2026-0001` y eso era un 404: sin base de datos esa
+   * orden no existe en ninguna parte, y era yo quien puse ese enlace. El acta
+   * sí existe —está en este navegador— y además es lo que se busca al pulsar:
+   * qué se anotó, qué fotos hay y quién firmó.
+   */
+  const href =
+    intake.actaCode !== undefined
+      ? `/recepcion/acta/${encodeURIComponent(intake.actaCode)}`
+      : generada
+        ? `/ordenes/${intake.orderId}`
+        : '/recepcion/nueva/checklist';
 
   return (
     <Link

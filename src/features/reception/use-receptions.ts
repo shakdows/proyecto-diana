@@ -2,7 +2,13 @@
 
 import { useCallback, useMemo } from 'react';
 import { usePersistentStateChecked } from '@/lib/demo/store';
-import { nextSequence, orderCodeFor, receptionCode, type CompletedReception } from './services/acta';
+import {
+  nextSequence,
+  orderCodeFor,
+  receptionCode,
+  withCorrection,
+  type CompletedReception,
+} from './services/acta';
 
 const RANURA = 'recepciones.cerradas';
 const NINGUNA: readonly CompletedReception[] = [];
@@ -27,6 +33,14 @@ export function useReceptions(): {
   /** Devuelve el acta cerrada, o `null` si no cupo en el navegador. */
   readonly close: (
     data: Omit<CompletedReception, 'code' | 'orderCode' | 'closedAt'>,
+    now: Date,
+  ) => CompletedReception | null;
+  readonly find: (code: string) => CompletedReception | undefined;
+  /** Corrige dejando rastro. Devuelve el acta corregida, o `null` si no cupo. */
+  readonly correct: (
+    code: string,
+    patch: Partial<Pick<CompletedReception, 'customer' | 'vehicle' | 'plate'>>,
+    by: string,
     now: Date,
   ) => CompletedReception | null;
 } {
@@ -57,5 +71,29 @@ export function useReceptions(): {
     [receptions, setReceptions],
   );
 
-  return useMemo(() => ({ receptions, close }), [receptions, close]);
+  const find = useCallback(
+    (code: string): CompletedReception | undefined => receptions.find((r) => r.code === code),
+    [receptions],
+  );
+
+  const correct = useCallback(
+    (
+      code: string,
+      patch: Partial<Pick<CompletedReception, 'customer' | 'vehicle' | 'plate'>>,
+      by: string,
+      now: Date,
+    ): CompletedReception | null => {
+      const actual = receptions.find((r) => r.code === code);
+      if (actual === undefined) return null;
+      const corregida = withCorrection(actual, patch, by, now);
+      const ok = setReceptions((prev) => prev.map((r) => (r.code === code ? corregida : r)));
+      return ok ? corregida : null;
+    },
+    [receptions, setReceptions],
+  );
+
+  return useMemo(
+    () => ({ receptions, close, find, correct }),
+    [receptions, close, find, correct],
+  );
 }
