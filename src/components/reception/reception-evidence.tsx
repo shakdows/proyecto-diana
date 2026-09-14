@@ -101,16 +101,17 @@ export function ReceptionEvidence({
             en el último paso es exactamente lo que hizo dudar de toda la
             recepción la vez anterior.
           */}
-          <span
+          <Link
+            href="/recepcion/nueva/firma"
             className={cn(
-              'inline-flex h-11 cursor-not-allowed items-center gap-2 rounded-control',
-              'bg-surface-sunken px-4 text-sm font-semibold text-fg-subtle',
+              'inline-flex h-11 items-center gap-2 rounded-control px-4 text-sm font-semibold',
+              'bg-brand-600 text-white transition-colors duration-150 hover:bg-brand-700',
+              'active:scale-[0.98]',
             )}
-            title="La pantalla de firma todavía no está construida."
           >
-            Firma · en construcción
+            Continuar a firma
             <ArrowRight aria-hidden className="size-4" />
-          </span>
+          </Link>
         </div>
       </section>
     </>

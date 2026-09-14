@@ -32,7 +32,9 @@ import { formatNumber } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
 import { TodayIntakes } from './today-intakes';
 import type { TodayIntake } from '@/features/reception/services/intake';
+import type { CompletedReception } from '@/features/reception/services/acta';
 import { searchPeople } from '@/features/reception/services/people';
+import { useReceptions } from '@/features/reception/use-receptions';
 
 /**
  * La puerta del taller.
@@ -72,6 +74,9 @@ export function ReceptionDesk({
   /* La misma cartera que ve el directorio, con lo creado en el navegador
      incluido: un cliente dado de alta aquí tiene que encontrarse aquí. */
   const { customers, add } = useAllCustomers(seeded);
+  /* Las recepciones cerradas en este navegador van DELANTE de las sembradas:
+     la que uno acaba de cerrar es la que viene a buscar. */
+  const { receptions } = useReceptions();
   const [query, setQuery] = useState('');
   const [settled, setSettled] = useState('');
   const [modalCliente, setModalCliente] = useState(false);
@@ -223,7 +228,7 @@ export function ReceptionDesk({
         </div>
       </section>
 
-      <TodayIntakes intakes={intakes} now={now} />
+      <TodayIntakes intakes={[...cerradasHoy(receptions, now), ...intakes]} now={now} />
 
       <NewCustomerModal
         open={modalCliente}
@@ -417,4 +422,44 @@ function PersonCard({ customer }: { readonly customer: DemoCustomer }) {
       <ChevronRight aria-hidden className="size-4 shrink-0 text-fg-subtle" />
     </Link>
   );
+}
+
+/**
+ * Las recepciones cerradas hoy, con la forma de la lista.
+ *
+ * Sin esto, cerrar una recepción no dejaba ni rastro en la pantalla donde uno
+ * va a buscarla: se veía el acta una vez y luego desaparecía. Un recorrido que
+ * termina y no cambia nada es indistinguible de uno que no funcionó.
+ */
+function cerradasHoy(
+  receptions: readonly CompletedReception[],
+  now: Date,
+): readonly TodayIntake[] {
+  const mismoDia = (iso: string): boolean => {
+    const d = new Date(iso);
+    return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()
+    );
+  };
+
+  return receptions
+    .filter((r) => mismoDia(r.closedAt))
+    .map((r) => ({
+      orderId: r.orderCode,
+      plate: r.plate,
+      vehicle: r.vehicle,
+      customer: r.customer,
+      corporateClient: null,
+      equipmentKind: 'vehiculo' as const,
+      arrivedMinutesAgo: Math.max(
+        0,
+        Math.round((now.getTime() - Date.parse(r.closedAt)) / 60_000),
+      ),
+      stage: 'orden_generada' as const,
+      checklistDone: r.checklistResolved,
+      checklistTotal: r.checklistTotal,
+      orderCode: r.orderCode,
+    }));
 }
