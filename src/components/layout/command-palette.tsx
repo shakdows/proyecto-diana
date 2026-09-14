@@ -6,6 +6,7 @@ import { CornerDownLeft, Search } from 'lucide-react';
 import { Plate } from '@/components/ui/plate';
 import type { DemoCustomer } from '@/features/customers/demo';
 import { customerTargets } from '@/features/customers/services/targets';
+import { useReceptionTargets } from '@/features/orders/use-reception-targets';
 import { useAllCustomers } from '@/features/customers/use-created';
 import { cn } from '@/lib/utils/cn';
 
@@ -97,9 +98,16 @@ export function CommandPalette({
     return () => node.removeEventListener('close', onClose);
   }, []);
 
+  /*
+   * Las órdenes recibidas en este navegador también se buscan. Sin esto, el
+   * buscador prometía «orden» y solo encontraba las sembradas: quien acababa
+   * de recibir un vehículo tecleaba su placa y no salía nada.
+   */
+  const recibidas = useReceptionTargets();
+
   const todos = useMemo(
-    () => [...targets, ...customerTargets(customers)],
-    [targets, customers],
+    () => [...recibidas, ...targets, ...customerTargets(customers)],
+    [recibidas, targets, customers],
   );
 
   const results = useMemo(() => {

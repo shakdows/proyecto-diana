@@ -10,6 +10,7 @@ import {
   type TodayIntake,
 } from '@/features/reception/services/intake';
 import { formatTime } from '@/lib/utils/format';
+import { orderIdForReception } from '@/features/orders/services/from-reception';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -86,11 +87,24 @@ function IntakeRow({ intake, now }: { readonly intake: TodayIntake; readonly now
         ? `/ordenes/${intake.orderId}`
         : '/recepcion/nueva/checklist';
 
+  /*
+   * Una recepción cerrada AQUÍ produce dos cosas y hacen falta las dos: el
+   * acta —qué se anotó, qué fotos hay, quién firmó— y la orden, que es donde
+   * el vehículo sigue avanzando. Con un solo enlace había que volver al menú
+   * y buscar la orden a mano justo después de crearla.
+   */
+  const orderHref =
+    intake.actaCode === undefined
+      ? null
+      : `/ordenes/${orderIdForReception(intake.actaCode)}`;
+
   return (
-    <Link
-      href={href}
-      className="@container flex items-center gap-3 rounded-panel border border-border bg-surface-raised px-4 py-3 transition-shadow duration-150 ease-snap hover:shadow-panel"
-    >
+    <div className="@container relative flex items-center gap-3 rounded-panel border border-border bg-surface-raised px-4 py-3 transition-shadow duration-150 ease-snap hover:shadow-panel">
+      <Link
+        href={href}
+        className="absolute inset-0 rounded-panel"
+        aria-label={`Abrir ${formatPlate(intake.plate)}`}
+      />
       <AssetImage
         alt={intake.vehicle}
         subject={intake.vehicle}
@@ -100,7 +114,7 @@ function IntakeRow({ intake, now }: { readonly intake: TodayIntake; readonly now
         className="h-11 w-14 shrink-0"
       />
 
-      <span className="min-w-0 flex-1">
+      <span className="pointer-events-none min-w-0 flex-1">
         <span className="flex flex-wrap items-baseline gap-x-2">
           <span className="font-mono text-xs font-bold tracking-[0.06em] text-fg">
             {formatPlate(intake.plate)}
@@ -145,7 +159,17 @@ function IntakeRow({ intake, now }: { readonly intake: TodayIntake; readonly now
         {STAGE_LABELS[intake.stage]}
       </span>
 
-      <ArrowRight aria-hidden className="size-4 shrink-0 text-fg-subtle" />
-    </Link>
+      {orderHref === null ? (
+        <ArrowRight aria-hidden className="size-4 shrink-0 text-fg-subtle" />
+      ) : (
+        <Link
+          href={orderHref}
+          className="relative z-10 inline-flex shrink-0 items-center gap-1 rounded-control border border-border-strong bg-surface px-2.5 py-1.5 text-xs font-semibold text-fg transition-colors duration-150 hover:border-brand-600 hover:bg-surface-sunken"
+        >
+          Orden
+          <ArrowRight aria-hidden className="size-3 text-brand-600" />
+        </Link>
+      )}
+    </div>
   );
 }

@@ -30,9 +30,11 @@ import {
   OrderAdvanceProvider,
 } from '@/components/order/order-advance';
 import { OrderNotes } from '@/components/order/order-notes';
+import { ReceptionOrderScreen } from '@/components/order/reception-order-screen';
 import { OrderPhotos } from '@/components/order/order-photos';
 import { factsFor, findDemoOrder, quotationTotals } from '@/features/demo/board';
 import { vocabularyFor } from '@/features/equipment/services/equipment-kind';
+import { isReceptionOrderId } from '@/features/orders/services/from-reception';
 import { getSessionUser } from '@/lib/auth/session';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency, formatDateTime, formatNumber, formatTime, maskDocument } from '@/lib/utils/format';
@@ -47,10 +49,27 @@ export default async function OrdenPage({
   const { id } = await params;
   const now = new Date();
   const row = findDemoOrder(id, now);
-  if (row === undefined) notFound();
+  const user = await getSessionUser();
+
+  /*
+   * Las órdenes que abre la recepción viven en el navegador de quien la
+   * cerró, así que el servidor no las tiene y `findDemoOrder` no las
+   * encuentra. Antes eso era un 404: se recibía un vehículo, se firmaba el
+   * acta, se emitía el código de la orden… y la orden daba «no encontrado».
+   */
+  if (row === undefined) {
+    if (!isReceptionOrderId(id)) notFound();
+    return (
+      <ReceptionOrderScreen
+        orderId={id}
+        profileId={user.profileId}
+        permissions={user.permissions}
+        actorName={user.fullName}
+      />
+    );
+  }
 
   const { order } = row;
-  const user = await getSessionUser();
   const vocab = vocabularyFor(order.equipmentKind);
   const totals = quotationTotals(order.items);
 

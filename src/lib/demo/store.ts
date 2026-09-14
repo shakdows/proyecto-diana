@@ -221,6 +221,19 @@ export function useSavedSummary(): StoredSummary {
   );
 }
 
+/**
+ * Leer una ranura una sola vez, fuera de un hook.
+ *
+ * Lo necesita quien tiene que leer N ranuras cuyo número cambia —una por
+ * orden recibida, por ejemplo—: un hook por fila rompería la regla de los
+ * hooks en cuanto la lista creciera. No es reactivo a propósito; quien lo usa
+ * ya se suscribe a otra cosa que cambia con él.
+ */
+export function readSlot<T>(slot: string): T | null {
+  if (typeof window === 'undefined') return null;
+  return unwrap<T>(readRaw(keyFor(slot)));
+}
+
 /** Qué hay guardado ahora mismo, para poder decir qué se va a borrar. */
 export function readSummary(): StoredSummary {
   const entries: (readonly [string, string])[] = [];

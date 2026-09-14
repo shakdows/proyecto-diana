@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { NavGroup } from '@/lib/auth/navigation';
+import { useReceptionOrderCount } from '@/features/orders/use-reception-targets';
 import { RomeroWordmark } from '@/components/brand/romero-logo';
 import { cn } from '@/lib/utils/cn';
 import { NavIcon } from './nav-icon';
@@ -51,6 +52,14 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
 
+  /*
+   * El contador de Órdenes lo calcula el servidor sobre los datos sembrados,
+   * que no incluyen las órdenes abiertas por una recepción —viven en este
+   * navegador—. Sin esto, el menú decía «9» mientras la lista enseñaba diez,
+   * que es la clase de detalle que hace desconfiar del resto.
+   */
+  const recibidas = useReceptionOrderCount();
+
   return (
     <nav
       aria-label="Navegación principal"
@@ -86,7 +95,9 @@ export function Sidebar({
           >
             {group.items.map((item) => {
               const active = isActive(pathname, item.href);
-              const badge = badges[item.href];
+              const base = badges[item.href];
+              const badge =
+                item.href === '/ordenes' && base !== undefined ? base + recibidas : base;
 
               return (
                 <li key={item.href}>
