@@ -5,7 +5,15 @@ import type { JobStep } from '@/features/repairs/services/job-steps';
 import type { OrderFacts } from './state-machine';
 import { canTransition } from './state-machine';
 import { PERMISSIONS } from '@/lib/auth/permissions';
-import { benchHasWork, benchPhrase, benchSlots, withBenchFacts, type BenchState } from './bench-facts';
+import {
+  benchHasWork,
+  benchPhrase,
+  benchSlots,
+  handoverSlot,
+  withBenchFacts,
+  withHandoverFacts,
+  type BenchState,
+} from './bench-facts';
 
 const sembrado: OrderFacts = {
   status: 'EN_REPARACION',
@@ -169,5 +177,28 @@ describe('la foto de la orden también es evidencia', () => {
     assert.equal(benchPhrase(bench({ evidenceCount: 2 }), 1), '5 de 5 trabajos · 3 fotos');
     assert.equal(benchPhrase(bench({ evidenceCount: 0 }), 1), '5 de 5 trabajos · 1 foto');
     assert.equal(benchPhrase(bench({ evidenceCount: 0 }), 0), '5 de 5 trabajos · sin evidencia');
+  });
+});
+
+describe('la firma del acta de entrega', () => {
+  const actor = { profileId: 'tec-1', permissions: PERMISSIONS };
+  const listo: OrderFacts = { ...sembrado, status: 'LISTO_PARA_ENTREGA' };
+
+  it('sin firma, el vehículo no sale', () => {
+    const check = canTransition(listo, 'entregar', actor);
+    assert.equal(check.allowed, false);
+  });
+
+  it('firmada en la pantalla de entrega, sí', () => {
+    assert.equal(canTransition(withHandoverFacts(listo, true), 'entregar', actor).allowed, true);
+  });
+
+  it('no toca nada más ni cuando no hay firma', () => {
+    assert.equal(withHandoverFacts(listo, false), listo);
+    assert.equal(withHandoverFacts(listo, true).hasOpenTasks, false);
+  });
+
+  it('la ranura es la que escribe la pantalla de entrega', () => {
+    assert.equal(handoverSlot('os-154'), 'entrega.os-154');
   });
 });

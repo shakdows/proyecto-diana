@@ -98,6 +98,31 @@ export function withBenchFacts(
   };
 }
 
+/* ------------------------------------------------------------------ *
+ * Entrega
+ * ------------------------------------------------------------------ */
+
+/** Dónde guarda la pantalla de entrega su acta. */
+export function handoverSlot(orderId: string): string {
+  return `entrega.${orderId}`;
+}
+
+/**
+ * La firma del acta de entrega, que vive en la pantalla de entrega.
+ *
+ * El mismo desencuentro que con la bahía, en el último paso del recorrido:
+ * `factsFor` declara `deliveryActSigned: false` siempre, así que «Registrar
+ * entrega» quedaba bloqueado PARA SIEMPRE con «Falta la firma del acta de
+ * entrega», incluso después de firmarla. El vehículo no podía salir nunca.
+ *
+ * Solo toca ese hecho. Lo demás —que el saldo esté cubierto, que las llaves
+ * vuelvan— lo comprueba la propia pantalla de entrega, que es la que tiene
+ * los datos.
+ */
+export function withHandoverFacts(facts: OrderFacts, signed: boolean): OrderFacts {
+  return signed && !facts.deliveryActSigned ? { ...facts, deliveryActSigned: true } : facts;
+}
+
 /** ¿Hay algo guardado por la bahía que merezca pisar lo sembrado? */
 export function benchHasWork(bench: BenchState | null): boolean {
   return bench !== null && bench.steps.length > 0;

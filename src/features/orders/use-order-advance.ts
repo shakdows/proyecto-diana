@@ -15,7 +15,13 @@ import {
   type AdvanceResult,
   type OrderAdvance,
 } from './services/advance';
-import { benchSlots, withBenchFacts, type BenchState } from './services/bench-facts';
+import {
+  benchSlots,
+  handoverSlot,
+  withBenchFacts,
+  withHandoverFacts,
+  type BenchState,
+} from './services/bench-facts';
 import type { Actor, OrderAction, OrderFacts } from './services/state-machine';
 
 /*
@@ -81,6 +87,16 @@ export function useOrderAdvance({
    */
   const orderPhotos = usePhotoCount(`orden-${orderId}`);
 
+  /*
+   * La firma del acta la guarda la pantalla de entrega. Sin leerla, «Registrar
+   * entrega» pedía una firma que ya estaba hecha y el vehículo no salía nunca.
+   */
+  const [handover] = usePersistentState<unknown>(handoverSlot(orderId), null);
+  const signed =
+    typeof handover === 'object' &&
+    handover !== null &&
+    (handover as Record<string, unknown>).signatureCaptured === true;
+
   const [stored, setStored] = usePersistentState<unknown>(advanceSlot(orderId), null);
 
   /*
@@ -93,16 +109,18 @@ export function useOrderAdvance({
     [baseStatus, stored],
   );
 
-  const facts = useMemo(
-    () => factsAt(withBenchFacts(baseFacts, bench, orderPhotos), advance),
-    [baseFacts, bench, orderPhotos, advance],
+  const live = useMemo(
+    () => withHandoverFacts(withBenchFacts(baseFacts, bench, orderPhotos), signed),
+    [baseFacts, bench, orderPhotos, signed],
   );
+
+  const facts = useMemo(() => factsAt(live, advance), [live, advance]);
 
   const run = useCallback(
     (action: OrderAction): AdvanceResult => {
       const result = applyAction(
         advance,
-        withBenchFacts(baseFacts, bench, orderPhotos),
+        live,
         action,
         actor,
         actorName,
@@ -111,7 +129,7 @@ export function useOrderAdvance({
       if (result.ok) setStored(result.advance);
       return result;
     },
-    [advance, baseFacts, bench, orderPhotos, actor, actorName, setStored],
+    [advance, live, actor, actorName, setStored],
   );
 
   const undo = useCallback(() => {
