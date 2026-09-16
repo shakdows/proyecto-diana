@@ -12,6 +12,12 @@ import { useChecklistState } from '@/features/reception/use-checklist-state';
 import { useReceptions } from '@/features/reception/use-receptions';
 import { usePersistentState } from '@/lib/demo/store';
 import { cn } from '@/lib/utils/cn';
+import {
+  damageSlot,
+  partPhotoAnchor,
+  signatureSlot,
+  signerSlot,
+} from '@/features/reception/services/slots';
 
 /** Las mismas seis tomas del paso 5. Si cambian allí, cambian aquí. */
 const TOMAS = ['frontal', 'trasera', 'lateral-izquierdo', 'lateral-derecho', 'tablero', 'interior'];
@@ -44,9 +50,9 @@ export function ReceptionConfirmation({
   readonly customer: string;
   readonly advisorName: string;
 }) {
-  const [damage] = usePersistentState<readonly DamageMark[]>(`recepcion.${plate}.danos`, SIN_DANOS);
-  const [firma] = usePersistentState<string | null>(`recepcion.${plate}.firma`, null);
-  const [firmante] = usePersistentState(`recepcion.${plate}.firmante`, customer);
+  const [damage] = usePersistentState<readonly DamageMark[]>(damageSlot(plate), SIN_DANOS);
+  const [firma] = usePersistentState<string | null>(signatureSlot(plate), null);
+  const [firmante] = usePersistentState(signerSlot(plate), customer);
   const checklist = useChecklistState();
   const { close } = useReceptions();
 
@@ -65,7 +71,7 @@ export function ReceptionConfirmation({
     label: zone.label,
     marcada: damage.some((m) => m.zone === zone.id),
     // eslint-disable-next-line react-hooks/rules-of-hooks -- ZONES es constante
-    photos: usePhotoCount(`danos:${plate}:${zone.id}`),
+    photos: usePhotoCount(partPhotoAnchor(plate, zone.id)),
   }));
   // eslint-disable-next-line react-hooks/rules-of-hooks -- TOMAS es constante
   const tomas = TOMAS.map((t) => usePhotoCount(`recepcion:${plate}:${t}`));

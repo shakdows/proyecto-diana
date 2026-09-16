@@ -30,7 +30,8 @@ import { cn } from '@/lib/utils/cn';
 
 const VIEWBOX: Readonly<Record<ViewId, string>> = {
   superior: '0 0 220 460',
-  lateral: '0 0 420 200',
+  'lateral-i': '0 0 420 200',
+  'lateral-d': '0 0 420 200',
   frontal: '0 0 300 220',
   posterior: '0 0 300 220',
   interior: '0 0 340 220',
@@ -70,7 +71,16 @@ export function InspectionArt({
       </defs>
 
       {view === 'superior' && <Superior body={body} />}
-      {view === 'lateral' && <Lateral body={body} />}
+      {/*
+        El costado derecho es el mismo dibujo visto desde el otro lado: se
+        espeja. Dibujar dos siluetas casi idénticas garantiza que dentro de un
+        mes se corrija una y no la otra.
+      */}
+      {(view === 'lateral-i' || view === 'lateral-d') && (
+        <g transform={view === 'lateral-d' ? 'translate(420,0) scale(-1,1)' : undefined}>
+          <Lateral body={body} />
+        </g>
+      )}
       {view === 'frontal' && <Frontal body={body} />}
       {view === 'posterior' && <Posterior body={body} />}
       {view === 'interior' && <Interior />}
@@ -135,7 +145,7 @@ function Superior({ body }: { readonly body: BodyStyle }) {
  * ------------------------------------------------------------------ */
 
 function Lateral({ body }: { readonly body: BodyStyle }) {
-  const v: ViewId = 'lateral';
+  const v: ViewId = 'lateral-i';
 
   const perfil =
     body === 'pickup'

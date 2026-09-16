@@ -9,6 +9,9 @@ import type { DamageMark } from '@/features/reception/services/damage-map';
 import { buildHotspots, damagePhotoAnchor } from '@/features/inspection/services/from-damage';
 import { allSpotIds } from '@/features/inspection/services/placement';
 import { VehicleInspectionViewer } from './vehicle-inspection-viewer';
+import {
+  damageSlot,
+} from '@/features/reception/services/slots';
 
 const SIN_DANOS: readonly DamageMark[] = [];
 
@@ -40,7 +43,7 @@ export function OrderInspection({
   readonly reviewed: boolean;
 }) {
   const [damage] = usePersistentState<readonly DamageMark[]>(
-    `recepcion.${plate}.danos`,
+    damageSlot(plate),
     SIN_DANOS,
   );
   const hydrated = useHydrated();

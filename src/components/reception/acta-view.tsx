@@ -27,6 +27,10 @@ import { checkDeleteCode } from '@/lib/auth/confirm-code';
 import { usePersistentState, useHydrated } from '@/lib/demo/store';
 import { formatPlate } from '@/features/vehicles/services/vehicle';
 import { cn } from '@/lib/utils/cn';
+import {
+  damageSlot,
+  partPhotoAnchor,
+} from '@/features/reception/services/slots';
 
 const TOMAS: readonly { id: string; label: string }[] = [
   { id: 'frontal', label: 'Frontal' },
@@ -240,7 +244,7 @@ function Volver() {
 /** Los daños tal como se marcaron, con su foto si la tienen. */
 function Danos({ plate }: { readonly plate: string }) {
   const [marks] = usePersistentState<readonly { zone: string; kind: string }[]>(
-    `recepcion.${plate}.danos`,
+    damageSlot(plate),
     SIN_DANOS,
   );
 
@@ -274,7 +278,7 @@ function Danos({ plate }: { readonly plate: string }) {
 
 function ZonaConFotos({ plate, zone }: { readonly plate: string; readonly zone: string }) {
   const [fotos] = usePersistentState<readonly EvidencePhoto[]>(
-    slotFor(`danos:${plate}:${zone}`),
+    slotFor(partPhotoAnchor(plate, zone)),
     SIN_FOTOS,
   );
   const conocida = ZONES.some((z) => z.id === zone);

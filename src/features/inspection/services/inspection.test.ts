@@ -25,21 +25,51 @@ import { PLACEMENTS, allSpotIds, labelOf, placementsForView, viewsShowing } from
 import { buildHotspots, damagePhotoAnchor, statusForDamage } from './from-damage';
 
 describe('las vistas', () => {
-  it('son cinco y la primera es el plano general', () => {
-    assert.equal(VIEWS.length, 5);
+  it('son seis: el plano general, el frente, los DOS costados, la cola y el interior', () => {
+    assert.equal(VIEWS.length, 6);
     assert.equal(DEFAULT_VIEW, 'superior');
     assert.equal(VIEW_IDS[0], 'superior');
+    assert.ok(VIEW_IDS.includes('lateral-i'));
+    assert.ok(VIEW_IDS.includes('lateral-d'));
   });
 
   it('se recorren en círculo con el teclado', () => {
     assert.equal(nextView('superior', -1), 'interior');
     assert.equal(nextView('interior', 1), 'superior');
-    assert.equal(nextView('superior', 1), 'lateral');
+    assert.equal(nextView('superior', 1), 'frontal');
   });
 
   it('reconoce lo que es una vista y lo que no', () => {
-    assert.equal(isViewId('lateral'), true);
+    assert.equal(isViewId('lateral-d'), true);
+    assert.equal(isViewId('lateral'), false, 'el lateral suelto dejó de existir');
     assert.equal(isViewId('cenital'), false);
+  });
+
+  it('las cuatro piezas del lado derecho se pueden tocar sin ir al plano superior', () => {
+    // Antes solo existía un costado y la puerta derecha únicamente se podía
+    // marcar desde arriba, que es donde peor se aprecia un golpe lateral.
+    const derecha = placementsForView('lateral-d').map((p) => p.id);
+    for (const id of ['aleta-dd', 'puerta-dd', 'puerta-td', 'aleta-td']) {
+      assert.ok(derecha.includes(id), `falta «${id}» en el costado derecho`);
+    }
+  });
+
+  it('el costado derecho es el izquierdo espejado, pieza por pieza', () => {
+    const izq = placementsForView('lateral-i');
+    const der = placementsForView('lateral-d');
+    assert.equal(izq.length, der.length);
+    for (const i of izq) {
+      const opuesto = der.find((d) => Math.abs(d.x - (100 - i.x)) < 0.01 && d.y === i.y);
+      assert.ok(opuesto !== undefined, `«${i.id}» no tiene pareja en el otro costado`);
+    }
+  });
+
+  it('las piezas centrales son las MISMAS desde los dos costados', () => {
+    // El capó no se convierte en «capó derecho» al mirarlo desde el otro lado.
+    for (const id of ['capo', 'techo', 'porton', 'parabrisas']) {
+      assert.ok(placementsForView('lateral-i').some((p) => p.id === id), id);
+      assert.ok(placementsForView('lateral-d').some((p) => p.id === id), id);
+    }
   });
 
   it('cada vista dice qué se comprueba desde ella', () => {
@@ -145,7 +175,12 @@ describe('dónde se pinta cada punto', () => {
   });
 
   it('un punto que sale en dos vistas lo dice', () => {
-    assert.deepEqual([...viewsShowing('capo')].sort(), ['frontal', 'lateral', 'superior']);
+    assert.deepEqual([...viewsShowing('capo')].sort(), [
+      'frontal',
+      'lateral-d',
+      'lateral-i',
+      'superior',
+    ]);
     assert.deepEqual(viewsShowing('tablero'), ['interior']);
     assert.deepEqual(viewsShowing('inventado'), []);
   });
@@ -193,7 +228,7 @@ describe('traducir lo que anotó la recepción', () => {
   it('la misma zona en dos vistas cuenta la MISMA historia', () => {
     const puntos = buildHotspots({ damage: [rayon], reviewed: true });
     const capo = puntos.filter((h) => h.id === 'capo');
-    assert.equal(capo.length, 3, 'el capó se ve desde arriba, de lado y de frente');
+    assert.equal(capo.length, 4, 'el capó se ve desde arriba, de frente y por los dos costados');
     assert.equal(new Set(capo.map((h) => h.status)).size, 1);
     assert.equal(new Set(capo.map((h) => h.note)).size, 1);
   });
@@ -262,8 +297,8 @@ describe('resumen y reparto', () => {
   const puntos: readonly Hotspot[] = [
     { id: 'a', view: 'superior', x: 1, y: 1, label: 'A', status: 'problema' },
     { id: 'b', view: 'superior', x: 2, y: 2, label: 'B', status: 'revisar' },
-    { id: 'c', view: 'lateral', x: 3, y: 3, label: 'C', status: 'ok' },
-    { id: 'd', view: 'lateral', x: 4, y: 4, label: 'D', status: 'pendiente' },
+    { id: 'c', view: 'lateral-i', x: 3, y: 3, label: 'C', status: 'ok' },
+    { id: 'd', view: 'lateral-i', x: 4, y: 4, label: 'D', status: 'pendiente' },
   ];
 
   it('cuenta lo que importa y separa lo revisado de lo pendiente', () => {
@@ -276,7 +311,7 @@ describe('resumen y reparto', () => {
     // capó rayado salía como «3 por revisar», que asusta y es falso.
     const capo: readonly Hotspot[] = [
       { id: 'capo', view: 'superior', x: 1, y: 1, label: 'Capó', status: 'revisar' },
-      { id: 'capo', view: 'lateral', x: 2, y: 2, label: 'Capó', status: 'revisar' },
+      { id: 'capo', view: 'lateral-i', x: 2, y: 2, label: 'Capó', status: 'revisar' },
       { id: 'capo', view: 'frontal', x: 3, y: 3, label: 'Capó', status: 'revisar' },
     ];
     assert.deepEqual(summarize(capo), {
@@ -318,7 +353,7 @@ describe('resumen y reparto', () => {
   });
 
   it('filtra por vista', () => {
-    assert.equal(hotspotsForView(puntos, 'lateral').length, 2);
+    assert.equal(hotspotsForView(puntos, 'lateral-i').length, 2);
     assert.equal(hotspotsForView(puntos, 'interior').length, 0);
   });
 

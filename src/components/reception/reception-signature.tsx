@@ -12,6 +12,11 @@ import { summarize, type DamageMark } from '@/features/reception/services/damage
 import { usePersistentState } from '@/lib/demo/store';
 import { cn } from '@/lib/utils/cn';
 import { SignaturePad } from './signature-pad';
+import {
+  damageSlot,
+  signatureSlot,
+  signerSlot,
+} from '@/features/reception/services/slots';
 
 /**
  * Paso 6 — la firma del cliente.
@@ -40,10 +45,10 @@ export function ReceptionSignature({
   readonly customer: string;
 }) {
   const router = useRouter();
-  const [damage] = usePersistentState<readonly DamageMark[]>(`recepcion.${plate}.danos`, SIN_DANOS);
+  const [damage] = usePersistentState<readonly DamageMark[]>(damageSlot(plate), SIN_DANOS);
   const checklist = useChecklistState();
-  const [firma, setFirma] = usePersistentState<string | null>(`recepcion.${plate}.firma`, null);
-  const [nombre, setNombre] = usePersistentState(`recepcion.${plate}.firmante`, customer);
+  const [firma, setFirma] = usePersistentState<string | null>(signatureSlot(plate), null);
+  const [nombre, setNombre] = usePersistentState(signerSlot(plate), customer);
 
   const [trazo, setTrazo] = useState<string | null>(firma);
   const totales = summarize(damage);

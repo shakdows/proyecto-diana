@@ -30,10 +30,7 @@ import {
   type ChecklistState,
   type ItemResult,
 } from '@/features/reception/services/checklist';
-import type { DamageMark } from '@/features/reception/services/damage-map';
-import { usePersistentState } from '@/lib/demo/store';
 import { PhotoCapture } from '@/components/evidence/photo-capture';
-import { DamageDiagram } from './damage-diagram';
 import { cn } from '@/lib/utils/cn';
 
 const STORAGE_KEY = 'diana:recepcion-checklist';
@@ -56,12 +53,12 @@ export function VehicleChecklist({
   readonly plate: string;
 }) {
   const [state, setState] = useState<ChecklistState>({});
-  /* Los daños se guardan igual que el resto del trabajo de la demostración:
-     quien deja la recepción a medias y vuelve, la encuentra como estaba. */
-  const [damage, setDamage] = usePersistentState<readonly DamageMark[]>(
-    `recepcion.${plate}.danos`,
-    [],
-  );
+  /*
+   * Los daños ya NO se marcan aquí: tienen su propia pantalla
+   * (`/recepcion/nueva/danos`), donde se tocan sobre el vehículo. Tenerlos
+   * también en esta hoja dejaría dos sitios para decir lo mismo, y el día que
+   * discrepen no habría forma de saber cuál manda.
+   */
   /*
    * El estado del botón de guardar.
    *
@@ -157,7 +154,6 @@ export function VehicleChecklist({
       {/* Antes de las 42 comprobaciones: el estado en que llega la carrocería.
           Va primero porque es lo que se mira dando una vuelta al vehículo, que
           es lo primero que hace el asesor al recibirlo. */}
-      <DamageDiagram marks={damage} onChange={setDamage} plate={plate} />
 
       <div className="space-y-3">
         {CHECKLIST.map((section) => {
@@ -283,14 +279,15 @@ export function VehicleChecklist({
             Anterior
           </Link>
           {/*
-            Decía «Continuar a daños» y los daños están EN ESTA PÁGINA, unos
-            centímetros más arriba: quien lo leía se quedaba buscando una
-            pantalla de daños que no existe, después de haberlos marcado ya.
-            Encima no llevaba a ninguna parte —ni `onClick` ni destino—, así
-            que tampoco se podía descubrir el error pulsándolo.
+            Ahora los daños SÍ tienen pantalla propia, así que el botón vuelve
+            a decir «Continuar a daños» —que es lo que decía al principio— y
+            esta vez lleva a alguna parte. Antes los daños estaban en esta
+            misma hoja, unos centímetros más arriba: quien leía el rótulo se
+            quedaba buscando una pantalla que no existía, después de haberlos
+            marcado ya.
           */}
           <Link
-            href={p.done < p.total ? '#' : '/recepcion/nueva/evidencia'}
+            href={p.done < p.total ? '#' : '/recepcion/nueva/danos'}
             aria-disabled={p.done < p.total}
             title={
               p.done < p.total ? `Faltan ${p.total - p.done} puntos por revisar` : undefined
@@ -306,7 +303,7 @@ export function VehicleChecklist({
                 : 'bg-brand-600 text-white hover:bg-brand-700 active:scale-[0.98]',
             )}
           >
-            Continuar a evidencia
+            Continuar a daños
             <ArrowRight aria-hidden className="size-4" />
           </Link>
         </div>

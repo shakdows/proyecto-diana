@@ -74,23 +74,54 @@ const SUPERIOR: readonly Placement[] = [
   body('aleta-td', 'Aleta trasera derecha', 'superior', 80, 76.5),
 ];
 
-/** Costado izquierdo, morro a la izquierda de la pantalla. */
+/**
+ * Costado izquierdo, morro a la izquierda de la pantalla.
+ *
+ * El derecho es el MISMO reparto con el morro a la derecha: se mira el
+ * vehículo desde el otro lado, así que lo que estaba a la izquierda queda a
+ * la derecha. Se genera espejando en vez de copiarse a mano —dos listas
+ * paralelas se desincronizan a la primera corrección—.
+ */
 const LATERAL: readonly Placement[] = [
-  body('paragolpes-delantero', 'Paragolpes delantero', 'lateral', 7, 63),
-  body('capo', 'Capó', 'lateral', 20, 48),
-  body('parabrisas', 'Parabrisas', 'lateral', 34, 33),
-  body('techo', 'Techo', 'lateral', 50, 24),
-  body('luneta', 'Luneta trasera', 'lateral', 66, 33),
-  body('porton', 'Portón / maletero', 'lateral', 81, 48),
-  body('paragolpes-trasero', 'Paragolpes trasero', 'lateral', 93, 63),
-  body('aleta-di', 'Aleta delantera izquierda', 'lateral', 22, 62),
-  body('puerta-di', 'Puerta delantera izquierda', 'lateral', 41, 50),
-  body('puerta-ti', 'Puerta trasera izquierda', 'lateral', 59, 50),
-  body('aleta-ti', 'Aleta trasera izquierda', 'lateral', 78, 62),
-  spot('llanta-di', 'Llanta delantera izquierda', 'lateral', 25, 83),
-  spot('llanta-ti', 'Llanta trasera izquierda', 'lateral', 75, 83),
-  spot('espejo-i', 'Espejo izquierdo', 'lateral', 36, 44),
+  body('paragolpes-delantero', 'Paragolpes delantero', 'lateral-i', 7, 63),
+  body('capo', 'Capó', 'lateral-i', 20, 48),
+  body('parabrisas', 'Parabrisas', 'lateral-i', 34, 33),
+  body('techo', 'Techo', 'lateral-i', 50, 24),
+  body('luneta', 'Luneta trasera', 'lateral-i', 66, 33),
+  body('porton', 'Portón / maletero', 'lateral-i', 81, 48),
+  body('paragolpes-trasero', 'Paragolpes trasero', 'lateral-i', 93, 63),
+  body('aleta-di', 'Aleta delantera izquierda', 'lateral-i', 22, 62),
+  body('puerta-di', 'Puerta delantera izquierda', 'lateral-i', 41, 50),
+  body('puerta-ti', 'Puerta trasera izquierda', 'lateral-i', 59, 50),
+  body('aleta-ti', 'Aleta trasera izquierda', 'lateral-i', 78, 62),
+  spot('llanta-di', 'Llanta delantera izquierda', 'lateral-i', 25, 83),
+  spot('llanta-ti', 'Llanta trasera izquierda', 'lateral-i', 75, 83),
+  spot('espejo-i', 'Espejo izquierdo', 'lateral-i', 36, 44),
 ];
+
+/** Del costado izquierdo al derecho: se espeja y se cambian las piezas de lado. */
+const DERECHA: Readonly<Record<string, { id: string; label: string }>> = {
+  'aleta-di': { id: 'aleta-dd', label: 'Aleta delantera derecha' },
+  'puerta-di': { id: 'puerta-dd', label: 'Puerta delantera derecha' },
+  'puerta-ti': { id: 'puerta-td', label: 'Puerta trasera derecha' },
+  'aleta-ti': { id: 'aleta-td', label: 'Aleta trasera derecha' },
+  'llanta-di': { id: 'llanta-dd', label: 'Llanta delantera derecha' },
+  'llanta-ti': { id: 'llanta-td', label: 'Llanta trasera derecha' },
+  'espejo-i': { id: 'espejo-d', label: 'Espejo derecho' },
+};
+
+const LATERAL_D: readonly Placement[] = LATERAL.map((p): Placement => {
+  const otro = DERECHA[p.id];
+  const x = 100 - p.x;
+  if (otro === undefined) {
+    /* Las piezas centrales —capó, techo, portón— son las mismas desde los dos
+       lados: conservan su identificador y solo se espeja el dibujo. */
+    return { ...p, view: 'lateral-d', x };
+  }
+  return p.zone === undefined
+    ? { id: otro.id, label: otro.label, view: 'lateral-d', x, y: p.y }
+    : { id: otro.id, label: otro.label, view: 'lateral-d', x, y: p.y, zone: otro.id as typeof p.zone };
+});
 
 /** De frente al vehículo: SU izquierda queda a la derecha de la pantalla. */
 const FRONTAL: readonly Placement[] = [
@@ -129,8 +160,9 @@ const INTERIOR: readonly Placement[] = [
 
 export const PLACEMENTS: readonly Placement[] = [
   ...SUPERIOR,
-  ...LATERAL,
   ...FRONTAL,
+  ...LATERAL,
+  ...LATERAL_D,
   ...POSTERIOR,
   ...INTERIOR,
 ];

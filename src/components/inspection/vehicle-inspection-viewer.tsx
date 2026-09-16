@@ -92,6 +92,8 @@ export function VehicleInspectionViewer({
   view: viewProp,
   onViewChange,
   onHotspotClick,
+  panel,
+  progress,
   footer,
 }: {
   readonly vehicle: string;
@@ -102,6 +104,16 @@ export function VehicleInspectionViewer({
   readonly view?: ViewId;
   readonly onViewChange?: (view: ViewId) => void;
   readonly onHotspotClick?: (hotspot: Hotspot) => void;
+  /**
+   * Lo que se abre al tocar un punto.
+   *
+   * Sin esto se enseña la ficha de solo lectura, que es lo que necesita la
+   * orden. La recepción pasa aquí su panel de edición: así hay UN visor y no
+   * dos que se parecen, que es como empiezan las divergencias.
+   */
+  readonly panel?: (hotspot: Hotspot, close: () => void) => React.ReactNode;
+  /** Barra de avance opcional, encima de las miniaturas. */
+  readonly progress?: React.ReactNode;
   /** Lo que va debajo, a la derecha de las miniaturas. */
   readonly footer?: React.ReactNode;
 }) {
@@ -115,6 +127,18 @@ export function VehicleInspectionViewer({
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const puntos = useMemo(() => hotspotsForView(hotspots, view), [hotspots, view]);
+
+  /*
+   * El punto abierto se vuelve a leer de la lista en cada renderizado.
+   *
+   * Sin esto, anotar «conforme» en el panel dejaba el panel enseñando el
+   * estado viejo: el visor tendría una copia del punto de cuando se abrió, y
+   * habría DOS fuentes de verdad. Se guarda solo el identificador.
+   */
+  const activo = useMemo(
+    () => (abierto === null ? null : puntos.find((h) => h.id === abierto.id) ?? abierto),
+    [abierto, puntos],
+  );
   const resumen = useMemo(() => summarize(hotspots), [hotspots]);
   const avisos = useMemo(() => alertsByView(hotspots), [hotspots]);
 
@@ -127,15 +151,25 @@ export function VehicleInspectionViewer({
        * doscientos milisegundos de fundido, se lee como girar el vehículo.
        */
       setCambiando(true);
-      setAbierto(null);
       if (temporizador.current !== null) clearTimeout(temporizador.current);
       temporizador.current = setTimeout(() => {
         if (viewProp === undefined) setInterna(destino);
         onViewChange?.(destino);
         setCambiando(false);
+        /*
+         * La pieza abierta se conserva SI también se ve en la nueva vista: el
+         * capó se mira de frente y luego de lado sin perder lo que se estaba
+         * anotando. Si no está, el panel se cierra limpiamente en vez de
+         * quedarse señalando algo que ya no se ve.
+         */
+        setAbierto((prev) => {
+          if (prev === null) return null;
+          const enDestino = hotspots.find((h) => h.id === prev.id && h.view === destino);
+          return enDestino ?? null;
+        });
       }, TRANSICION_MS / 2);
     },
-    [view, viewProp, onViewChange],
+    [view, viewProp, onViewChange, hotspots],
   );
 
   useEffect(
@@ -219,9 +253,15 @@ export function VehicleInspectionViewer({
         </div>
 
         {/* ── La ficha del punto ──────────────────────────────────────── */}
-        {abierto !== null && (
-          <HotspotCard hotspot={abierto} onClose={() => setAbierto(null)} />
-        )}
+        {abierto !== null &&
+          activo !== null &&
+          (panel === undefined ? (
+            <HotspotCard hotspot={activo} onClose={() => setAbierto(null)} />
+          ) : (
+            panel(activo, () => setAbierto(null))
+          ))}
+
+        {progress}
 
         {/* ── Selector de vista ───────────────────────────────────────── */}
         <div className="mt-4 flex flex-wrap items-end justify-between gap-4">

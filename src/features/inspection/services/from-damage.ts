@@ -96,10 +96,8 @@ function resolveStatus(marca: DamageMark | undefined, reviewed: boolean): Inspec
 /**
  * Las fotos de la recepción, por zona.
  *
- * La ranura la decide la recepción —`danos:<placa>:<zona>`— y aquí solo se
- * reconstruye el nombre. Si allí cambia, esta función es el único sitio que
- * hay que tocar.
+ * La ranura la decide la recepción y aquí solo se reexporta, para que quien
+ * pinta la inspección no tenga que saber cómo se arma el nombre —ni volver a
+ * equivocarse con el guion de la placa—.
  */
-export function damagePhotoAnchor(plate: string, zone: string): string {
-  return `danos:${plate}:${zone}`;
-}
+export { partPhotoAnchor as damagePhotoAnchor } from '@/features/reception/services/slots';

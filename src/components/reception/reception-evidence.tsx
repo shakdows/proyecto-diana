@@ -8,6 +8,10 @@ import { usePhotoCount } from '@/features/evidence/use-photo-count';
 import { ZONES, type DamageMark } from '@/features/reception/services/damage-map';
 import { usePersistentState } from '@/lib/demo/store';
 import { cn } from '@/lib/utils/cn';
+import {
+  damageSlot,
+  partPhotoAnchor,
+} from '@/features/reception/services/slots';
 
 /**
  * Paso 5 — la evidencia del ingreso.
@@ -142,7 +146,7 @@ export function ReceptionEvidence({
  * el patio sin orden, que es peor. Se avisa, se cuenta y se decide.
  */
 function Cobertura({ plate }: { readonly plate: string }) {
-  const [marks] = usePersistentState<readonly DamageMark[]>(`recepcion.${plate}.danos`, SIN_DANOS);
+  const [marks] = usePersistentState<readonly DamageMark[]>(damageSlot(plate), SIN_DANOS);
 
   /* Un hook por zona marcada y por toma: son catorce y seis como mucho, y
      leerlos así mantiene la cuenta viva sin volver a montar la pantalla. */
@@ -151,7 +155,7 @@ function Cobertura({ plate }: { readonly plate: string }) {
     label: zone.label,
     marcada: marks.some((m) => m.zone === zone.id),
     // eslint-disable-next-line react-hooks/rules-of-hooks -- ZONES es una constante: el número de llamadas no cambia entre renders
-    photos: usePhotoCount(`danos:${plate}:${zone.id}`),
+    photos: usePhotoCount(partPhotoAnchor(plate, zone.id)),
   }));
   // eslint-disable-next-line react-hooks/rules-of-hooks -- TOMAS es una constante: el número de llamadas no cambia entre renders
   const tomas = TOMAS.map((t) => usePhotoCount(`recepcion:${plate}:${t.id}`));
