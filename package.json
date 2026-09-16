@@ -20,10 +20,12 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed:catalog": "tsx scripts/seed-catalog.ts",
+    "db:seed:catalog:sql": "tsx scripts/seed-catalog-sql.ts",
     "db:seed:demo": "tsx scripts/seed-demo.ts",
     "check": "npm run typecheck && npm run lint && npm run test",
     "test": "tsx --test \"src/**/*.test.ts\"",
     "db:verify": "tsx scripts/verify-db.ts",
+    "db:verify:catalog": "tsx scripts/verify-catalog-counts.ts",
     "db:local": "./scripts/db-local.sh"
   },
   "dependencies": {
