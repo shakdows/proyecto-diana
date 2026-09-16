@@ -52,3 +52,23 @@ describe('la puerta de la demostración', () => {
     assert.equal(new Set(PUBLIC_ROUTES).size, PUBLIC_ROUTES.length);
   });
 });
+
+describe('la aplicación instalable', () => {
+  /*
+   * El navegador pide el manifiesto y los iconos justo cuando alguien está en
+   * la pantalla de entrada, o sea SIN sesión. Si el middleware los redirige,
+   * Chrome recibe HTML donde esperaba un JSON y no ofrece instalar nada.
+   */
+  it('el manifiesto y los iconos pasan sin sesión', () => {
+    assert.equal(isPublicRoute('/manifest.webmanifest'), true);
+    assert.equal(isPublicRoute('/icon.svg'), true);
+    for (const t of ['180', '192', '512']) {
+      assert.equal(isPublicRoute(`/iconos/${t}`), true, t);
+    }
+  });
+
+  it('pero «/iconos» no abre la puerta a otra cosa', () => {
+    assert.equal(isPublicRoute('/iconosecreto'), false);
+    assert.equal(isPublicRoute('/ordenes'), false);
+  });
+});

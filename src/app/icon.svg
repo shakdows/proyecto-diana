@@ -1,9 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Diana">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Romero Motors">
   <!--
-    Icono de pestaña. A 16 px no cabe un dibujo: cabe una letra con contraste.
-    Mismo azul y mismo radio que la marca de la barra lateral, para que la
-    pestaña y la aplicación se reconozcan como la misma cosa.
+    Icono de la pestaña.
+
+    ⚠️ ES EL MISMO DIBUJO que `src/features/brand/mark.tsx`, del que salen los
+    PNG de 180, 192 y 512. Si aquí se toca un trazo, hay que tocarlo allí.
+
+    Next exige que este archivo sea un `.svg` de verdad para la convención de
+    la pestaña, así que no se puede importar el componente; es la única copia
+    del dibujo que existe, y por eso lleva este aviso.
   -->
-  <rect width="32" height="32" rx="7" fill="#164e9e"/>
-  <path d="M10.2 8h5.9c5.2 0 8.7 3.2 8.7 8s-3.5 8-8.7 8h-5.9V8zm4 3.2v9.6h1.7c3.2 0 5.2-1.9 5.2-4.8s-2-4.8-5.2-4.8h-1.7z" fill="#fff"/>
+  <rect width="32" height="32" rx="7" fill="#0b1118"/>
+  <path d="M7.4 22.6 12.9 7.9h2.6L10 22.6z" fill="#e8242b"/>
+  <path
+    d="M13.2 8.2h5.9c3.1 0 5 1.7 5 4.4 0 2-1.1 3.4-3 4l3.4 5.6h-3.5l-3-5.1h-1.9v5.1h-2.9V8.2zm2.9 2.5v4.1h2.8c1.5 0 2.4-.8 2.4-2.1s-.9-2-2.4-2h-2.8z"
+    fill="#f8f4ec"
+  />
+  <rect x="13.2" y="24.4" width="11" height="1.4" rx="0.7" fill="#e8242b"/>
 </svg>

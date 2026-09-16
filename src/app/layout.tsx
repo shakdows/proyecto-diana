@@ -31,12 +31,31 @@ export const metadata: Metadata = {
   description:
     'Gestión integral de taller automotriz: recepción, orden de servicio, diagnóstico, cotización, compras, reparación, entrega y satisfacción del cliente.',
   robots: { index: false, follow: false },
+  /*
+   * El icono de la aplicación instalada.
+   *
+   * `icon.svg` lo recoge Next por convención para la pestaña; esto declara los
+   * que la convención no cubre: el de iOS —que exige PNG y no admite SVG— y
+   * los del manifiesto. Los tres salen del mismo dibujo, generado en
+   * `/iconos/<tamaño>`.
+   */
+  icons: {
+    apple: [{ url: '/iconos/180', sizes: '180x180', type: 'image/png' }],
+  },
+  /* Sin esto, iOS abre la aplicación instalada CON la barra del navegador. */
+  appleWebApp: {
+    capable: true,
+    title: 'Romero',
+    statusBarStyle: 'black-translucent',
+  },
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#0f141a',
+  /* El mismo que el manifiesto: si discrepan, la barra del sistema cambia de
+     color entre la pantalla de arranque y la aplicación ya abierta. */
+  themeColor: '#0b1118',
 };
 
 export default function RootLayout({ children }: { readonly children: React.ReactNode }) {

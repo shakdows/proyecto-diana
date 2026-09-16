@@ -13,6 +13,16 @@ export const PUBLIC_ROUTES: readonly string[] = [
   '/presentacion',
   '/api/health',
   '/icon.svg',
+  // El icono y el manifiesto de la aplicación instalable.
+  //
+  // Tienen que ser públicos por el MISMO motivo que las carpetas de abajo, y
+  // encima en el peor momento: el navegador pide el manifiesto y los iconos
+  // justo cuando alguien está en la pantalla de entrada, es decir SIN sesión.
+  // Redirigidos al login, Chrome recibe una página HTML donde esperaba un
+  // JSON, no ofrece «Instalar aplicación», y en iOS el icono de la pantalla de
+  // inicio sale en blanco.
+  '/manifest.webmanifest',
+  '/iconos',
   // ⚠️ CARPETAS DE `public/`. Cada vez que se añade una, hay que añadirla
   // aquí, y es un error que no avisa: el middleware las redirige a /login, el
   // navegador recibe una página HTML donde esperaba una imagen, y lo único

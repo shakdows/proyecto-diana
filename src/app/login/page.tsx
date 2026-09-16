@@ -13,10 +13,12 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { RomeroWordmark } from '@/components/brand/romero-logo';
+import { HERO_PHOTO, IVORY } from '@/features/brand/hero';
 import type { RoleCode } from '@/lib/auth/permissions';
 import { DEMO_AUTH_TOKEN } from '@/features/quotations/demo';
 import { DEMO_SURVEY_TOKEN } from '@/features/delivery/demo';
 import { clientEnv } from '@/lib/env';
+import { MobileWelcome } from '@/components/auth/mobile-welcome';
 import { SignInForm } from '@/components/auth/sign-in-form';
 import { enterDemo } from './actions';
 
@@ -92,7 +94,15 @@ export default function LoginPage() {
      */
     <main className="theme-cream grid min-h-dvh bg-surface-sunken lg:h-dvh lg:grid-cols-[57fr_43fr]">
       <ShowcasePanel />
-      <AccessPanel />
+      {/*
+        En móvil, el acceso vive DETRÁS de la portada: primero la fotografía
+        del taller con «Entrar», y el formulario al tocarlo. En escritorio
+        `lg:contents` disuelve esta envoltura, así que la rejilla de dos
+        columnas queda exactamente como estaba.
+      */}
+      <MobileWelcome>
+        <AccessPanel />
+      </MobileWelcome>
     </main>
   );
 }
@@ -101,22 +111,13 @@ export default function LoginPage() {
  * Izquierda: la empresa
  * ------------------------------------------------------------------ */
 
-/**
- * Marfil cálido, no blanco puro.
- *
- * El blanco #FFF sobre una fotografía de taller con luz de tungsteno se lee
- * azulado y se despega de la escena. El marfil pertenece a la misma luz, y es
- * el mismo que usa el panel de acceso al otro lado.
- */
-const IVORY = '#f8f4ec';
-
 function ShowcasePanel() {
   return (
     <section className="@container/hero relative isolate hidden overflow-hidden bg-graphite-950 lg:block">
       {/* eslint-disable-next-line @next/next/no-img-element -- fondo local ya
           recortado y comprimido; el optimizador no aporta y añade una petición. */}
       <img
-        src="/fondos/hero-showroom.webp"
+        src={HERO_PHOTO}
         alt=""
         aria-hidden
         /*
