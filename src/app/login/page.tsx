@@ -1,14 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
-  ArrowRight,
   ArrowUpRight,
   ChevronRight,
   ClipboardList,
-  Eye,
   FileSignature,
-  Lock,
-  Mail,
   MessageSquareHeart,
   ShieldCheck,
   ShoppingCart,
@@ -21,6 +17,7 @@ import type { RoleCode } from '@/lib/auth/permissions';
 import { DEMO_AUTH_TOKEN } from '@/features/quotations/demo';
 import { DEMO_SURVEY_TOKEN } from '@/features/delivery/demo';
 import { clientEnv } from '@/lib/env';
+import { SignInForm } from '@/components/auth/sign-in-form';
 import { enterDemo } from './actions';
 
 export const metadata: Metadata = {
@@ -244,46 +241,25 @@ function AccessPanel() {
           </p>
 
           {/*
-            El formulario de correo y contraseña está DESACTIVADO a propósito.
-            La autenticación real es la Fase 3 (Supabase Auth); dibujar aquí un
-            campo que parece funcionar y no valida nada sería mentirle a quien
-            lo pruebe. Se ve, dice por qué no funciona todavía, y la entrada
-            real es la de abajo.
+            El acceso con credenciales. Estuvo DIBUJADO Y DESACTIVADO durante
+            toda la fase de demostración, con un aviso honesto debajo que
+            decía por qué no funcionaba. Ya funciona: entra contra Supabase
+            Auth y a partir de ahí quien decide qué ves es RLS, no esta
+            pantalla.
           */}
-          {/* Deshabilitado de verdad, pero no borrado: a 60 % de opacidad el
-              rojo de Romero se leía rosa, y la primera impresión de la
-              empresa no puede ser un color que no es el suyo. El aviso de
-              debajo dice por qué no funciona todavía. */}
-          <fieldset disabled className="mt-5 space-y-3 opacity-80">
-            <legend className="sr-only">Acceso con credenciales</legend>
-            <FakeInput icon={<Mail />} placeholder="Correo electrónico" />
-            <FakeInput icon={<Lock />} placeholder="Contraseña" trailing={<Eye />} />
-            <p className="flex items-center justify-between pt-0.5 text-sm">
-              <span className="flex items-center gap-2 text-fg-muted">
-                <span
-                  aria-hidden
-                  className="size-4 rounded-[0.25rem] border-2 border-border-strong"
-                />
-                Recordarme
-              </span>
-              <span className="font-medium text-romero-600">¿Olvidaste tu contraseña?</span>
-            </p>
-            <p className="flex h-12 w-full items-center justify-center gap-2 rounded-control bg-romero-600 text-sm font-semibold text-white">
-              Ingresar al sistema
-              <ArrowRight aria-hidden className="size-4" />
-            </p>
-          </fieldset>
+          <SignInForm />
 
-          <p className="mt-2.5 rounded-control bg-surface-sunken px-3 py-2 text-xs leading-snug text-fg-muted">
-            El acceso con credenciales llega con la autenticación real. Por ahora se entra
-            eligiendo un puesto.
+          <p className="mt-2.5 text-right text-sm">
+            <span className="font-medium text-fg-subtle">
+              ¿Olvidaste tu contraseña? Pídesela al administrador del taller.
+            </span>
           </p>
 
           {clientEnv.NEXT_PUBLIC_DEMO_MODE && (
             <>
               <div className="my-4 flex items-center gap-3" aria-hidden>
                 <span className="h-px flex-1 bg-border" />
-                <span className="text-xs text-fg-subtle">o accede como</span>
+                <span className="text-xs text-fg-subtle">o recorre la demostración como</span>
                 <span className="h-px flex-1 bg-border" />
               </div>
 
@@ -377,26 +353,3 @@ function AccessPanel() {
   );
 }
 
-function FakeInput({
-  icon,
-  placeholder,
-  trailing,
-}: {
-  readonly icon: ReactNode;
-  readonly placeholder: string;
-  readonly trailing?: ReactNode;
-}) {
-  return (
-    <span className="flex h-12 items-center gap-3 rounded-control border border-border-strong bg-surface px-3.5">
-      <span aria-hidden className="shrink-0 text-fg-subtle [&>svg]:size-[1.125rem]">
-        {icon}
-      </span>
-      <span className="flex-1 text-sm text-fg-subtle">{placeholder}</span>
-      {trailing !== undefined && (
-        <span aria-hidden className="shrink-0 text-fg-subtle [&>svg]:size-[1.125rem]">
-          {trailing}
-        </span>
-      )}
-    </span>
-  );
-}
