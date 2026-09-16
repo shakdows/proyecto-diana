@@ -29,6 +29,7 @@ import {
   OrderAdvanceHistory,
   OrderAdvanceProvider,
 } from '@/components/order/order-advance';
+import { OrderInspection } from '@/components/inspection/order-inspection';
 import { OrderNotes } from '@/components/order/order-notes';
 import { ReceptionOrderScreen } from '@/components/order/reception-order-screen';
 import { OrderPhotos } from '@/components/order/order-photos';
@@ -191,6 +192,18 @@ export default async function OrdenPage({
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="min-w-0 space-y-5">
           <QuotationPanel orderId={order.id} items={order.items} totals={totals} />
+          {/*
+            La inspección va DEBAJO de los trabajos y encima de las fotos: se
+            mira después de saber qué se cotizó y antes de buscar la prueba.
+          */}
+          <OrderInspection
+            orderId={order.id}
+            vehicle={order.vehicle}
+            plate={order.plate}
+            equipmentKind={order.equipmentKind}
+            advisor={order.advisor}
+            reviewed={order.checklistResolved >= order.checklistRequired}
+          />
           <div className="grid gap-5 lg:grid-cols-2">
             <OrderPhotos
               orderId={order.id}
