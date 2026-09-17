@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { ArrowLeft, Check, FileText, Loader2, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, FileText, Loader2, TriangleAlert } from 'lucide-react';
 import { coverageOf, isDocumented } from '@/features/evidence/services/coverage';
+import { orderIdForReception } from '@/features/orders/services/from-reception';
 import { usePhotoCount } from '@/features/evidence/use-photo-count';
 import { checkActa, type CompletedReception } from '@/features/reception/services/acta';
 import { CHECKLIST, sectionProgress } from '@/features/reception/services/checklist';
@@ -307,10 +308,47 @@ function ActaCerrada({ acta }: { readonly acta: CompletedReception }) {
         </p>
       </section>
 
+      {/*
+        ⚠️ Aquí faltaba la puerta.
+        El botón de arriba promete «Confirmar y abrir la orden», la pantalla
+        enseña el código de la orden… y las únicas dos salidas eran volver a
+        recepción o recibir otro vehículo. Quien acababa de recibir un
+        vehículo se quedaba sin saber a dónde ir —y con razón: la orden que
+        se le acababa de abrir no se enlazaba desde ninguna parte—.
+      */}
+      <section className="rounded-panel border border-border bg-surface-raised p-5">
+        <h2 className="font-display text-base font-semibold tracking-tight text-fg">
+          ¿Y ahora qué?
+        </h2>
+        <p className="mt-1.5 text-sm leading-relaxed text-fg-muted">
+          El vehículo ya está recibido. El trabajo continúa en la orden{' '}
+          <span data-numeric className="font-mono font-semibold text-fg">
+            {acta.orderCode}
+          </span>
+          : allí se asigna el técnico y se envía a diagnóstico. La orden lleva su{' '}
+          <span className="font-semibold text-fg">expediente de trabajo</span>, que dice
+          en cada momento cuál es el paso siguiente.
+        </p>
+
+        <Link
+          href={`/ordenes/${orderIdForReception(acta.code)}`}
+          className="mt-4 inline-flex h-12 items-center gap-2 rounded-control bg-romero-500 px-5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-romero-600 active:scale-[0.98]"
+        >
+          Abrir la orden {acta.orderCode}
+          <ArrowRight aria-hidden className="size-4" />
+        </Link>
+      </section>
+
       <div className="flex flex-wrap gap-2">
         <Link
+          href={`/recepcion/acta/${encodeURIComponent(acta.code)}`}
+          className="inline-flex h-11 items-center gap-2 rounded-control border border-border-strong px-5 text-sm font-medium text-fg transition-colors duration-150 hover:bg-surface-sunken"
+        >
+          Ver el acta {acta.code}
+        </Link>
+        <Link
           href="/recepcion"
-          className="inline-flex h-11 items-center gap-2 rounded-control bg-graphite-950 px-5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-graphite-800"
+          className="inline-flex h-11 items-center gap-2 rounded-control border border-border-strong px-5 text-sm font-medium text-fg transition-colors duration-150 hover:bg-surface-sunken"
         >
           Ir a recepción
         </Link>

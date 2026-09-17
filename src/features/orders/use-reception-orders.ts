@@ -6,15 +6,14 @@ import { demoCustomers, type DemoCustomer } from '@/features/customers/demo';
 import { useAllCustomers } from '@/features/customers/use-created';
 import { useReceptions } from '@/features/reception/use-receptions';
 import type { CompletedReception } from '@/features/reception/services/acta';
-import { usePersistentState } from '@/lib/demo/store';
 import {
   SIN_DEFINIR,
   factsFromReception,
   findVehicle,
   orderFromReception,
   receptionCodeFromOrderId,
-  serviceTypeSlot,
 } from './services/from-reception';
+import { useServiceType } from './use-order-workfile';
 import type { OrderFacts } from './services/state-machine';
 
 export interface ReceptionOrder {
@@ -67,7 +66,7 @@ export function useReceptionOrder(orderId: string): {
   const { receptions } = useReceptions();
   const seeded = useMemo(() => demoCustomers(now), [now]);
   const { customers } = useAllCustomers(seeded);
-  const [serviceType, setServiceType] = usePersistentState(serviceTypeSlot(orderId), '');
+  const { serviceType, setServiceType } = useServiceType(orderId);
 
   const order = useMemo(() => {
     const code = receptionCodeFromOrderId(orderId);

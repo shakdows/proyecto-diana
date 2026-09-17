@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -13,19 +12,14 @@ import {
   Mail,
   MapPin,
   Palette,
-  Pencil,
   Phone,
   User,
   Wrench,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { CorporateBadge } from '@/components/ui/plate';
-import { Field } from '@/components/ui/field';
-import { Input, Select } from '@/components/ui/input';
-import { Modal, ModalActions } from '@/components/ui/modal';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { DataState } from '@/components/feedback/states';
-import { useToast } from '@/components/feedback/toast';
 import {
   LiveJourney,
   LiveStatusChip,
@@ -37,11 +31,7 @@ import { OrderNotes } from '@/components/order/order-notes';
 import { OrderWorkfilePanel } from '@/components/order/order-workfile';
 import { OrderPhotos } from '@/components/order/order-photos';
 import { vocabularyFor } from '@/features/equipment/services/equipment-kind';
-import {
-  SERVICE_TYPES,
-  SIN_DEFINIR,
-  checkServiceType,
-} from '@/features/orders/services/from-reception';
+import { SIN_DEFINIR } from '@/features/orders/services/from-reception';
 import { useReceptionOrder } from '@/features/orders/use-reception-orders';
 import { useOrderWorkfile } from '@/features/orders/use-order-workfile';
 import type { Permission } from '@/lib/auth/permissions';
@@ -79,7 +69,7 @@ export function ReceptionOrderScreen({
   readonly permissions: readonly Permission[];
   readonly actorName: string;
 }) {
-  const { order, serviceType, setServiceType } = useReceptionOrder(orderId);
+  const { order } = useReceptionOrder(orderId);
   const { workfile } = useOrderWorkfile(orderId);
   const hydrated = useHydrated();
 
@@ -132,11 +122,26 @@ export function ReceptionOrderScreen({
             <h1 className="mt-3 font-display text-3xl font-semibold tracking-tight text-fg">
               {data.code}
             </h1>
-            <ServiceType
-              value={serviceType}
-              onSave={setServiceType}
-              current={data.serviceType}
-            />
+            {/*
+              Solo el texto. El lápiz que había aquí abría un modal para
+              elegir el tipo de servicio, y en el encabezado eso confunde:
+              parece un detalle de la cabecera cuando es LO PRIMERO que hay
+              que decidir —sin ello la orden no se puede mandar a
+              diagnóstico—. Se decide en el expediente, que es donde están
+              las decisiones, y aquí solo se lee.
+            */}
+            <p className="mt-1 text-lg">
+              {data.serviceType === SIN_DEFINIR ? (
+                <a
+                  href="#expediente"
+                  className="font-medium text-warn-700 underline-offset-4 hover:underline"
+                >
+                  {SIN_DEFINIR} · elígelo en el expediente
+                </a>
+              ) : (
+                <span className="text-fg-muted">{data.serviceType}</span>
+              )}
+            </p>
 
             <dl className="mt-4 space-y-2 text-sm">
               <Meta icon={<CalendarDays />} label="Ingreso">
@@ -295,101 +300,6 @@ function Cargando() {
       <div className="rounded-panel border border-border bg-surface-raised p-6">
         <p className="text-sm text-fg-subtle">Abriendo la orden…</p>
       </div>
-    </>
-  );
-}
-
-/**
- * El tipo de servicio, que en recepción no se sabe.
- *
- * Sin esto la orden nace en un callejón: «Enviar a diagnóstico» queda
- * bloqueado con «Falta definir el tipo de servicio» y no hay ninguna pantalla
- * donde definirlo. Es el mismo error de los botones sin destino, cometido un
- * paso más arriba.
- */
-function ServiceType({
-  value,
-  current,
-  onSave,
-}: {
-  readonly value: string;
-  readonly current: string;
-  readonly onSave: (value: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [elegido, setElegido] = useState(value);
-  const [otro, setOtro] = useState('');
-  const toast = useToast();
-
-  const enLista = SERVICE_TYPES.includes(elegido);
-  const texto = elegido === '·otro·' ? otro : elegido;
-  const check = checkServiceType(texto);
-  const pendiente = current === SIN_DEFINIR;
-
-  const guardar = (): void => {
-    if (!check.valid) return;
-    onSave(texto.trim());
-    toast(`Tipo de servicio: ${texto.trim()}`, 'ok');
-    setOpen(false);
-  };
-
-  return (
-    <>
-      <p className="mt-1 flex flex-wrap items-center gap-2">
-        <span className={pendiente ? 'text-lg text-warn-700' : 'text-lg text-fg-muted'}>
-          {current}
-        </span>
-        <button
-          type="button"
-          onClick={() => {
-            setElegido(value === '' ? '' : SERVICE_TYPES.includes(value) ? value : '·otro·');
-            setOtro(SERVICE_TYPES.includes(value) ? '' : value);
-            setOpen(true);
-          }}
-          className="inline-flex items-center gap-1 rounded-control border border-border-strong px-2.5 py-1 text-xs font-medium text-fg transition-colors hover:bg-surface-sunken"
-        >
-          <Pencil aria-hidden className="size-3" />
-          {pendiente ? 'Definir' : 'Cambiar'}
-        </button>
-      </p>
-
-      <Modal
-        open={open}
-        onClose={() => setOpen(false)}
-        width="sm"
-        title="Tipo de servicio"
-        subtitle="En recepción no se sabe qué hay que hacer: lo dice el cliente al dejar el vehículo o el diagnóstico al revisarlo."
-        onSubmit={guardar}
-        footer={
-          <ModalActions
-            onCancel={() => setOpen(false)}
-            confirmLabel="Guardar"
-            disabled={!check.valid}
-          />
-        }
-      >
-        <Field label="Motivo de ingreso" required>
-          <Select value={elegido} onChange={(e) => setElegido(e.target.value)}>
-            <option value="">Elige uno…</option>
-            {SERVICE_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-            <option value="·otro·">Otro (escribir)</option>
-          </Select>
-        </Field>
-
-        {!enLista && elegido === '·otro·' && (
-          <Field label="Describe el trabajo" error={check.error ?? undefined}>
-            <Input
-              value={otro}
-              onChange={(e) => setOtro(e.target.value)}
-              placeholder="REVISIÓN DE RUIDO EN SUSPENSIÓN DELANTERA"
-            />
-          </Field>
-        )}
-      </Modal>
     </>
   );
 }

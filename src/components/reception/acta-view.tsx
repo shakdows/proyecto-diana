@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import {
   ArrowLeft,
+  ArrowRight,
   Camera,
   Check,
   FileText,
@@ -22,6 +23,7 @@ import { useToast } from '@/components/feedback/toast';
 import { photoWhen, slotFor, type EvidencePhoto } from '@/features/evidence/services/photos';
 import { wasCorrected, type CompletedReception } from '@/features/reception/services/acta';
 import { ZONES, zoneLabel } from '@/features/reception/services/damage-map';
+import { orderIdForReception } from '@/features/orders/services/from-reception';
 import { useReceptions } from '@/features/reception/use-receptions';
 import { checkDeleteCode } from '@/lib/auth/confirm-code';
 import { usePersistentState, useHydrated } from '@/lib/demo/store';
@@ -132,14 +134,29 @@ export function ActaView({
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setCorrigiendo(true)}
-            className="inline-flex h-11 shrink-0 items-center gap-2 rounded-control border border-border px-4 text-sm font-medium text-fg transition-colors duration-150 hover:bg-surface-sunken"
-          >
-            <Lock aria-hidden className="size-4" />
-            Corregir
-          </button>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            {/*
+              El acta es lo que PASÓ; la orden es donde el vehículo sigue.
+              Sin este enlace había que volver al menú y buscar la orden a
+              mano justo después de abrirla, que es cuando menos se sabe
+              dónde está.
+            */}
+            <Link
+              href={`/ordenes/${orderIdForReception(acta.code)}`}
+              className="inline-flex h-11 items-center gap-2 rounded-control bg-romero-500 px-4 text-sm font-semibold text-white transition-colors duration-150 hover:bg-romero-600"
+            >
+              Ir a la orden {acta.orderCode}
+              <ArrowRight aria-hidden className="size-4" />
+            </Link>
+            <button
+              type="button"
+              onClick={() => setCorrigiendo(true)}
+              className="inline-flex h-11 items-center gap-2 rounded-control border border-border px-4 text-sm font-medium text-fg transition-colors duration-150 hover:bg-surface-sunken"
+            >
+              <Lock aria-hidden className="size-4" />
+              Corregir
+            </button>
+          </div>
         </div>
       </header>
 

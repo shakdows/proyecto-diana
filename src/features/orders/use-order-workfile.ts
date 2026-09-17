@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import { usePersistentState } from '@/lib/demo/store';
+import { readSlot, usePersistentState } from '@/lib/demo/store';
+import { serviceTypeSlot } from './services/from-reception';
 import { DEMO_PEOPLE, demoProfileId } from '@/lib/auth/demo-people';
 import { ROLE_LABELS, ROLE_PERMISSIONS } from '@/lib/auth/permissions';
 import {
@@ -58,3 +59,52 @@ export const TECHNICIANS: readonly Technician[] = assignableTechnicians(
   ROLE_LABELS,
   demoProfileId,
 );
+
+/* ------------------------------------------------------------------ *
+ * El tipo de servicio
+ * ------------------------------------------------------------------ */
+
+/**
+ * Lo que se decidió que se le hace al vehículo.
+ *
+ * Vive en el expediente, con el resto de decisiones. Antes tenía su propia
+ * ranura —`orden.<id>.servicio`— y se editaba con un lápiz junto al título de
+ * la orden, donde parecía un detalle del encabezado y en realidad era el
+ * requisito que impedía mandarla a diagnóstico.
+ *
+ * La ranura vieja se sigue LEYENDO: quien tenga una orden a medias de antes
+ * de este cambio no puede perder lo que ya había escrito. No se escribe nunca
+ * más, así que se apaga sola.
+ */
+export function useServiceType(orderId: string): {
+  readonly serviceType: string;
+  readonly setServiceType: (value: string) => void;
+} {
+  const { workfile, update } = useOrderWorkfile(orderId);
+  const [legado] = usePersistentState<string>(serviceTypeSlot(orderId), '');
+
+  const serviceType = workfile.serviceType.trim() !== '' ? workfile.serviceType : legado;
+
+  const setServiceType = useCallback(
+    (value: string): void => {
+      update((w) => ({ ...w, serviceType: value }));
+    },
+    [update],
+  );
+
+  return { serviceType, setServiceType };
+}
+
+/**
+ * El mismo dato, de una sola lectura y fuera de un hook.
+ *
+ * Lo necesita el buscador: el número de recepciones cambia entre
+ * renderizados, y un hook por fila rompería la regla de los hooks en cuanto
+ * alguien cierre la siguiente recepción.
+ */
+export function readServiceType(orderId: string): string {
+  const delExpediente = readWorkfile(readSlot<unknown>(workfileSlot(orderId))).serviceType.trim();
+  if (delExpediente !== '') return delExpediente;
+  const viejo = readSlot<string>(serviceTypeSlot(orderId));
+  return typeof viejo === 'string' ? viejo.trim() : '';
+}

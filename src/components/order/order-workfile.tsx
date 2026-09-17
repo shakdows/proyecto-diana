@@ -1,7 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, CircleDot, Plus, Trash2, ThumbsDown, ThumbsUp } from 'lucide-react';
+import {
+  Check,
+  CircleDot,
+  Minus,
+  Pencil,
+  Plus,
+  ThumbsDown,
+  ThumbsUp,
+  Trash2,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/choice';
@@ -14,12 +23,17 @@ import {
   useRunAction,
 } from '@/components/order/order-advance';
 import { PRIORITIES, PRIORITY_LABELS, type Priority } from '@/features/diagnosis/services/findings';
+import {
+  SERVICE_TYPES,
+  checkServiceType,
+} from '@/features/orders/services/from-reception';
 import { FINAL_STAGE_LABELS, FINAL_STAGES, type FinalStage } from '@/features/orders/services/final-stages';
 import { statusLabel } from '@/features/orders/services/order-status';
 import { ACTION_LABELS, type OrderAction } from '@/features/orders/services/state-machine';
 import {
   STANDARD_QUALITY_CHECKS,
   STEP_LABELS,
+  STEP_STATE_LABELS,
   WORKFILE_STEPS,
   approvedLines,
   centsFromSoles,
@@ -29,15 +43,21 @@ import {
   requiredParts,
   stepDone,
   stepFor,
+  stepState,
   toSoles,
   totalCents,
   type LineDecision,
   type LineKind,
   type OrderWorkfile,
+  type StepState,
   type WorkfileLine,
   type WorkfileStep,
 } from '@/features/orders/services/workfile';
-import { TECHNICIANS, useOrderWorkfile } from '@/features/orders/use-order-workfile';
+import {
+  TECHNICIANS,
+  useOrderWorkfile,
+  useServiceType,
+} from '@/features/orders/use-order-workfile';
 import { useHydrated } from '@/lib/demo/store';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency } from '@/lib/utils/format';
@@ -98,12 +118,12 @@ export function OrderWorkfilePanel({ orderId }: { readonly orderId: string }) {
 
       <ol className="divide-y divide-border">
         {WORKFILE_STEPS.map((step, index) => {
-          const done = stepDone(step, workfile);
+          const estado = stepState(step, workfile);
           const current = step === actual;
           return (
             <li key={step} className={cn('px-5 py-3.5', current && 'bg-surface-sunken/60')}>
               <div className="flex items-center gap-3">
-                <StepMark index={index + 1} done={done} current={current} />
+                <StepMark index={index + 1} estado={estado} current={current} />
                 <span
                   className={cn(
                     'min-w-0 flex-1 text-sm',
@@ -113,7 +133,7 @@ export function OrderWorkfilePanel({ orderId }: { readonly orderId: string }) {
                   {STEP_LABELS[step]}
                 </span>
                 <span className="shrink-0 text-xs text-fg-subtle">
-                  {current ? 'Ahora' : done ? 'Hecho' : 'Pendiente'}
+                  {current ? 'Ahora' : STEP_STATE_LABELS[estado]}
                 </span>
               </div>
 
@@ -125,7 +145,7 @@ export function OrderWorkfilePanel({ orderId }: { readonly orderId: string }) {
               */}
               {current && hydrated && (
                 <div className="mt-3.5 pl-9">
-                  <StepBody step={step} workfile={workfile} update={update} />
+                  <StepBody step={step} orderId={orderId} workfile={workfile} update={update} />
                 </div>
               )}
             </li>
@@ -144,24 +164,35 @@ export function OrderWorkfilePanel({ orderId }: { readonly orderId: string }) {
 
 function StepMark({
   index,
-  done,
+  estado,
   current,
 }: {
   readonly index: number;
-  readonly done: boolean;
+  readonly estado: StepState;
   readonly current: boolean;
 }) {
+  /* El verde es para lo que alguien hizo. Lo que no hacía falta va en gris:
+     un paso en verde que nadie tocó hace dudar de los que sí. */
   return (
     <span
       aria-hidden
       className={cn(
         'grid size-6 shrink-0 place-items-center rounded-full border text-[0.7rem] font-semibold',
-        done && 'border-ok-600 bg-ok-600 text-white',
-        !done && current && 'border-brand-600 text-brand-700',
-        !done && !current && 'border-border-strong text-fg-subtle',
+        estado === 'hecho' && 'border-ok-600 bg-ok-600 text-white',
+        estado === 'sin_falta' && 'border-border-strong text-fg-subtle',
+        estado === 'pendiente' && current && 'border-brand-600 text-brand-700',
+        estado === 'pendiente' && !current && 'border-border-strong text-fg-subtle',
       )}
     >
-      {done ? <Check className="size-3.5" strokeWidth={3} /> : current ? <CircleDot className="size-3.5" /> : index}
+      {estado === 'hecho' ? (
+        <Check className="size-3.5" strokeWidth={3} />
+      ) : estado === 'sin_falta' ? (
+        <Minus className="size-3.5" strokeWidth={3} />
+      ) : current ? (
+        <CircleDot className="size-3.5" />
+      ) : (
+        index
+      )}
     </span>
   );
 }
@@ -170,14 +201,18 @@ type Update = (fn: (previous: OrderWorkfile) => OrderWorkfile) => void;
 
 function StepBody({
   step,
+  orderId,
   workfile,
   update,
 }: {
   readonly step: WorkfileStep;
+  readonly orderId: string;
   readonly workfile: OrderWorkfile;
   readonly update: Update;
 }) {
   switch (step) {
+    case 'servicio':
+      return <ServiceTypeStep orderId={orderId} />;
     case 'tecnico':
       return <TechnicianStep workfile={workfile} update={update} />;
     case 'hallazgos':
@@ -250,7 +285,116 @@ function SystemAction({
 }
 
 /* ------------------------------------------------------------------ *
- * 1 · Técnico
+ * 1 · Tipo de servicio
+ * ------------------------------------------------------------------ */
+
+/**
+ * A qué vino el vehículo.
+ *
+ * ── Por qué está aquí y ya no junto al título ──────────────────────────────
+ *
+ * Porque es una decisión, no un dato del encabezado. Estaba como un lápiz
+ * pequeño al lado del nombre de la orden, y ahí confunde: parece parte de la
+ * cabecera —algo que el sistema ya sabe— cuando en realidad es LO PRIMERO que
+ * hay que decidir, y sin ello la máquina de estados no deja mandar la orden a
+ * diagnóstico. En el expediente está donde se lee: paso uno de once.
+ *
+ * ── Lista corta y campo libre ──────────────────────────────────────────────
+ *
+ * Sin lista, cada asesor escribe el mismo trabajo de tres maneras y el
+ * informe de «qué se hace más» deja de servir. Sin campo libre, el trabajo
+ * raro no se puede registrar y alguien lo mete en el más parecido, que es
+ * peor.
+ */
+function ServiceTypeStep({ orderId }: { readonly orderId: string }) {
+  const { serviceType, setServiceType } = useServiceType(orderId);
+  const toast = useToast();
+
+  const enLista = SERVICE_TYPES.includes(serviceType);
+  const [otro, setOtro] = useState(enLista ? '' : serviceType);
+  const [escribiendo, setEscribiendo] = useState(!enLista && serviceType !== '');
+  const check = checkServiceType(otro);
+
+  const elegir = (valor: string): void => {
+    setServiceType(valor);
+    toast(`Tipo de servicio: ${valor}`, 'ok');
+  };
+
+  return (
+    <>
+      <div role="group" aria-label="Tipo de servicio" className="flex flex-wrap gap-1.5">
+        {SERVICE_TYPES.map((t) => {
+          const activo = serviceType === t;
+          return (
+            <button
+              key={t}
+              type="button"
+              onClick={() => {
+                setEscribiendo(false);
+                elegir(t);
+              }}
+              aria-pressed={activo}
+              className={cn(
+                'inline-flex min-h-11 items-center rounded-control border px-3 text-sm font-medium',
+                'transition-colors duration-150 ease-snap',
+                activo
+                  ? 'border-brand-600 bg-brand-600 text-white'
+                  : 'border-border bg-surface text-fg hover:bg-surface-sunken',
+              )}
+            >
+              {t}
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => setEscribiendo(true)}
+          aria-pressed={escribiendo}
+          className={cn(
+            'inline-flex min-h-11 items-center gap-1.5 rounded-control border px-3 text-sm font-medium',
+            'transition-colors duration-150 ease-snap',
+            escribiendo
+              ? 'border-brand-600 bg-brand-600/10 text-brand-700'
+              : 'border-border bg-surface text-fg hover:bg-surface-sunken',
+          )}
+        >
+          <Pencil aria-hidden className="size-3.5" />
+          Otro
+        </button>
+      </div>
+
+      {escribiendo && (
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <Field label="Describe el trabajo" error={check.error ?? undefined}>
+            <Input
+              value={otro}
+              onChange={(e) => setOtro(e.target.value)}
+              placeholder="REVISIÓN DE RUIDO EN SUSPENSIÓN DELANTERA"
+              className="w-80 max-w-full"
+            />
+          </Field>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={!check.valid}
+            onClick={() => elegir(otro.trim())}
+          >
+            Guardar
+          </Button>
+        </div>
+      )}
+
+      <Hint>
+        En recepción no se sabe qué hay que hacer: lo dice el cliente al dejar
+        el vehículo o el diagnóstico al revisarlo. Sin esto, «Enviar a
+        diagnóstico» queda bloqueado.
+      </Hint>
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * 2 · Técnico
  * ------------------------------------------------------------------ */
 
 function TechnicianStep({
@@ -298,7 +442,7 @@ function TechnicianStep({
 }
 
 /* ------------------------------------------------------------------ *
- * 2 · Hallazgos
+ * 3 · Hallazgos
  * ------------------------------------------------------------------ */
 
 function FindingsStep({
@@ -431,7 +575,7 @@ function LineList({
 }
 
 /* ------------------------------------------------------------------ *
- * 3 · Precios
+ * 4 · Precios
  * ------------------------------------------------------------------ */
 
 function PricesStep({
@@ -522,7 +666,7 @@ function PriceInput({
 }
 
 /* ------------------------------------------------------------------ *
- * 4 · Decisión del cliente
+ * 5 · Decisión del cliente
  * ------------------------------------------------------------------ */
 
 function DecisionStep({
@@ -637,7 +781,7 @@ function DecisionButton({
 }
 
 /* ------------------------------------------------------------------ *
- * 5 · Repuestos y compra
+ * 6 · Repuestos y compra
  * ------------------------------------------------------------------ */
 
 function PartsStep({
@@ -721,7 +865,7 @@ function PartsStep({
 }
 
 /* ------------------------------------------------------------------ *
- * 6 · Tiempo estimado
+ * 7 · Tiempo estimado
  * ------------------------------------------------------------------ */
 
 function TimeStep({
@@ -777,7 +921,7 @@ function TimeStep({
 }
 
 /* ------------------------------------------------------------------ *
- * 7 · Trabajos
+ * 8 · Trabajos
  * ------------------------------------------------------------------ */
 
 function JobsStep({
@@ -838,7 +982,7 @@ function JobsStep({
 }
 
 /* ------------------------------------------------------------------ *
- * 8 · Calidad
+ * 9 · Calidad
  * ------------------------------------------------------------------ */
 
 function QualityStep({
@@ -929,7 +1073,7 @@ function QualityStep({
 }
 
 /* ------------------------------------------------------------------ *
- * 9 · Servicios finales
+ * 10 · Servicios finales
  * ------------------------------------------------------------------ */
 
 function StagesStep({
@@ -969,7 +1113,7 @@ function StagesStep({
 }
 
 /* ------------------------------------------------------------------ *
- * 10 · Entrega
+ * 11 · Entrega
  * ------------------------------------------------------------------ */
 
 function HandoverStep({

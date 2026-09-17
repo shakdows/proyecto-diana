@@ -91,6 +91,16 @@ export interface WorkfileCheck {
  * con datos inventados en este archivo.
  */
 export interface OrderWorkfile {
+  /**
+   * A qué vino el vehículo.
+   *
+   * En recepción no se sabe —lo dice el cliente al dejarlo o el diagnóstico
+   * al revisarlo—, así que la orden nace sin él y la máquina de estados no
+   * deja mandarla a diagnóstico hasta que se decide. Vive AQUÍ, con el resto
+   * de decisiones de la orden, y no en un lápiz junto al título: allí parecía
+   * un detalle del encabezado y era un requisito para avanzar.
+   */
+  readonly serviceType: string;
   readonly technician: Assignee | null;
   readonly lines: readonly WorkfileLine[];
   /** El enlace de autorización que abre el cliente. */
@@ -113,6 +123,7 @@ export type PartsReception = 'ninguno' | 'parcial' | 'completo';
 
 export function emptyWorkfile(): OrderWorkfile {
   return {
+    serviceType: '',
     technician: null,
     lines: [],
     linkIssued: false,
@@ -220,6 +231,10 @@ export function factsFromWorkfile(
   return {
     ...base,
 
+    /* Lo sembrado manda si el expediente no dice nada: las nueve órdenes de
+       la demostración ya traen su tipo de servicio. */
+    hasServiceType: workfile.serviceType.trim() !== '' || base.hasServiceType,
+
     assignedTechnicianId:
       workfile.technician !== null ? workfile.technician.id : base.assignedTechnicianId,
 
@@ -284,6 +299,7 @@ export function factsFromWorkfile(
  * ------------------------------------------------------------------ */
 
 export const WORKFILE_STEPS = [
+  'servicio',
   'tecnico',
   'hallazgos',
   'precios',
@@ -299,6 +315,7 @@ export const WORKFILE_STEPS = [
 export type WorkfileStep = (typeof WORKFILE_STEPS)[number];
 
 export const STEP_LABELS: Readonly<Record<WorkfileStep, string>> = {
+  servicio: 'Tipo de servicio',
   tecnico: 'Asignar técnico',
   hallazgos: 'Hallazgos del diagnóstico',
   precios: 'Precios de la cotización',
@@ -321,7 +338,10 @@ export const STEP_LABELS: Readonly<Record<WorkfileStep, string>> = {
  */
 export function stepFor(status: OrderStatus): WorkfileStep | null {
   switch (status) {
+    /* Lo primero que pide la máquina de estados: sin tipo de servicio no se
+       puede mandar a diagnóstico. */
     case 'CHECKLIST_COMPLETADO':
+      return 'servicio';
     case 'PENDIENTE_DIAGNOSTICO':
       return 'tecnico';
     case 'EN_DIAGNOSTICO':
@@ -363,6 +383,8 @@ export function stepFor(status: OrderStatus): WorkfileStep | null {
 /** ¿Este paso ya está resuelto en el expediente? */
 export function stepDone(step: WorkfileStep, w: OrderWorkfile): boolean {
   switch (step) {
+    case 'servicio':
+      return w.serviceType.trim() !== '';
     case 'tecnico':
       return w.technician !== null;
     case 'hallazgos':
@@ -392,6 +414,36 @@ export function stepDone(step: WorkfileStep, w: OrderWorkfile): boolean {
       return w.deliverySigned;
     default:
       return false;
+  }
+}
+
+/**
+ * Cómo está un paso, con la diferencia que «hecho o pendiente» no sabe decir.
+ *
+ * Hay dos pasos que se dan por resueltos sin que nadie haga nada: si ninguna
+ * línea aprobada lleva repuesto no hay nada que comprar, y una orden puede
+ * salir sin lavado ni alineamiento. Pintarlos «Hecho» en una orden recién
+ * recibida era decir que algo ya ocurrió cuando todavía no ha ocurrido nada:
+ * la lista enseñaba el sexto paso en verde con los cinco anteriores
+ * pendientes, que es exactamente lo que hace desconfiar de una lista.
+ */
+export type StepState = 'hecho' | 'sin_falta' | 'pendiente';
+
+export const STEP_STATE_LABELS: Readonly<Record<StepState, string>> = {
+  hecho: 'Hecho',
+  sin_falta: 'No hace falta',
+  pendiente: 'Pendiente',
+};
+
+export function stepState(step: WorkfileStep, w: OrderWorkfile): StepState {
+  if (!stepDone(step, w)) return 'pendiente';
+  switch (step) {
+    case 'repuestos':
+      return requiredParts(w.lines).length === 0 ? 'sin_falta' : 'hecho';
+    case 'etapas':
+      return w.finalStages.length === 0 ? 'sin_falta' : 'hecho';
+    default:
+      return 'hecho';
   }
 }
 
@@ -545,6 +597,7 @@ export function readWorkfile(stored: unknown): OrderWorkfile {
   const minutos = s.estimatedMinutes;
 
   return {
+    serviceType: text(s.serviceType).slice(0, 80),
     technician: readAssignee(s.technician),
     lines,
     linkIssued: flag(s.linkIssued),
@@ -568,6 +621,7 @@ export function readWorkfile(stored: unknown): OrderWorkfile {
 /** ¿Hay algo anotado? Lo usa la pantalla para no prometer lo que no hay. */
 export function hasWork(w: OrderWorkfile): boolean {
   return (
+    w.serviceType.trim() !== '' ||
     w.technician !== null ||
     w.lines.length > 0 ||
     w.quality.length > 0 ||

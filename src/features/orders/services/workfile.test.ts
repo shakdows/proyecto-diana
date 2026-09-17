@@ -7,6 +7,8 @@ import { applyAction, freshAdvance, type OrderAdvance } from './advance';
 import { canTransition, type Actor, type OrderAction, type OrderFacts } from './state-machine';
 import {
   STANDARD_QUALITY_CHECKS,
+  STEP_STATE_LABELS,
+  WORKFILE_STEPS,
   approvedLines,
   assignableTechnicians,
   centsFromSoles,
@@ -25,6 +27,7 @@ import {
   stagesFinished,
   stepDone,
   stepFor,
+  stepState,
   totalCents,
   workfileSlot,
   type OrderWorkfile,
@@ -70,6 +73,8 @@ const sembrado: OrderFacts = {
 const recibida: OrderFacts = {
   ...sembrado,
   status: 'CHECKLIST_COMPLETADO',
+  /* En recepción no se sabe a qué vino el vehículo. */
+  hasServiceType: false,
   assignedTechnicianId: null,
   diagnosticItemCount: 0,
   quotationLineCount: 0,
@@ -146,6 +151,27 @@ describe('expediente · cuentas', () => {
 describe('expediente · hechos', () => {
   it('un expediente vacío no pisa nada de lo sembrado', () => {
     assert.deepEqual(factsFromWorkfile(sembrado, emptyWorkfile()), sembrado);
+  });
+
+  it('el tipo de servicio desbloquea el envío a diagnóstico', () => {
+    const actor: Actor = { profileId: 'demo-asesor', permissions: PERMISSIONS };
+    const sinTipo = factsFromWorkfile(recibida, emptyWorkfile());
+    assert.equal(canTransition(sinTipo, 'enviar_a_diagnostico', actor).allowed, false);
+
+    const conTipo = factsFromWorkfile(recibida, {
+      ...emptyWorkfile(),
+      serviceType: 'REVISIÓN DE FRENOS',
+    });
+    assert.equal(canTransition(conTipo, 'enviar_a_diagnostico', actor).allowed, true);
+  });
+
+  it('un expediente sin tipo no borra el de una orden sembrada', () => {
+    assert.equal(factsFromWorkfile(sembrado, emptyWorkfile()).hasServiceType, true);
+  });
+
+  it('un tipo en blanco no cuenta como decidido', () => {
+    const f = factsFromWorkfile(recibida, { ...emptyWorkfile(), serviceType: '   ' });
+    assert.equal(f.hasServiceType, false);
   });
 
   it('asignar al técnico desbloquea el diagnóstico, y solo para él', () => {
@@ -252,8 +278,15 @@ describe('expediente · pasos', () => {
     assert.ok(conPaso.length > 15);
   });
 
+  it('lo primero que pide la orden recibida es el tipo de servicio', () => {
+    assert.equal(stepFor('CHECKLIST_COMPLETADO'), 'servicio');
+    assert.equal(stepFor('PENDIENTE_DIAGNOSTICO'), 'tecnico');
+  });
+
   it('un paso está hecho cuando el expediente lo tiene, no cuando se ha mirado', () => {
     const w = emptyWorkfile();
+    assert.equal(stepDone('servicio', w), false);
+    assert.equal(stepDone('servicio', { ...w, serviceType: 'CAMBIO DE ACEITE' }), true);
     assert.equal(stepDone('tecnico', w), false);
     assert.equal(
       stepDone('tecnico', { ...w, technician: { id: 'demo-tecnico', name: 'Carlos' } }),
@@ -328,6 +361,7 @@ describe('expediente · lectura de lo guardado', () => {
 
   it('descarta valores que no existen en vez de creérselos', () => {
     const leido = readWorkfile({
+      serviceType: 'x'.repeat(200),
       technician: { id: '' },
       lines: [{ id: 'a', title: 'x', kind: 'inventado', decision: 'aprobadísimo', priority: 'ninguna' }],
       partsReceived: 'casi',
@@ -335,6 +369,7 @@ describe('expediente · lectura de lo guardado', () => {
       finalStages: ['lavado', 'teletransporte'],
       qualityFindings: ['   ', 'Fuga en la tapa'],
     });
+    assert.equal(leido.serviceType.length, 80, 'el tipo de servicio se recorta, no se cree');
     assert.equal(leido.technician, null);
     assert.equal(leido.lines[0]?.kind, 'servicio');
     assert.equal(leido.lines[0]?.decision, 'pendiente');
@@ -353,6 +388,7 @@ describe('expediente · lectura de lo guardado', () => {
   it('sabe si hay algo anotado', () => {
     assert.equal(hasWork(emptyWorkfile()), false);
     assert.equal(hasWork({ ...emptyWorkfile(), lines: [line()] }), true);
+    assert.equal(hasWork({ ...emptyWorkfile(), serviceType: 'CAMBIO DE ACEITE' }), true);
   });
 });
 
@@ -381,6 +417,9 @@ describe('expediente · el recorrido completo', () => {
         stagesFinished(advance.history),
       );
 
+    // Paso uno: a qué vino el vehículo. Sin esto no sale de recepción.
+    workfile = { ...workfile, serviceType: 'REVISIÓN DE FRENOS' };
+
     const paso = (action: OrderAction): void => {
       reloj = new Date(reloj.getTime() + 60_000);
       const result = applyAction(advance, hechos(), action, actor, 'Carlos Mendoza', reloj);
@@ -391,8 +430,8 @@ describe('expediente · el recorrido completo', () => {
       advance = result.advance;
     };
 
-    // Recepción → diagnóstico. El tipo de servicio ya está definido en la
-    // ficha; el técnico, no: sin asignarlo el diagnóstico no empieza.
+    // Recepción → diagnóstico. El técnico todavía no está: sin asignarlo el
+    // diagnóstico no empieza.
     paso('enviar_a_diagnostico');
     workfile = { ...workfile, technician: { id: TECNICO, name: 'Carlos Mendoza' } };
     paso('iniciar_diagnostico');
@@ -519,5 +558,45 @@ describe('expediente · ayudas de la pantalla', () => {
 
   it('los céntimos se guardan enteros y se dividen solo para pintar', () => {
     assert.equal(toSoles(12_050), 120.5);
+  });
+});
+
+describe('expediente · «hecho» y «no hace falta» no son lo mismo', () => {
+  it('sin repuestos aprobados, el paso de compra no se pinta como hecho', () => {
+    // Salía en verde con los cinco pasos anteriores pendientes: una lista que
+    // dice que algo ocurrió cuando no ha ocurrido nada deja de creerse.
+    assert.equal(stepState('repuestos', emptyWorkfile()), 'sin_falta');
+    assert.equal(stepState('etapas', emptyWorkfile()), 'sin_falta');
+  });
+
+  it('con repuestos por comprar, el paso vuelve a ser trabajo de verdad', () => {
+    const conRepuesto: OrderWorkfile = {
+      ...emptyWorkfile(),
+      lines: [line({ kind: 'repuesto', decision: 'aprobado' })],
+    };
+    assert.equal(stepState('repuestos', conRepuesto), 'pendiente');
+    assert.equal(stepState('repuestos', { ...conRepuesto, partsReceived: 'completo' }), 'hecho');
+  });
+
+  it('una etapa final configurada y terminada sí es «hecho»', () => {
+    const conLavado: OrderWorkfile = { ...emptyWorkfile(), finalStages: ['lavado'] };
+    assert.equal(stepState('etapas', conLavado), 'hecho');
+  });
+
+  it('los demás pasos solo tienen dos estados', () => {
+    for (const step of WORKFILE_STEPS) {
+      if (step === 'repuestos' || step === 'etapas') continue;
+      assert.equal(stepState(step, emptyWorkfile()), 'pendiente', step);
+    }
+    assert.equal(
+      stepState('servicio', { ...emptyWorkfile(), serviceType: 'CAMBIO DE ACEITE' }),
+      'hecho',
+    );
+  });
+
+  it('cada estado tiene su palabra, y ninguna es el color', () => {
+    for (const estado of ['hecho', 'sin_falta', 'pendiente'] as const) {
+      assert.ok(STEP_STATE_LABELS[estado].length > 0, estado);
+    }
   });
 });
