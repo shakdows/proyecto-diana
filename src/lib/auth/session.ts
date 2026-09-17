@@ -6,6 +6,7 @@ import {
   type Permission,
   type RoleCode,
 } from './permissions';
+import { DEMO_PEOPLE, demoProfileId } from './demo-people';
 
 /**
  * Quién está usando el sistema.
@@ -48,21 +49,6 @@ export interface SessionUser {
   readonly email: string | null;
 }
 
-/** Quién es cada rol en la demostración. Nombres, no «Usuario 1». */
-const DEMO_PEOPLE: Readonly<Record<RoleCode, string>> = {
-  super_admin: 'Andrea López',
-  admin: 'Ricardo Salazar',
-  asesor: 'Andrea López',
-  tecnico: 'Carlos Mendoza',
-  planchado_pintura: 'Luis Ramírez',
-  compras: 'Patricia Vega',
-  calidad: 'Rosa Huamán',
-  lavado: 'Miguel Ccahuana',
-  alineamiento: 'Miguel Ccahuana',
-  analista: 'Diego Salas',
-  cliente_corporativo: 'Juan Pérez',
-};
-
 const DEFAULT_ROLE: RoleCode = 'asesor';
 
 function isRoleCode(value: string): value is RoleCode {
@@ -76,7 +62,7 @@ export function roleFromCookieValue(value: string | undefined): RoleCode {
 
 export function userForRole(role: RoleCode): SessionUser {
   return {
-    profileId: `demo-${role}`,
+    profileId: demoProfileId(role),
     fullName: DEMO_PEOPLE[role],
     role,
     permissions: ROLE_PERMISSIONS[role],

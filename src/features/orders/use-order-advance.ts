@@ -22,6 +22,8 @@ import {
   withHandoverFacts,
   type BenchState,
 } from './services/bench-facts';
+import { factsFromWorkfile, stagesFinished } from './services/workfile';
+import { useOrderWorkfile } from './use-order-workfile';
 import type { Actor, OrderAction, OrderFacts } from './services/state-machine';
 
 /*
@@ -97,6 +99,14 @@ export function useOrderAdvance({
     handover !== null &&
     (handover as Record<string, unknown>).signatureCaptured === true;
 
+  /*
+   * El expediente: lo que el taller va anotando en la propia orden —el
+   * técnico asignado, los hallazgos, los precios, la decisión del cliente—.
+   * Es lo que convierte «Para avanzar falta: la orden no tiene técnico
+   * asignado» en algo que se puede resolver sin salir de la pantalla.
+   */
+  const { workfile } = useOrderWorkfile(orderId);
+
   const [stored, setStored] = usePersistentState<unknown>(advanceSlot(orderId), null);
 
   /*
@@ -109,9 +119,20 @@ export function useOrderAdvance({
     [baseStatus, stored],
   );
 
+  /*
+   * Las etapas finales ya hechas se leen del historial y no del expediente:
+   * las produce la propia transición, y derivarlas evita el dato duplicado
+   * que se queda a medias en cuanto alguien deshace el paso.
+   */
+  const etapasHechas = useMemo(() => stagesFinished(advance.history), [advance.history]);
+
   const live = useMemo(
-    () => withHandoverFacts(withBenchFacts(baseFacts, bench, orderPhotos), signed),
-    [baseFacts, bench, orderPhotos, signed],
+    () =>
+      withHandoverFacts(
+        withBenchFacts(factsFromWorkfile(baseFacts, workfile, etapasHechas), bench, orderPhotos),
+        signed,
+      ),
+    [baseFacts, workfile, etapasHechas, bench, orderPhotos, signed],
   );
 
   const facts = useMemo(() => factsAt(live, advance), [live, advance]);

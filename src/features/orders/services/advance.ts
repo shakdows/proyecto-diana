@@ -28,6 +28,7 @@
  */
 
 import type { Permission, RoleCode } from '@/lib/auth/permissions';
+import { isReceptionOrderId } from './from-reception';
 import type { OrderStatus } from './order-status';
 import {
   ACTION_LABELS,
@@ -245,6 +246,18 @@ export interface ActionScreen {
  * se rompería en silencio la primera vez que alguien mejore la redacción.
  */
 export function screenFor(action: OrderAction, orderId: string): ActionScreen | null {
+  /*
+   * Las órdenes abiertas desde recepción no tienen ninguna de esas pantallas.
+   *
+   * No es un olvido: `/taller/diagnostico` y `/taller/reparacion` están
+   * cableadas a la orden de ejemplo, y `/ordenes/<id>/cotizacion`,
+   * `/compras/<id>` y las demás solo encuentran las nueve sembradas. Mandar
+   * ahí a quien acaba de recibir un vehículo era un 404 —o, peor, el
+   * diagnóstico de OTRO coche—. Lo que esas pantallas resuelven para una
+   * orden recibida se hace en su expediente, en la propia ficha.
+   */
+  if (isReceptionOrderId(orderId)) return receptionScreenFor(action);
+
   switch (action) {
     case 'completar_checklist':
       return { href: '/recepcion/nueva', label: 'Recepción' };
@@ -277,6 +290,51 @@ export function screenFor(action: OrderAction, orderId: string): ActionScreen | 
       return { href: `/calidad/${orderId}`, label: 'Control de calidad' };
     case 'entregar':
       return { href: `/ordenes/${orderId}/entrega`, label: 'Entrega' };
+    default:
+      return null;
+  }
+}
+
+/** El expediente de la orden recibida, en su propia ficha. */
+const EXPEDIENTE: ActionScreen = { href: '#expediente', label: 'el expediente de esta orden' };
+
+function receptionScreenFor(action: OrderAction): ActionScreen | null {
+  switch (action) {
+    /* El checklist se completa en el acta, que sí existe para esta orden. */
+    case 'completar_checklist':
+      return { href: '/recepcion/nueva', label: 'Recepción' };
+    /*
+     * Lo que no aparece aquí no tiene destino, y entonces no se pinta enlace:
+     * `cliente_abrio_enlace` la da el portal del cliente, `pausar` y
+     * `reanudar` son actos del técnico en la bahía, y `cancelar` y `cerrar`
+     * se hacen desde la misma barra.
+     */
+    case 'iniciar_diagnostico':
+    case 'completar_diagnostico':
+    case 'preparar_cotizacion':
+    case 'enviar_cotizacion':
+    case 'ampliar_cotizacion':
+    case 'registrar_decision':
+    case 'cerrar_sin_trabajos':
+    case 'solicitar_repuestos':
+    case 'sin_repuestos':
+    case 'autorizar_cotizar':
+    case 'enviar_a_autorizacion':
+    case 'autorizar_compra':
+    case 'rechazar_compra':
+    case 'generar_orden_compra':
+    case 'confirmar_envio':
+    case 'recepcion_parcial':
+    case 'recepcion_completa':
+    case 'iniciar_trabajo':
+    case 'terminar_reparacion':
+    case 'aprobar_calidad':
+    case 'observar_calidad':
+    case 'enviar_a_lavado':
+    case 'enviar_a_alineamiento':
+    case 'finalizar_directo':
+    case 'entregar':
+      return EXPEDIENTE;
     default:
       return null;
   }

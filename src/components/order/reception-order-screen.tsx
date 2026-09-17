@@ -34,6 +34,7 @@ import {
   OrderAdvanceProvider,
 } from '@/components/order/order-advance';
 import { OrderNotes } from '@/components/order/order-notes';
+import { OrderWorkfilePanel } from '@/components/order/order-workfile';
 import { OrderPhotos } from '@/components/order/order-photos';
 import { vocabularyFor } from '@/features/equipment/services/equipment-kind';
 import {
@@ -42,6 +43,7 @@ import {
   checkServiceType,
 } from '@/features/orders/services/from-reception';
 import { useReceptionOrder } from '@/features/orders/use-reception-orders';
+import { useOrderWorkfile } from '@/features/orders/use-order-workfile';
 import type { Permission } from '@/lib/auth/permissions';
 import { useHydrated } from '@/lib/demo/store';
 import { formatDateTime, formatNumber, formatTime, maskDocument } from '@/lib/utils/format';
@@ -78,6 +80,7 @@ export function ReceptionOrderScreen({
   readonly actorName: string;
 }) {
   const { order, serviceType, setServiceType } = useReceptionOrder(orderId);
+  const { workfile } = useOrderWorkfile(orderId);
   const hydrated = useHydrated();
 
   if (!hydrated) return <Cargando />;
@@ -143,7 +146,7 @@ export function ReceptionOrderScreen({
                 {acta.advisorName}
               </Meta>
               <Meta icon={<Wrench />} label="Técnico">
-                Sin asignar
+                {workfile.technician?.name ?? 'Sin asignar'}
               </Meta>
             </dl>
           </div>
@@ -164,10 +167,18 @@ export function ReceptionOrderScreen({
           </div>
         </div>
 
+        {/*
+          Solo el acta y el expediente.
+          ⚠️ Aquí había un enlace a «Cotización» y otro a «Diagnóstico», y los
+          dos mentían: el primero daba 404 —esa pantalla solo existe para las
+          órdenes sembradas— y el segundo abría el diagnóstico de OTRO
+          vehículo, el de la orden de ejemplo. Lo puse yo al montar esta
+          pantalla, que es justo el error que llevamos semanas quitando: un
+          enlace sin destino es peor que ninguno.
+        */}
         <nav aria-label="Pantallas de la orden" className="mt-6 flex flex-wrap gap-2">
           <NavLink href={`/recepcion/acta/${acta.code}`} label={`Acta ${acta.code}`} />
-          <NavLink href="/taller/diagnostico" label="Diagnóstico" />
-          <NavLink href={`/ordenes/${data.id}/cotizacion`} label="Cotización" />
+          <NavLink href="#expediente" label="Ir al expediente de trabajo" />
         </nav>
 
         <div className="mt-7 border-t border-border pt-6">
@@ -177,6 +188,12 @@ export function ReceptionOrderScreen({
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="min-w-0 space-y-5">
+          {/*
+            El expediente va PRIMERO: es lo único de esta pantalla donde hay
+            algo que hacer. Lo que dejó la recepción ya está hecho y se
+            consulta; lo que la orden necesita para avanzar se rellena aquí.
+          */}
+          <OrderWorkfilePanel orderId={data.id} />
           <ReceptionSummary
             acta={acta}
             percent={row.progressPercent}

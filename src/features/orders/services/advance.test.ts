@@ -323,3 +323,33 @@ describe('a quién le toca', () => {
     assert.ok(!frase.includes(ROLE_LABELS.super_admin), frase);
   });
 });
+
+describe('dónde se resuelve · órdenes abiertas desde recepción', () => {
+  it('manda al expediente, no a pantallas que no existen para ella', () => {
+    for (const action of [
+      'iniciar_diagnostico',
+      'enviar_cotizacion',
+      'solicitar_repuestos',
+      'confirmar_envio',
+      'terminar_reparacion',
+      'aprobar_calidad',
+      'entregar',
+    ] as const) {
+      const screen = screenFor(action, 'rec-2026-0001');
+      assert.equal(screen?.href, '#expediente', action);
+    }
+  });
+
+  it('la orden sembrada sigue yendo a sus pantallas de siempre', () => {
+    assert.equal(screenFor('entregar', 'os-154')?.href, '/ordenes/os-154/entrega');
+    assert.equal(screenFor('aprobar_calidad', 'os-154')?.href, '/calidad/os-154');
+  });
+
+  it('lo que el expediente no resuelve no pinta enlace', () => {
+    // El portal del cliente y la propia barra: un enlace ahí no llevaría a
+    // ninguna parte, y un enlace sin destino es peor que ninguno.
+    assert.equal(screenFor('cliente_abrio_enlace', 'rec-2026-0001'), null);
+    assert.equal(screenFor('cancelar', 'rec-2026-0001'), null);
+    assert.equal(screenFor('cerrar', 'rec-2026-0001'), null);
+  });
+});

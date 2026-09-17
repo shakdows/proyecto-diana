@@ -35,7 +35,14 @@ export function OrderPhotos({
   const hydrated = useHydrated();
 
   return (
-    <section className="rounded-panel border border-border bg-surface-raised">
+    /*
+      El ancla vive aquí y no en un envoltorio: el expediente enlaza a
+      «#fotos» cuando falta la evidencia final, y un envoltorio con
+      `display: contents` no genera caja, así que el navegador no tendría
+      adónde desplazarse. Solo hay un panel de fotos por pantalla, así que el
+      identificador no se repite.
+    */
+    <section id="fotos" className="rounded-panel border border-border bg-surface-raised">
       <header className="flex items-center justify-between gap-3 px-5 py-4">
         <h2 className="font-display text-base font-semibold tracking-tight text-fg">
           Fotos del servicio

@@ -155,6 +155,50 @@ export function OrderAdvanceProvider({
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
+/**
+ * El estado al que ha llegado la orden, para quien vive dentro del proveedor.
+ *
+ * Lo necesita el expediente: el paso que hay que rellenar sale del ESTADO, y
+ * pasarlo por propiedad desde la página significaría pasar el estado sembrado
+ * —el de antes de avanzar— y quedarse siempre un paso por detrás.
+ */
+export function useLiveStatus(): OrderStatus {
+  return useAdvance().status;
+}
+
+/**
+ * Aplicar una acción desde fuera de la barra.
+ *
+ * Lo necesita el expediente para las tres transiciones que la barra NO pinta
+ * nunca: las que tienen `permission: null`. No es un descuido de
+ * `availableActions` —las omite a propósito, porque no son de un puesto del
+ * taller—, sino que las da el sistema o el portal del cliente:
+ *
+ *   · `cliente_abrio_enlace`     la dispara el portal al abrirse.
+ *   · `registrar_decision`       la escribe el cliente en el portal, o el
+ *                                asesor cuando la autoriza por teléfono.
+ *   · `liberar_para_reparacion`  la da el mostrador de repuestos al entregar.
+ *
+ * Para una orden abierta desde recepción no existe ninguna de esas pantallas,
+ * así que el recorrido se quedaba clavado en «Cotización enviada» para
+ * siempre: la barra decía, con razón, que no quedaba ningún paso que darle.
+ * El expediente es quien las ofrece, en el paso donde tocan.
+ */
+export function useRunAction(): AdvanceContext['run'] {
+  return useAdvance().run;
+}
+
+/**
+ * Cuántas fotos lleva la orden.
+ *
+ * Lo necesita el expediente para no mandar a buscar una evidencia que ya
+ * está: el paso de los trabajos dice cuántas hay y, si no hay ninguna,
+ * enlaza al panel de fotos de esta misma pantalla.
+ */
+export function useOrderEvidenceCount(): number {
+  return useAdvance().orderPhotos;
+}
+
 /** La insignia de la cabecera, que ahora sigue al estado real. */
 export function LiveStatusChip() {
   const { status } = useAdvance();
@@ -230,7 +274,14 @@ export function OrderActionBar({ orderId }: { readonly orderId: string }) {
     <>
       <section className="sticky bottom-0 -mx-4 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur lg:-mx-6 lg:px-6">
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-          <div className="min-w-0 flex-1 space-y-2">
+          {/*
+            `basis-64`: en un teléfono los dos botones ocupan casi todo el
+            ancho y esta columna se encogía hasta caber una palabra por línea
+            —«Enviar / a / diagnóstico»—. Con una base mínima, cuando no queda
+            sitio los botones bajan a la línea siguiente en vez de estrujar el
+            texto que explica el paso.
+          */}
+          <div className="min-w-0 flex-1 basis-64 space-y-2">
             {siguiente === null ? (
               /*
                 «No hay ningún paso disponible con tu rol» era un callejón sin
