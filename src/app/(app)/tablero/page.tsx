@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { AdminModuleCard } from '@/components/dashboard/admin-module-card';
+import { RouteBoard } from '@/components/dashboard/route-board';
 import { ADMIN_MODULES, visibleModules } from '@/features/dashboard/services/modules';
 import { getSessionUser } from '@/lib/auth/session';
 import { DEFAULT_LOCALE, DEFAULT_TIME_ZONE, greetingAt } from '@/lib/utils/format';
@@ -67,6 +68,29 @@ export default async function TableroPage() {
       </header>
 
       {/*
+        El recorrido va PRIMERO.
+
+        El tablero abría siete módulos ordenados por frecuencia de uso, y eso
+        sirve a quien ya conoce el taller. A quien no, no le decía nada:
+        registrabas un cliente, recibías el vehículo y no había forma de saber
+        cuál de las siete tarjetas era la siguiente. Ahora lo primero que se ve
+        es el camino, con el cuadro donde está el vehículo marcado; los módulos
+        siguen abajo, para ir directo cuando ya se sabe a dónde.
+      */}
+      <RouteBoard
+        profileId={user.profileId}
+        permissions={user.permissions}
+        actorName={user.fullName}
+      />
+
+      <h2 className="mt-10 font-display text-xl font-semibold tracking-tight text-fg">
+        Todo el taller
+      </h2>
+      <p className="mt-1 text-sm text-fg-muted">
+        Los módulos completos, sin pasar por el recorrido.
+      </p>
+
+      {/*
         Doce columnas: cuatro de tres arriba, tres de cuatro abajo. Con siete
         módulos cualquier reparto uniforme deja una tarjeta huérfana en la
         última fila, y una tarjeta sola a un cuarto de ancho se lee como un
@@ -76,13 +100,13 @@ export default async function TableroPage() {
         prueba comprueba que cada fila sume doce exactas, así que añadir un
         octavo módulo sin recolocar la rejilla falla en vez de descuadrarse.
       */}
-      <ul className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-12">
-        {modules.map((module, index) => (
+      <ul className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-12">
+        {modules.map((module) => (
           <li
             key={module.id}
             className={module.span === 3 ? 'xl:col-span-3' : 'xl:col-span-4'}
           >
-            <AdminModuleCard module={module} priority={index < 4} />
+            <AdminModuleCard module={module} priority={false} />
           </li>
         ))}
       </ul>
