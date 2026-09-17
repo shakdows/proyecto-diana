@@ -45,17 +45,28 @@ import type { InspectionStatus } from './hotspots';
 /**
  * Lo que el asesor puede DECIR de una pieza.
  *
- * Tres, y ninguna es «sin inspeccionar»: eso no se elige, es lo que hay
- * mientras no se haya dicho nada. Poder marcar «sin inspeccionar» a mano
- * permitiría deshacer, y para deshacer está quitar el registro.
+ * Ninguna es «sin inspeccionar»: eso no se elige, es lo que hay mientras no
+ * se haya dicho nada. Poder marcarlo a mano permitiría deshacer, y para
+ * deshacer está quitar el registro.
+ *
+ * ── Dos toques, no tres ────────────────────────────────────────────────────
+ *
+ * La pantalla ofrece SOLO dos: ✓ bien y ✗ daño. `pendiente` se conserva
+ * porque hay recepciones guardadas con él y tirarlo las rompería, pero ya no
+ * se ofrece: «la miré y no sé» y «no la he mirado» acababan siendo la misma
+ * cosa para quien leía el acta, y la segunda ya se sabe sola —la pieza sin
+ * tocar—.
  */
 export const PART_ACTIONS = ['conforme', 'observacion', 'pendiente'] as const;
 
 export type PartAction = (typeof PART_ACTIONS)[number];
 
+/** Las dos que se ofrecen al tocar una pieza, en el orden de los botones. */
+export const OFFERED_ACTIONS = ['conforme', 'observacion'] as const;
+
 export const ACTION_LABELS: Readonly<Record<PartAction, string>> = {
-  conforme: 'Conforme',
-  observacion: 'Con observación',
+  conforme: 'Bien',
+  observacion: 'Daño',
   pendiente: 'Pendiente de revisar',
 };
 
@@ -97,9 +108,12 @@ export interface SetPartInput {
 /**
  * Anota lo que se vio en una pieza.
  *
- * Una observación SIN tipo no se guarda como observación: sin saber de qué
- * clase es, el parte no dice nada y el acta no puede describirlo. Quien llama
- * comprueba antes con `canSave`.
+ * El tipo de daño es OPCIONAL. Antes era obligatorio, con un motivo razonable
+ * —«el parte no puede describir un daño sin saber de qué clase es»— y un
+ * efecto peor: marcar el aspa abría un formulario de tres campos, y quince
+ * zonas se convertían en cuarenta y cinco decisiones. Ahora el aspa se guarda
+ * sola y el tipo se precisa si se quiere; lo que el parte enseña mientras
+ * tanto es «daño sin detallar», que es exactamente lo que se dijo.
  */
 export function setPart(
   record: InspectionRecord,
@@ -129,11 +143,13 @@ export function clearPart(record: InspectionRecord, partId: string): InspectionR
   return copia;
 }
 
-/** ¿Se puede guardar lo que hay en el panel? */
-export function canSave(input: SetPartInput): boolean {
-  if (input.action !== 'observacion') return true;
-  return input.kind !== undefined;
-}
+/*
+ * Aquí vivía `canSave`, que devolvía `false` para una observación sin tipo.
+ *
+ * Se ha ido con el requisito: ahora cualquier decisión se puede guardar, y
+ * dejar una función que siempre dice que sí es una comprobación que se lee
+ * como si protegiera algo. Si mañana una acción exige un dato, vuelve aquí.
+ */
 
 /* ------------------------------------------------------------------ *
  * Leer
@@ -164,9 +180,16 @@ export function statusOf(
     case 'pendiente':
       return 'revisar';
     case 'observacion':
-      return entrada.kind !== undefined && kindInfo(entrada.kind).severity === 'grave'
-        ? 'problema'
-        : 'revisar';
+      /*
+       * El aspa es el aspa, sea un rayón o una rotura.
+       *
+       * Antes un rayón salía ámbar y una rotura roja, por la gravedad del
+       * tipo. Con dos símbolos en pantalla eso se volvió en contra: el asesor
+       * pulsaba ✗ y el punto se pintaba «?», que es el signo de otra cosa. La
+       * gravedad no se pierde: está en el tipo y en el comentario, que es
+       * donde se lee, no en el color de un círculo de siete milímetros.
+       */
+      return 'problema';
   }
 }
 
@@ -202,9 +225,18 @@ function isZoneId(value: string): value is ZoneId {
 export function damageFromRecord(record: InspectionRecord): readonly DamageMark[] {
   const out: DamageMark[] = [];
   for (const [partId, entrada] of Object.entries(record)) {
-    if (entrada.action !== 'observacion' || entrada.kind === undefined) continue;
+    if (entrada.action !== 'observacion') continue;
     if (!isZoneId(partId)) continue;
-    out.push({ zone: partId, kind: entrada.kind });
+    /*
+     * Sin tipo, `otro`: «daño sin detallar».
+     *
+     * Aquí estaba el agujero que abrió hacer opcional el tipo: saltándose las
+     * observaciones sin tipo, un vehículo marcado con cuatro aspas salía en
+     * el acta con CERO daños. El acta la firma el cliente; no puede decir que
+     * el vehículo entró impecable porque nadie eligió entre rayón y
+     * abolladura.
+     */
+    out.push({ zone: partId, kind: entrada.kind ?? 'otro' });
   }
   /* Orden estable: el del diagrama, que es como se lee un vehículo. */
   const orden = new Map(ZONES.map((z, i) => [z.id, i]));
@@ -327,7 +359,14 @@ export function progressPhrase(s: RecordSummary): string {
 }
 
 /** Los tipos de observación que se ofrecen. Son los del diagrama, sin inventar. */
-export const OBSERVATION_KINDS = DAMAGE_KINDS;
+/**
+ * Los tipos que se OFRECEN para precisar un daño.
+ *
+ * `otro` no está: no se elige, es lo que queda cuando no se elige nada.
+ * Ofrecerlo sería pedir que alguien decida «sin detallar», que es justo la
+ * decisión que no hace falta tomar.
+ */
+export const OBSERVATION_KINDS = DAMAGE_KINDS.filter((k) => k.id !== 'otro');
 
 /** Hidrata lo guardado y descarta lo que no se reconoce, sin lanzar. */
 export function readRecord(stored: unknown): InspectionRecord {

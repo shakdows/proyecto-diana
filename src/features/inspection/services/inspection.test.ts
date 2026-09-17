@@ -22,20 +22,38 @@ import {
   type Hotspot,
 } from './hotspots';
 import { PLACEMENTS, allSpotIds, labelOf, placementsForView, viewsShowing } from './placement';
-import { buildHotspots, damagePhotoAnchor, statusForDamage } from './from-damage';
+import { buildHotspots, damagePhotoAnchor } from './from-damage';
 
 describe('las vistas', () => {
-  it('son seis: el plano general, el frente, los DOS costados, la cola y el interior', () => {
-    assert.equal(VIEWS.length, 6);
+  it('son cinco: el plano general, el frente, los DOS costados y la cola', () => {
+    assert.equal(VIEWS.length, 5);
     assert.equal(DEFAULT_VIEW, 'superior');
     assert.equal(VIEW_IDS[0], 'superior');
     assert.ok(VIEW_IDS.includes('lateral-i'));
     assert.ok(VIEW_IDS.includes('lateral-d'));
   });
 
+  it('el interior dejó de ser una vista: no hay foto y el checklist ya lo pregunta', () => {
+    assert.equal(isViewId('interior'), false);
+    assert.equal(
+      PLACEMENTS.filter((p) => ['tablero', 'volante', 'tapiceria'].includes(p.id)).length,
+      0,
+    );
+  });
+
+  it('cada vista trae su fotografía y la proporción con la que se dibuja el marco', () => {
+    for (const v of VIEWS) {
+      assert.match(v.photo, /^\/checklist\/.+\.webp$/u, v.id);
+      assert.ok(v.ratio > 0.2 && v.ratio < 4, `${v.id}: proporción rara (${String(v.ratio)})`);
+    }
+    // El plano superior es el único alto; los otros cuatro, anchos.
+    assert.ok(VIEWS[0]!.ratio < 1);
+    for (const v of VIEWS.slice(1)) assert.ok(v.ratio > 1, v.id);
+  });
+
   it('se recorren en círculo con el teclado', () => {
-    assert.equal(nextView('superior', -1), 'interior');
-    assert.equal(nextView('interior', 1), 'superior');
+    assert.equal(nextView('superior', -1), 'posterior');
+    assert.equal(nextView('posterior', 1), 'superior');
     assert.equal(nextView('superior', 1), 'frontal');
   });
 
@@ -147,16 +165,39 @@ describe('dónde se pinta cada punto', () => {
     assert.equal(placementsForView('superior').length, ZONES.length);
   });
 
-  it('la vista superior coincide con el centro de cada zona del diagrama', () => {
-    // El dibujo de arriba NO es libre: es el mismo lienzo del diagrama de
-    // daños en porcentaje. Si allí se mueve una zona, aquí hay que moverla.
-    for (const p of placementsForView('superior')) {
-      const z = ZONES.find((zz) => zz.id === p.zone);
-      assert.ok(z !== undefined);
-      const cx = ((z.x + z.w / 2) / CANVAS.width) * 100;
-      const cy = ((z.y + z.h / 2) / CANVAS.height) * 100;
-      assert.ok(Math.abs(cx - p.x) < 0.6, `${p.id}: x ${p.x} vs ${cx.toFixed(1)}`);
-      assert.ok(Math.abs(cy - p.y) < 0.6, `${p.id}: y ${p.y} vs ${cy.toFixed(1)}`);
+  it('la vista superior lleva las quince zonas del diagrama, ni una más', () => {
+    const arriba = placementsForView('superior');
+    assert.equal(arriba.length, ZONES.length);
+    for (const z of ZONES) {
+      assert.ok(arriba.some((p) => p.zone === z.id), `falta «${z.id}» arriba`);
+    }
+  });
+
+  it('arriba, el vehículo se lee de morro a cola, igual que en el diagrama', () => {
+    /*
+     * Las coordenadas ya NO salen del lienzo del diagrama —ahora se miden
+     * sobre la fotografía—, pero el ORDEN tiene que ser el mismo: el morro
+     * arriba y la cola abajo. Una foto puesta al revés se nota aquí y no en
+     * una recepción de verdad.
+     */
+    const centro = (zone: string): number => {
+      const z = ZONES.find((zz) => zz.id === zone);
+      assert.ok(z !== undefined, zone);
+      return (z.y + z.h / 2) / CANVAS.height;
+    };
+    const arriba = placementsForView('superior')
+      .filter((p) => p.x === 50)
+      .map((p) => ({ id: p.id, foto: p.y / 100, diagrama: centro(p.id) }));
+
+    assert.ok(arriba.length >= 7, 'el eje central tiene que traer las siete piezas');
+    for (let i = 1; i < arriba.length; i += 1) {
+      const previo = arriba[i - 1]!;
+      const actual = arriba[i]!;
+      assert.equal(
+        actual.foto > previo.foto,
+        actual.diagrama > previo.diagrama,
+        `«${actual.id}» no guarda el mismo orden que en el diagrama`,
+      );
     }
   });
 
@@ -181,7 +222,7 @@ describe('dónde se pinta cada punto', () => {
       'lateral-i',
       'superior',
     ]);
-    assert.deepEqual(viewsShowing('tablero'), ['interior']);
+    assert.deepEqual([...viewsShowing('espejo-i')].sort(), ['frontal', 'lateral-i']);
     assert.deepEqual(viewsShowing('inventado'), []);
   });
 
@@ -201,10 +242,13 @@ describe('traducir lo que anotó la recepción', () => {
   const rayon: DamageMark = { zone: 'capo', kind: 'rayon' };
 
   it('una rotura es un problema; un rayón, algo que revisar', () => {
-    assert.equal(statusForDamage(rotura), 'problema');
-    assert.equal(statusForDamage(rayon), 'revisar');
-    assert.equal(statusForDamage({ zone: 'capo', kind: 'abolladura' }), 'revisar');
-    assert.equal(statusForDamage({ zone: 'capo', kind: 'faltante' }), 'problema');
+    // Cualquier daño se pinta igual: ✗. La clase del golpe se lee en el
+    // tipo y en el comentario, no en el color del punto.
+    for (const marca of [rotura, rayon, { zone: 'capo', kind: 'abolladura' } as const]) {
+      const puntos = buildHotspots({ damage: [marca], reviewed: false });
+      const punto = puntos.find((h) => h.id === marca.zone && h.view === 'superior');
+      assert.equal(punto?.status, 'problema', marca.kind);
+    }
   });
 
   it('con la recepción SIN cerrar, lo no marcado está sin inspeccionar', () => {
@@ -330,6 +374,10 @@ describe('resumen y reparto', () => {
   });
 
   it('el resumen de lo sembrado dice la verdad: dos piezas, no seis', () => {
+    /*
+     * El capó sale en cuatro vistas y la puerta en dos. Contando dibujos,
+     * dos golpes se convertían en «6 con problema», que asusta y es falso.
+     */
     const reales = buildHotspots({
       damage: [
         { zone: 'puerta-di', kind: 'rotura' },
@@ -338,8 +386,9 @@ describe('resumen y reparto', () => {
       reviewed: true,
     });
     const s = summarize(reales);
-    assert.equal(s.problema, 1, 'una puerta rota');
-    assert.equal(s.revisar, 1, 'un capó rayado');
+    assert.equal(s.problema, 2, 'la puerta y el capó, una vez cada uno');
+    assert.equal(s.revisar, 0);
+    assert.ok(reales.length > 20, 'y eso con más de veinte puntos dibujados');
   });
 
   it('la frase dice lo que hay que mirar, no lo que está bien', () => {
@@ -354,7 +403,7 @@ describe('resumen y reparto', () => {
 
   it('filtra por vista', () => {
     assert.equal(hotspotsForView(puntos, 'lateral-i').length, 2);
-    assert.equal(hotspotsForView(puntos, 'interior').length, 0);
+    assert.equal(hotspotsForView(puntos, 'posterior').length, 0);
   });
 
   it('ordena lo grave primero y de forma estable', () => {

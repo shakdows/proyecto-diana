@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, CircleHelp, Trash2, TriangleAlert, X } from 'lucide-react';
+import { Check, Trash2, X } from 'lucide-react';
 import { Field } from '@/components/ui/field';
 import { Textarea } from '@/components/ui/input';
 import { PhotoCapture } from '@/components/evidence/photo-capture';
@@ -9,7 +9,6 @@ import type { DamageKind } from '@/features/reception/services/damage-map';
 import {
   ACTION_LABELS,
   OBSERVATION_KINDS,
-  canSave,
   type PartAction,
   type PartRecord,
 } from '@/features/inspection/services/reception-inspection';
@@ -19,13 +18,22 @@ import { cn } from '@/lib/utils/cn';
 /**
  * Lo que se abre al tocar una pieza durante la recepción.
  *
- * ── Tres botones antes que un formulario ───────────────────────────────────
+ * ── Dos botones, y ya ──────────────────────────────────────────────────────
  *
- * La mayoría de las piezas de la mayoría de los vehículos están bien. Ese
- * caso tiene que costar UN toque, no un formulario: por eso «Conforme»
- * guarda y cierra, y los campos de la observación solo aparecen al elegir
- * «Con observación». Enseñarlos siempre convierte quince zonas en cuarenta y
- * cinco campos, y nadie llega al final.
+ * ✓ está bien, ✗ tiene daño. Nada más, porque esa es la decisión que se toma
+ * de pie, con el cliente al lado y quince piezas por delante.
+ *
+ * Antes eran tres botones y, al marcar el daño, un formulario obligatorio con
+ * el tipo de golpe. Era más completo y era peor: quince zonas se convertían
+ * en cuarenta y cinco decisiones, y un trámite que cuesta cuarenta y cinco
+ * decisiones se acaba rellenando a lo tonto —o no se rellena—. El tipo sigue
+ * estando, debajo y OPCIONAL, para quien quiera precisar.
+ *
+ * ── El comentario, siempre a la vista ──────────────────────────────────────
+ *
+ * También cuando la pieza está bien: «tiene los faros nuevos» o «el cliente
+ * avisa de un ruido aquí» son cosas que se dicen en la recepción y que antes
+ * no tenían dónde escribirse salvo declarando un daño que no existe.
  *
  * ── Se guarda solo ─────────────────────────────────────────────────────────
  *
@@ -65,21 +73,24 @@ export function InspectionPartPanel({
 
   const info = statusInfo(hotspot.status);
 
-  const elegir = (siguiente: PartAction): void => {
-    setAction(siguiente);
-    /*
-     * «Conforme» y «Pendiente» se guardan al instante: no hay nada más que
-     * decir de ellas y pedir un segundo toque en «Guardar» es exactamente el
-     * roce que hace que quince zonas se sientan como cuarenta y cinco.
-     */
-    if (siguiente !== 'observacion') {
-      onSave({ action: siguiente, ...(note.trim() === '' ? {} : { note }) });
-    }
+  const guardar = (
+    siguiente: PartAction,
+    tipo: DamageKind | undefined,
+    texto: string,
+  ): void => {
+    onSave({
+      action: siguiente,
+      ...(siguiente === 'observacion' && tipo !== undefined ? { kind: tipo } : {}),
+      ...(texto.trim() === '' ? {} : { note: texto }),
+    });
   };
 
-  const guardarObservacion = (): void => {
-    if (!canSave({ action: 'observacion', kind })) return;
-    onSave({ action: 'observacion', kind, ...(note.trim() === '' ? {} : { note }) });
+  const elegir = (siguiente: PartAction): void => {
+    setAction(siguiente);
+    /* Al pasar de daño a bien, el tipo deja de tener sentido y se va con él. */
+    const tipo = siguiente === 'observacion' ? kind : undefined;
+    if (siguiente !== 'observacion') setKind(undefined);
+    guardar(siguiente, tipo, note);
   };
 
   return (
@@ -104,106 +115,100 @@ export function InspectionPartPanel({
         </button>
       </header>
 
-      {/* ── Los tres estados ─────────────────────────────────────────── */}
-      <div role="group" aria-label="Estado de la pieza" className="mt-3 grid gap-2 sm:grid-cols-3">
+      {/* ── Bien o daño ──────────────────────────────────────────────── */}
+      <div role="group" aria-label="Estado de la pieza" className="mt-3 grid gap-2 sm:grid-cols-2">
         <Opcion
           activo={action === 'conforme'}
           onClick={() => elegir('conforme')}
-          icon={<Check className="size-4" />}
+          icon={<Check className="size-5" strokeWidth={3} />}
           label={ACTION_LABELS.conforme}
           tono="ok"
         />
         <Opcion
           activo={action === 'observacion'}
           onClick={() => elegir('observacion')}
-          icon={<TriangleAlert className="size-4" />}
+          icon={<X className="size-5" strokeWidth={3} />}
           label={ACTION_LABELS.observacion}
           tono="crit"
         />
-        <Opcion
-          activo={action === 'pendiente'}
-          onClick={() => elegir('pendiente')}
-          icon={<CircleHelp className="size-4" />}
-          label={ACTION_LABELS.pendiente}
-          tono="warn"
-        />
       </div>
 
-      {/* ── Solo si hay observación ──────────────────────────────────── */}
+      {/* ── El tipo, solo si hay daño y solo si se quiere ─────────────── */}
       {action === 'observacion' && (
-        <div className="mt-4 space-y-4 border-t border-border pt-4">
-          <fieldset>
-            <legend className="text-sm font-medium text-fg">
-              Tipo de observación
-              <span aria-hidden className="ml-0.5 text-crit-600">
-                *
-              </span>
-            </legend>
-            {/*
-              La severidad NO se pregunta aparte: va DENTRO del tipo. Un rayón
-              es leve y una rotura es grave siempre, y dejar elegir las dos
-              cosas permite guardar «rotura leve», que en un peritaje no
-              significa nada.
-            */}
-            <div className="mt-2 flex flex-wrap gap-2">
-              {OBSERVATION_KINDS.map((k) => (
+        <fieldset className="mt-3">
+          <legend className="text-xs text-fg-subtle">
+            ¿De qué tipo? Opcional: sin elegir, queda como «daño sin detallar».
+          </legend>
+          {/*
+            La severidad NO se pregunta aparte: va DENTRO del tipo. Un rayón
+            es leve y una rotura es grave siempre, y dejar elegir las dos
+            cosas permite guardar «rotura leve», que en un peritaje no
+            significa nada.
+          */}
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {OBSERVATION_KINDS.map((k) => {
+              const elegido = kind === k.id;
+              return (
                 <button
                   key={k.id}
                   type="button"
-                  onClick={() => setKind(k.id)}
-                  aria-pressed={kind === k.id}
+                  onClick={() => {
+                    /* Volver a pulsar el mismo tipo lo quita: se guardó por error. */
+                    const siguiente = elegido ? undefined : k.id;
+                    setKind(siguiente);
+                    guardar('observacion', siguiente, note);
+                  }}
+                  aria-pressed={elegido}
                   className={cn(
-                    'inline-flex min-h-11 items-center gap-2 rounded-control border px-3 text-sm font-medium',
+                    'inline-flex min-h-11 items-center gap-1.5 rounded-control border px-3 text-sm font-medium',
                     'transition-colors duration-150 ease-snap',
-                    kind === k.id
+                    elegido
                       ? 'border-crit-600 bg-crit-100 text-crit-700'
                       : 'border-border bg-surface text-fg hover:bg-surface-sunken',
                   )}
                 >
-                  <span
-                    aria-hidden
-                    className="grid size-5 place-items-center rounded-full bg-fg/10 text-[0.625rem] font-bold"
-                  >
-                    {k.mark}
-                  </span>
                   {k.label}
-                  <span className="text-xs text-fg-subtle">{severidad(k.severity)}</span>
                 </button>
-              ))}
-            </div>
-          </fieldset>
-
-          <Field label="Comentario" hint="Dónde está y qué tamaño tiene. Opcional.">
-            <Textarea
-              rows={2}
-              value={note}
-              maxLength={300}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Rayón de unos 12 cm junto al faro derecho."
-            />
-          </Field>
-
-          <button
-            type="button"
-            onClick={guardarObservacion}
-            disabled={kind === undefined}
-            className={cn(
-              'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-control px-4 text-sm font-semibold sm:w-auto',
-              kind === undefined
-                ? 'cursor-not-allowed bg-surface-sunken text-fg-subtle'
-                : 'bg-romero-500 text-white hover:bg-romero-600 active:scale-[0.98]',
-            )}
-          >
-            <Check aria-hidden className="size-4" />
-            Guardar observación
-          </button>
-          {kind === undefined && (
-            <p className="text-xs text-fg-subtle">
-              Elige el tipo: sin él, el parte no puede describir el daño.
-            </p>
-          )}
-        </div>
+              );
+            })}
+          </div>
+        </fieldset>
       )}
+
+      {/* ── El comentario ────────────────────────────────────────────── */}
+      <div className="mt-3">
+        <Field
+          label="Comentario"
+          hint={
+            action === null
+              ? 'Se guarda al marcar ✓ o ✗.'
+              : 'Se guarda al salir del campo.'
+          }
+        >
+          <Textarea
+            rows={2}
+            value={note}
+            maxLength={300}
+            onChange={(e) => setNote(e.target.value)}
+            /*
+              Al salir del campo, y no en cada tecla: escribir en el almacén
+              letra a letra reescribiría el registro —y su hora— treinta veces
+              por comentario. Si todavía no hay ✓ ni ✗, no hay nada que
+              guardar: el comentario entra con la decisión.
+            */
+            onBlur={() => {
+              if (action === null) return;
+              if ((record?.note ?? '') === note.trim()) return;
+              guardar(action, kind, note);
+            }}
+            placeholder={
+              action === 'observacion'
+                ? 'Rayón de unos 12 cm junto al faro derecho.'
+                : 'Lo que haga falta dejar dicho de esta pieza.'
+            }
+          />
+        </Field>
+      </div>
 
       {/* ── Evidencia ────────────────────────────────────────────────── */}
       <div className="mt-4 border-t border-border pt-4">
@@ -213,7 +218,7 @@ export function InspectionPartPanel({
           hint={
             action === 'observacion'
               ? 'Una foto del daño es lo que se enseña cuando el cliente reclama. Para una rotura, tómala siempre.'
-              : 'Opcional mientras no haya observación.'
+              : 'Opcional mientras no haya daño marcado.'
           }
         />
       </div>
@@ -232,10 +237,6 @@ export function InspectionPartPanel({
   );
 }
 
-function severidad(s: 'leve' | 'media' | 'grave'): string {
-  return s === 'leve' ? 'Leve' : s === 'media' ? 'Moderado' : 'Importante';
-}
-
 function Opcion({
   activo,
   onClick,
@@ -247,7 +248,7 @@ function Opcion({
   readonly onClick: () => void;
   readonly icon: React.ReactNode;
   readonly label: string;
-  readonly tono: 'ok' | 'crit' | 'warn';
+  readonly tono: 'ok' | 'crit';
 }) {
   return (
     <button
@@ -255,12 +256,11 @@ function Opcion({
       onClick={onClick}
       aria-pressed={activo}
       className={cn(
-        'flex min-h-12 items-center justify-center gap-2 rounded-control border px-3',
-        'text-sm font-semibold transition-colors duration-150 ease-snap active:scale-[0.98]',
+        'flex min-h-14 items-center justify-center gap-2.5 rounded-control border px-3',
+        'text-base font-semibold transition-colors duration-150 ease-snap active:scale-[0.98]',
         !activo && 'border-border bg-surface text-fg hover:bg-surface-sunken',
-        activo && tono === 'ok' && 'border-ok-600 bg-ok-100 text-ok-700',
-        activo && tono === 'crit' && 'border-crit-600 bg-crit-100 text-crit-700',
-        activo && tono === 'warn' && 'border-warn-600 bg-warn-100 text-warn-700',
+        activo && tono === 'ok' && 'border-ok-600 bg-ok-600 text-white',
+        activo && tono === 'crit' && 'border-crit-600 bg-crit-600 text-white',
       )}
     >
       <span aria-hidden className="shrink-0">

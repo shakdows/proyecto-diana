@@ -31,11 +31,6 @@ import {
 import { PLACEMENTS } from './placement';
 import type { Hotspot, InspectionStatus } from './hotspots';
 
-/** Un rayón pide una mirada; una rotura es un problema. */
-export function statusForDamage(mark: DamageMark): InspectionStatus {
-  return kindInfo(mark.kind).severity === 'grave' ? 'problema' : 'revisar';
-}
-
 export interface InspectionInput {
   readonly damage: readonly DamageMark[];
   /**
@@ -88,8 +83,20 @@ export function buildHotspots(input: InspectionInput): readonly Hotspot[] {
   });
 }
 
+/**
+ * Un daño es un daño: aspa roja, sea un rayón o una rotura.
+ *
+ * Aquí vivía `statusForDamage`, que graduaba por severidad —rayón ámbar,
+ * rotura roja—. Con dos símbolos en la inspección de recepción eso se volvió
+ * en contra: el asesor marcaba ✗ en la puerta y en la ficha de la orden la
+ * misma puerta salía con «?», que es el signo de «sin revisar». Dos pantallas
+ * del mismo sistema diciendo cosas distintas del mismo golpe.
+ *
+ * La gravedad no se pierde: está en el tipo y en el comentario, que es donde
+ * se lee, y no en el color de un círculo de siete milímetros.
+ */
 function resolveStatus(marca: DamageMark | undefined, reviewed: boolean): InspectionStatus {
-  if (marca !== undefined) return statusForDamage(marca);
+  if (marca !== undefined) return 'problema';
   return reviewed ? 'ok' : 'pendiente';
 }
 

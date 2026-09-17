@@ -82,7 +82,23 @@ export const ZONES: readonly Zone[] = [
 
 export const CANVAS = { width: 220, height: 460 } as const;
 
-export type DamageKind = 'rayon' | 'abolladura' | 'rotura' | 'faltante' | 'oxido';
+export type DamageKind =
+  | 'rayon'
+  | 'abolladura'
+  | 'rotura'
+  | 'faltante'
+  | 'oxido'
+  /*
+   * El daño que se marcó sin detallar de qué clase es.
+   *
+   * La inspección de recepción se anota con dos toques —bien o daño— y el
+   * tipo es opcional: pedirlo siempre convertía quince zonas en un
+   * formulario que nadie termina. Pero el parte NO puede quedarse sin la
+   * marca: sin ella, el acta diría «sin daños» de un vehículo que entró
+   * golpeado. Este valor es lo que se guarda mientras nadie precise más, y
+   * dice exactamente eso.
+   */
+  | 'otro';
 
 export interface DamageKindInfo {
   readonly id: DamageKind;
@@ -98,6 +114,7 @@ export const DAMAGE_KINDS: readonly DamageKindInfo[] = [
   { id: 'oxido', label: 'Óxido', mark: 'O', severity: 'media' },
   { id: 'rotura', label: 'Rotura', mark: 'X', severity: 'grave' },
   { id: 'faltante', label: 'Falta la pieza', mark: 'F', severity: 'grave' },
+  { id: 'otro', label: 'Daño sin detallar', mark: '✗', severity: 'media' },
 ];
 
 export interface DamageMark {

@@ -51,7 +51,14 @@ export interface StatusInfo {
 }
 
 export const STATUSES: readonly StatusInfo[] = [
-  { id: 'problema', label: 'Problema detectado', mark: '!', rank: 0 },
+  /*
+   * El aspa, no la exclamación.
+   *
+   * La inspección de recepción se anota con dos símbolos —✓ y ✗— y el punto
+   * tiene que enseñar EL MISMO que se pulsó: con «!» en el dibujo y «✗» en el
+   * botón, quien marca el daño no reconoce después lo que marcó.
+   */
+  { id: 'problema', label: 'Problema detectado', mark: '✗', rank: 0 },
   { id: 'revisar', label: 'Requiere revisión', mark: '?', rank: 1 },
   { id: 'info', label: 'Sin observaciones', mark: 'i', rank: 2 },
   { id: 'ok', label: 'Conforme', mark: '✓', rank: 3 },

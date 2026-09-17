@@ -18,7 +18,6 @@ import {
   PART_ACTIONS,
   REQUIRED_PARTS,
   canFinish,
-  canSave,
   clearPart,
   damageFromRecord,
   inspectionSlot,
@@ -87,16 +86,23 @@ describe('anotar una pieza', () => {
     assert.equal(r.capo?.at, AHORA.getTime());
   });
 
-  it('una observación grave es problema; una leve, algo que revisar', () => {
-    assert.equal(statusOf(conUna('capo', { action: 'observacion', kind: 'rotura' }), 'capo', false), 'problema');
-    assert.equal(statusOf(conUna('capo', { action: 'observacion', kind: 'rayon' }), 'capo', false), 'revisar');
+  it('el aspa es el aspa: cualquier daño se pinta igual, con tipo o sin él', () => {
+    // Antes un rayón salía ámbar («?») y una rotura roja. Con dos símbolos en
+    // pantalla, pulsar ✗ y ver un «?» es no reconocer lo que acabas de marcar.
+    for (const kind of ['rotura', 'rayon'] as const) {
+      assert.equal(
+        statusOf(conUna('capo', { action: 'observacion', kind }), 'capo', false),
+        'problema',
+        kind,
+      );
+    }
+    assert.equal(statusOf(conUna('capo', { action: 'observacion' }), 'capo', false), 'problema');
   });
 
-  it('una observación SIN tipo no se puede guardar', () => {
-    assert.equal(canSave({ action: 'observacion' }), false);
-    assert.equal(canSave({ action: 'observacion', kind: 'rayon' }), true);
-    assert.equal(canSave({ action: 'conforme' }), true);
-    assert.equal(canSave({ action: 'pendiente' }), true);
+  it('una observación SIN tipo se guarda: el tipo es opcional', () => {
+    const r = conUna('capo', { action: 'observacion' });
+    assert.equal(r.capo?.action, 'observacion');
+    assert.equal(r.capo?.kind, undefined);
   });
 
   it('el comentario se limpia, y si queda vacío no se guarda', () => {
@@ -208,9 +214,17 @@ describe('derivar los daños que el resto del sistema ya lee', () => {
     assert.deepEqual(damageFromRecord(r).map((d) => d.zone), ['capo', 'paragolpes-trasero']);
   });
 
-  it('una observación sin tipo tampoco produce daño', () => {
+  it('una observación sin tipo SÍ produce daño, como «sin detallar»', () => {
+    // El agujero que abrió hacer opcional el tipo: saltándose estas
+    // observaciones, un vehículo con cuatro aspas salía en el acta —la que
+    // firma el cliente— con CERO daños.
     const r = conUna('capo', { action: 'observacion' });
-    assert.deepEqual(damageFromRecord(r), []);
+    assert.deepEqual(damageFromRecord(r), [{ zone: 'capo', kind: 'otro' }]);
+  });
+
+  it('lo que está bien nunca produce daño', () => {
+    assert.deepEqual(damageFromRecord(conUna('capo', { action: 'conforme' })), []);
+    assert.deepEqual(damageFromRecord(conUna('capo', { action: 'pendiente' })), []);
   });
 });
 
@@ -222,8 +236,9 @@ describe('recuperar una recepción empezada con el diagrama anterior', () => {
 
   it('los daños marcados antes NO se pierden', () => {
     const r = recordFromDamage(viejos, AHORA, ASESOR);
-    assert.equal(statusOf(r, 'capo', false), 'revisar');
+    assert.equal(statusOf(r, 'capo', false), 'problema');
     assert.equal(statusOf(r, 'puerta-di', false), 'problema');
+    assert.equal(r.capo?.kind, 'rayon', 'el tipo de antes se conserva tal cual');
   });
 
   it('lo que no estaba marcado sigue sin inspeccionar, que es la verdad', () => {

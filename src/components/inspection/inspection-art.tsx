@@ -3,23 +3,19 @@ import type { ViewId } from '@/features/inspection/services/views';
 import { cn } from '@/lib/utils/cn';
 
 /**
- * La silueta del vehículo en cada una de las cinco vistas.
+ * La silueta del vehículo, ahora de RESPALDO.
  *
- * ── Por qué dibujo y no fotografía ─────────────────────────────────────────
+ * ── Por qué sigue existiendo ───────────────────────────────────────────────
  *
- * Porque cinco fotografías reales exigen CINCO fotografías reales, de CADA
- * modelo que entre al taller. El proyecto tiene una foto de catálogo por
- * modelo y nada más, y las fotos del vehículo del cliente son evidencia
- * privada: no pueden hacer de ilustración genérica. Repetir la misma foto en
- * las cinco pestañas sería lo peor de todo —la pantalla diría «vista
- * posterior» enseñando el frente—.
+ * La inspección usa fotografías (`InspectionCanvas`), y para un automóvil son
+ * mucho mejores: se ve la puerta de verdad y no un rectángulo que la
+ * representa. Pero las fotos son de un sedán, y una retroexcavadora no es un
+ * sedán: enseñarle al operario un coche donde hay una máquina, con puntos
+ * señalando piezas que ese equipo no tiene, sería peor que el dibujo.
  *
- * El dibujo, en cambio, es honesto en las cinco, sirve para cualquier
- * carrocería y pesa unos kilobytes. Es la misma razón por la que existe
- * `VehicleArt`, y está escrita allí.
- *
- * Cuando haya juegos de fotos reales por modelo, el visor las prefiere: esto
- * queda de respaldo, igual que hace `AssetImage`.
+ * Así que el dibujo se queda para `maquinaria`, que es genérico a propósito.
+ * Es el mismo criterio de `AssetImage`: la foto cuando existe y sirve; el
+ * dibujo cuando no.
  *
  * ── El dibujo NO es el dato ────────────────────────────────────────────────
  *
@@ -34,7 +30,6 @@ const VIEWBOX: Readonly<Record<ViewId, string>> = {
   'lateral-d': '0 0 420 200',
   frontal: '0 0 300 220',
   posterior: '0 0 300 220',
-  interior: '0 0 340 220',
 };
 
 export function InspectionArt({
@@ -83,7 +78,6 @@ export function InspectionArt({
       )}
       {view === 'frontal' && <Frontal body={body} />}
       {view === 'posterior' && <Posterior body={body} />}
-      {view === 'interior' && <Interior />}
     </svg>
   );
 }
@@ -253,39 +247,6 @@ function Posterior({ body }: { readonly body: BodyStyle }) {
       <rect x="34" y="156" width="232" height="30" rx="10" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="2" />
       <rect x="122" y="162" width="56" height="18" rx="3" fill="#f8fafc" stroke="#94a3b8" strokeWidth="1.5" />
       <rect x="86" y="188" width="26" height="10" rx="5" fill="#64748b" />
-    </g>
-  );
-}
-
-/* ------------------------------------------------------------------ *
- * Interior — cabina vista desde el asiento trasero
- * ------------------------------------------------------------------ */
-
-function Interior() {
-  const v: ViewId = 'interior';
-
-  return (
-    <g>
-      {/* Parabrisas al fondo. */}
-      <rect x="40" y="20" width="260" height="62" rx="10" {...cristal(v)} />
-
-      {/* Tablero. */}
-      <rect x="28" y="76" width="284" height="42" rx="10" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="2" />
-      <rect x="150" y="86" width="72" height="24" rx="4" fill="#475569" />
-
-      {/* Volante, a la izquierda: en Perú se conduce por la derecha. */}
-      <ellipse cx="96" cy="104" rx="34" ry="14" fill="none" stroke="#334155" strokeWidth="5" />
-      <line x1="96" y1="104" x2="96" y2="118" stroke="#334155" strokeWidth="5" />
-
-      {/* Consola central. */}
-      <rect x="160" y="118" width="40" height="52" rx="6" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1.5" />
-
-      {/* Asientos delanteros. */}
-      <rect x="62" y="124" width="72" height="54" rx="10" fill="#dbe3ec" stroke="#94a3b8" strokeWidth="2" />
-      <rect x="226" y="124" width="72" height="54" rx="10" fill="#dbe3ec" stroke="#94a3b8" strokeWidth="2" />
-
-      {/* Banqueta trasera, en primer plano. */}
-      <rect x="52" y="182" width="256" height="30" rx="10" fill="#cbd5e1" stroke="#94a3b8" strokeWidth="2" />
     </g>
   );
 }

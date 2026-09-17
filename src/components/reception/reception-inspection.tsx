@@ -339,7 +339,13 @@ function Cierre({
   return (
     <section className="sticky bottom-0 -mx-4 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur lg:-mx-6 lg:px-6">
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <div className="min-w-0 flex-1">
+        {/*
+          `basis-64`: en un teléfono el botón ocupa casi todo el ancho y esta
+          columna se encogía hasta caber una palabra por línea —«Aún / quedan /
+          12 / zonas»—. Con una base mínima, cuando no queda sitio el botón
+          baja a la línea siguiente en vez de estrujar el aviso.
+        */}
+        <div className="min-w-0 flex-1 basis-64">
           {aviso === null ? (
             <p className="text-sm text-fg">
               <span data-numeric className="font-semibold">

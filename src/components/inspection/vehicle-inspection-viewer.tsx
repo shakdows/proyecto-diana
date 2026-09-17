@@ -14,6 +14,7 @@ import {
   DEFAULT_VIEW,
   VIEWS,
   nextView,
+  viewById,
   type ViewId,
 } from '@/features/inspection/services/views';
 import {
@@ -26,7 +27,7 @@ import {
   type Hotspot,
   type InspectionStatus,
 } from '@/features/inspection/services/hotspots';
-import { InspectionArt } from './inspection-art';
+import { InspectionCanvas } from './inspection-canvas';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -192,11 +193,22 @@ export function VehicleInspectionViewer({
 
       <div className="px-5 pb-5">
         {/* ── El vehículo ─────────────────────────────────────────────── */}
+        {/*
+          El marco copia la proporción EXACTA de la foto de esta vista.
+          Con una proporción fija para todas, la foto se centraría dentro
+          dejando bandas, y los puntos —colocados en porcentaje del marco—
+          señalarían al lado de la pieza en vez de encima.
+
+          El fondo es blanco y no `surface-sunken` porque las fotos vienen
+          sobre blanco: cualquier otro color dibujaría un rectángulo alrededor
+          del vehículo.
+        */}
         <div
+          style={{ aspectRatio: String(viewById(view).ratio) }}
           className={cn(
-            'relative overflow-hidden rounded-panel bg-surface-sunken',
-            view === 'superior' ? 'aspect-[220/460] max-h-[30rem]' : 'aspect-[2/1]',
-            'mx-auto w-full',
+            'relative mx-auto w-full overflow-hidden rounded-panel bg-white',
+            /* El plano superior lleva quince puntos: por debajo de unos 17rem
+               se tapan entre ellos y dejan de señalar una pieza concreta. */
             view === 'superior' && 'max-w-[17rem]',
           )}
         >
@@ -208,12 +220,7 @@ export function VehicleInspectionViewer({
               transform: `scale(${cambiando ? 0.985 : zoom ? 1.5 : 1})`,
             }}
           >
-            <InspectionArt
-              vehicle={vehicle}
-              view={view}
-              equipmentKind={equipmentKind}
-              className="p-4"
-            />
+            <InspectionCanvas vehicle={vehicle} view={view} equipmentKind={equipmentKind} />
 
             {/*
               Los puntos viven en la MISMA capa que la silueta y comparten su
@@ -247,7 +254,7 @@ export function VehicleInspectionViewer({
             </button>
           </div>
 
-          <p className="pointer-events-none absolute inset-x-0 bottom-2 text-center text-[0.6875rem] text-fg-subtle">
+          <p className="pointer-events-none absolute inset-x-0 bottom-1 text-center text-[0.6875rem] text-graphite-600">
             Toca un punto para ver qué se encontró
           </p>
         </div>
@@ -327,9 +334,9 @@ export function VehicleInspectionViewer({
 
         {plate !== undefined && (
           <p className="mt-3 text-[0.6875rem] text-fg-subtle">
-            Silueta genérica: los puntos señalan la PIEZA, no un píxel de la
-            imagen. Cuando haya fotografías del vehículo, se pintan encima sin
-            mover ningún registro.
+            Las fotografías son de referencia, no de este vehículo: los puntos
+            señalan la PIEZA, no un píxel de la imagen. Las fotos del vehículo
+            del cliente son evidencia y van en cada punto.
           </p>
         )}
       </div>

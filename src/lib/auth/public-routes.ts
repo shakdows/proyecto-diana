@@ -40,6 +40,8 @@ export const PUBLIC_ROUTES: readonly string[] = [
   // La evidencia del cliente NO vive aquí: va a almacenamiento privado con
   // URL firmada. Ver public/fotos-de-carros/README.md.
   '/fotos-de-carros',
+  /* Las cinco vistas del checklist de inspección. */
+  '/checklist',
   '/fondos',
   '/marca',
   '/assets',
