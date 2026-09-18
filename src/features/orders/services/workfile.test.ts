@@ -6,9 +6,15 @@ import { ORDER_STATUSES } from './order-status';
 import { applyAction, freshAdvance, type OrderAdvance } from './advance';
 import { canTransition, type Actor, type OrderAction, type OrderFacts } from './state-machine';
 import {
+  AREA_LABELS,
+  AREA_WHO,
   STANDARD_QUALITY_CHECKS,
   STEP_STATE_LABELS,
+  WORKFILE_AREAS,
   WORKFILE_STEPS,
+  areaOf,
+  areaRuns,
+  stepsOfArea,
   approvedLines,
   assignableTechnicians,
   centsFromSoles,
@@ -597,6 +603,47 @@ describe('expediente · «hecho» y «no hace falta» no son lo mismo', () => {
   it('cada estado tiene su palabra, y ninguna es el color', () => {
     for (const estado of ['hecho', 'sin_falta', 'pendiente'] as const) {
       assert.ok(STEP_STATE_LABELS[estado].length > 0, estado);
+    }
+  });
+});
+
+describe('expediente · las áreas', () => {
+  it('cada paso tiene su área, y ninguna área se queda vacía', () => {
+    for (const step of WORKFILE_STEPS) {
+      assert.ok(WORKFILE_AREAS.includes(areaOf(step)), step);
+    }
+    for (const area of WORKFILE_AREAS) {
+      assert.ok(stepsOfArea(area).length > 0, area);
+    }
+  });
+
+  it('el técnico no pone precios ni el asesor rectifica discos', () => {
+    assert.equal(areaOf('hallazgos'), 'taller');
+    assert.equal(areaOf('trabajos'), 'taller');
+    assert.equal(areaOf('precios'), 'asesoria');
+    assert.equal(areaOf('decision'), 'asesoria');
+    assert.equal(areaOf('repuestos'), 'compras');
+    assert.equal(areaOf('calidad'), 'calidad');
+  });
+
+  it('los tramos van en el orden del recorrido, no en el del organigrama', () => {
+    const runs = areaRuns();
+    assert.deepEqual(
+      runs.map((r) => r.area),
+      ['asesoria', 'taller', 'asesoria', 'compras', 'taller', 'calidad', 'finales', 'asesoria'],
+    );
+    // Asesoría sale tres veces: el principio, la cotización y la entrega.
+    assert.equal(runs.filter((r) => r.area === 'asesoria').length, 3);
+  });
+
+  it('los tramos, juntos, son exactamente los once pasos y en orden', () => {
+    assert.deepEqual(areaRuns().flatMap((r) => r.steps), [...WORKFILE_STEPS]);
+  });
+
+  it('cada área dice quién trabaja en ella: el color y la palabra, no el color solo', () => {
+    for (const area of WORKFILE_AREAS) {
+      assert.ok(AREA_LABELS[area].length > 0, area);
+      assert.ok(AREA_WHO[area].length > 0, area);
     }
   });
 });

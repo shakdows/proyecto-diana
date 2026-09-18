@@ -229,7 +229,7 @@ export default async function OrdenPage({
 
         <div className="min-w-0 space-y-5">
           <SummaryPanel row={row} totals={totals} />
-          <OrderAdvanceHistory />
+          <OrderAdvanceHistory openedAt={row.openedAt} />
           <CustomerPanel order={order} />
           <VehiclePanel order={order} vocab={vocab} />
           <QualityPanel order={order} />

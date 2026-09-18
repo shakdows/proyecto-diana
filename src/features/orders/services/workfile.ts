@@ -679,3 +679,88 @@ export function minutesPhrase(minutes: number): string {
   if (resto === 0) return `${horas} h`;
   return `${horas} h ${resto} min`;
 }
+
+/* ------------------------------------------------------------------ *
+ * Las áreas del taller
+ * ------------------------------------------------------------------ */
+
+/**
+ * Quién hace cada paso.
+ *
+ * ── Por qué los pasos se agrupan ───────────────────────────────────────────
+ *
+ * Once pasos seguidos en una lista se leen como once tareas de la misma
+ * persona, y no lo son: el técnico no pone precios, el asesor no rectifica
+ * discos y compras no firma actas de entrega. Sin decir de quién es cada
+ * paso, quien abre la orden tiene que decidir once veces si le toca a él —y
+ * la respuesta honesta a «no sé qué hacer» es que la pantalla no se lo estaba
+ * diciendo—.
+ *
+ * Esto NO es control de acceso: quién PUEDE aplicar la transición lo deciden
+ * los permisos y, en producción, RLS. Es reparto de trabajo, que es otra cosa
+ * y hace falta igual.
+ */
+export const WORKFILE_AREAS = ['asesoria', 'taller', 'compras', 'calidad', 'finales'] as const;
+
+export type WorkfileArea = (typeof WORKFILE_AREAS)[number];
+
+export const AREA_LABELS: Readonly<Record<WorkfileArea, string>> = {
+  asesoria: 'Asesoría',
+  taller: 'Taller',
+  compras: 'Compras',
+  calidad: 'Calidad',
+  finales: 'Servicios finales',
+};
+
+/** Quién trabaja en esa área, en las palabras del taller. */
+export const AREA_WHO: Readonly<Record<WorkfileArea, string>> = {
+  asesoria: 'Lo hace el asesor de servicio',
+  taller: 'Lo hace el técnico asignado',
+  compras: 'Lo hace compras',
+  calidad: 'Lo hace control de calidad',
+  finales: 'Lo hacen lavado y alineamiento',
+};
+
+const AREA_POR_PASO: Readonly<Record<WorkfileStep, WorkfileArea>> = {
+  servicio: 'asesoria',
+  tecnico: 'asesoria',
+  hallazgos: 'taller',
+  precios: 'asesoria',
+  decision: 'asesoria',
+  repuestos: 'compras',
+  tiempo: 'taller',
+  trabajos: 'taller',
+  calidad: 'calidad',
+  etapas: 'finales',
+  entrega: 'asesoria',
+};
+
+export function areaOf(step: WorkfileStep): WorkfileArea {
+  return AREA_POR_PASO[step];
+}
+
+export function stepsOfArea(area: WorkfileArea): readonly WorkfileStep[] {
+  return WORKFILE_STEPS.filter((s) => areaOf(s) === area);
+}
+
+/**
+ * Las áreas en el orden en que tocan, con sus pasos.
+ *
+ * El orden es el del recorrido y no el del organigrama: asesoría aparece
+ * primero porque el primer paso es suyo, y vuelve a aparecer al final porque
+ * la entrega también lo es. Reordenar por área rompería lo único que la lista
+ * tiene que contar, que es en qué orden pasan las cosas.
+ */
+export function areaRuns(): readonly { readonly area: WorkfileArea; readonly steps: readonly WorkfileStep[] }[] {
+  const runs: { area: WorkfileArea; steps: WorkfileStep[] }[] = [];
+  for (const step of WORKFILE_STEPS) {
+    const area = areaOf(step);
+    const ultimo = runs.at(-1);
+    if (ultimo !== undefined && ultimo.area === area) {
+      ultimo.steps.push(step);
+      continue;
+    }
+    runs.push({ area, steps: [step] });
+  }
+  return runs;
+}

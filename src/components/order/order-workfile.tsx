@@ -34,11 +34,15 @@ import { FINAL_STAGE_LABELS, FINAL_STAGES, type FinalStage } from '@/features/or
 import { statusLabel } from '@/features/orders/services/order-status';
 import { ACTION_LABELS, type OrderAction } from '@/features/orders/services/state-machine';
 import {
+  AREA_LABELS,
+  AREA_WHO,
   STANDARD_QUALITY_CHECKS,
   STEP_LABELS,
   STEP_STATE_LABELS,
   WORKFILE_STEPS,
   approvedLines,
+  areaOf,
+  areaRuns,
   centsFromSoles,
   decidedCount,
   minutesPhrase,
@@ -61,6 +65,7 @@ import {
   useOrderWorkfile,
   useServiceType,
 } from '@/features/orders/use-order-workfile';
+import type { Permission } from '@/lib/auth/permissions';
 import { useHydrated } from '@/lib/demo/store';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency } from '@/lib/utils/format';
@@ -97,11 +102,21 @@ export function OrderWorkfilePanel({
   orderId,
   profileId,
   actorName,
+  permissions,
 }: {
   readonly orderId: string;
   /** Quién está mirando: para poder asignarse la orden de un toque. */
   readonly profileId: string;
   readonly actorName: string;
+  /**
+   * Lo que este usuario puede hacer.
+   *
+   * NO es la frontera de seguridad —esconder un campo no protege nada, y la
+   * frontera es RLS en la base—. Es para no PEDIRLE a la persona equivocada
+   * un dato que no le toca: el precio lo pone quien vende, y el tiempo lo
+   * pone quien cotiza, no quien va a trabajar esas horas.
+   */
+  readonly permissions: readonly Permission[];
 }) {
   const { workfile, update } = useOrderWorkfile(orderId);
   const status = useLiveStatus();
@@ -119,6 +134,7 @@ export function OrderWorkfilePanel({
 
   const actual = stepFor(status);
   const hechos = WORKFILE_STEPS.filter((s) => stepDone(s, workfile)).length;
+  const puedeCotizar = permissions.includes('quotations:write');
 
   return (
     <section id="expediente" className="rounded-panel border border-border bg-surface-raised">
@@ -147,6 +163,14 @@ export function OrderWorkfilePanel({
           <h3 className="mt-1 font-display text-xl font-semibold tracking-tight text-fg">
             {STEP_LABELS[actual]}
           </h3>
+          {/* De qué área es y quién lo hace: sin esto, once pasos seguidos se
+              leen como once tareas de la misma persona, y no lo son. */}
+          <p className="mt-1.5 inline-flex flex-wrap items-center gap-2">
+            <span className="rounded-chip bg-graphite-950 px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-white">
+              {AREA_LABELS[areaOf(actual)]}
+            </span>
+            <span className="text-xs text-fg-muted">{AREA_WHO[areaOf(actual)]}</span>
+          </p>
 
           <div className="mt-3.5">
             <StepBody
@@ -154,6 +178,7 @@ export function OrderWorkfilePanel({
               orderId={orderId}
               profileId={profileId}
               actorName={actorName}
+              puedeCotizar={puedeCotizar}
               workfile={workfile}
               update={update}
             />
@@ -178,34 +203,51 @@ export function OrderWorkfilePanel({
         <ChevronDown aria-hidden className={cn('size-4 transition-transform', lista && 'rotate-180')} />
       </button>
 
-      <ol className={cn('divide-y divide-border border-t border-border', !lista && 'hidden')}>
-        {WORKFILE_STEPS.map((step, index) => {
-          const estado = stepState(step, workfile);
-          const current = step === actual;
-          return (
-            <li key={step} className={cn('px-5 py-3.5', current && 'bg-surface-sunken/60')}>
-              <div className="flex items-center gap-3">
-                <StepMark index={index + 1} estado={estado} current={current} />
-                <span
-                  className={cn(
-                    'min-w-0 flex-1 text-sm',
-                    current ? 'font-semibold text-fg' : 'text-fg-muted',
-                  )}
-                >
-                  {STEP_LABELS[step]}
-                </span>
-                <span className="shrink-0 text-xs text-fg-subtle">
-                  {current ? 'Ahora' : STEP_STATE_LABELS[estado]}
-                </span>
-              </div>
+      <div className={cn('border-t border-border', !lista && 'hidden')}>
+        {areaRuns().map((run, i) => (
+          <section key={`${run.area}-${String(i)}`}>
+            {/* El recorrido se lee por tramos: quién hace qué, en el orden en
+                que toca. Asesoría sale tres veces porque el trabajo vuelve a
+                ella tres veces; ordenarlo por área contaría otra historia. */}
+            <header className="flex items-baseline gap-2 border-b border-border bg-surface-sunken/40 px-5 py-2">
+              <span className="text-xs font-semibold uppercase tracking-[0.08em] text-fg">
+                {AREA_LABELS[run.area]}
+              </span>
+              <span className="text-xs text-fg-subtle">{AREA_WHO[run.area]}</span>
+            </header>
+            <ol className="divide-y divide-border">
+              {run.steps.map((step) => {
+                const estado = stepState(step, workfile);
+                const current = step === actual;
+                const index = WORKFILE_STEPS.indexOf(step);
+                return (
+                  <li key={step} className={cn('px-5 py-3.5', current && 'bg-surface-sunken/60')}>
+                    <div className="flex items-center gap-3">
+                      <StepMark index={index + 1} estado={estado} current={current} />
+                      <span
+                        className={cn(
+                          'min-w-0 flex-1 text-sm',
+                          current ? 'font-semibold text-fg' : 'text-fg-muted',
+                        )}
+                      >
+                        {STEP_LABELS[step]}
+                      </span>
+                      <span className="shrink-0 text-xs text-fg-subtle">
+                        {current ? 'Ahora' : STEP_STATE_LABELS[estado]}
+                      </span>
+                    </div>
 
-              {/* El paso actual NO se repite aquí: está arriba, con su botón.
-                  Dos formularios iguales en la misma pantalla son dos sitios
-                  donde escribir lo mismo y uno donde equivocarse. */}
-            </li>
-          );
-        })}
-      </ol>
+                    {/* El paso actual NO se repite aquí: está arriba, con su
+                        botón. Dos formularios iguales en la misma pantalla son
+                        dos sitios donde escribir lo mismo y uno donde
+                        equivocarse. */}
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        ))}
+      </div>
 
       <p className="border-t border-border px-5 py-3 text-xs text-fg-subtle">
         Lo que se anota aquí es lo que la barra de abajo comprueba antes de
@@ -258,6 +300,7 @@ function StepBody({
   orderId,
   profileId,
   actorName,
+  puedeCotizar,
   workfile,
   update,
 }: {
@@ -265,6 +308,8 @@ function StepBody({
   readonly orderId: string;
   readonly profileId: string;
   readonly actorName: string;
+  /** Quien cotiza pone el precio y el tiempo. Quien repara, no. */
+  readonly puedeCotizar: boolean;
   readonly workfile: OrderWorkfile;
   readonly update: Update;
 }) {
@@ -281,9 +326,9 @@ function StepBody({
         />
       );
     case 'hallazgos':
-      return <FindingsStep workfile={workfile} update={update} />;
+      return <FindingsStep workfile={workfile} update={update} puedeCotizar={puedeCotizar} />;
     case 'precios':
-      return <PricesStep workfile={workfile} update={update} />;
+      return <PricesStep workfile={workfile} update={update} puedeCotizar={puedeCotizar} />;
     case 'decision':
       return <DecisionStep workfile={workfile} update={update} />;
     case 'repuestos':
@@ -545,9 +590,11 @@ function TechnicianStep({
 function FindingsStep({
   workfile,
   update,
+  puedeCotizar,
 }: {
   readonly workfile: OrderWorkfile;
   readonly update: Update;
+  readonly puedeCotizar: boolean;
 }) {
   const [title, setTitle] = useState('');
   const [kind, setKind] = useState<LineKind>('servicio');
@@ -565,7 +612,15 @@ function FindingsStep({
       title: limpio,
       kind,
       priority,
-      minutes: Math.max(0, Number.parseInt(minutes, 10) || 0),
+      /*
+       * Los minutos los pone quien COTIZA, no quien repara.
+       *
+       * Un técnico estimando las horas que le van a pagar es pedirle que se
+       * ponga el sueldo, y el tiempo real ni siquiera hace falta pedirlo: lo
+       * mide el cronómetro de la bahía. Aquí entra a cero y se rellena en el
+       * paso de la cotización.
+       */
+      minutes: puedeCotizar ? Math.max(0, Number.parseInt(minutes, 10) || 0) : 0,
       cents: 0,
       decision: 'pendiente',
       done: false,
@@ -579,6 +634,7 @@ function FindingsStep({
     <>
       <LineList
         lines={workfile.lines}
+        conTiempo={puedeCotizar}
         onRemove={(id) =>
           update((w) => ({ ...w, lines: w.lines.filter((l) => l.id !== id) }))
         }
@@ -607,13 +663,15 @@ function FindingsStep({
             ))}
           </Select>
         </Field>
-        <Field label="Minutos de trabajo">
-          <Input
-            value={minutes}
-            onChange={(e) => setMinutes(e.target.value)}
-            inputMode="numeric"
-          />
-        </Field>
+        {puedeCotizar && (
+          <Field label="Minutos de trabajo" hint="Para la cotización.">
+            <Input
+              value={minutes}
+              onChange={(e) => setMinutes(e.target.value)}
+              inputMode="numeric"
+            />
+          </Field>
+        )}
         <div className="flex items-end">
           <Button type="button" onClick={add} disabled={!valido} variant="secondary">
             <Plus aria-hidden className="size-4" />
@@ -627,6 +685,14 @@ function FindingsStep({
         cliente la aprueba, en un trabajo que el técnico marca como hecho. Es
         la misma fila en los tres momentos: así no se pierde por el camino un
         trabajo aprobado que nadie llegó a hacer.
+        {!puedeCotizar && (
+          <>
+            {' '}
+            Aquí se dice QUÉ se encontró; el precio y el tiempo los pone
+            asesoría al cotizar, y el tiempo real lo mide el cronómetro de la
+            bahía.
+          </>
+        )}
       </Hint>
     </>
   );
@@ -635,9 +701,12 @@ function FindingsStep({
 function LineList({
   lines,
   onRemove,
+  conTiempo = true,
 }: {
   readonly lines: readonly WorkfileLine[];
   readonly onRemove?: (id: string) => void;
+  /** El tiempo estimado es cosa de la cotización: no se le enseña al taller. */
+  readonly conTiempo?: boolean;
 }) {
   if (lines.length === 0) {
     return <p className="text-sm text-fg-subtle">Todavía no hay hallazgos registrados.</p>;
@@ -653,7 +722,8 @@ function LineList({
           <span className="min-w-0 flex-1 text-sm text-fg">{line.title}</span>
           <span className="shrink-0 text-xs text-fg-subtle">
             {line.kind === 'repuesto' ? 'Repuesto' : 'Servicio'} ·{' '}
-            {PRIORITY_LABELS[line.priority]} · {minutesPhrase(line.minutes)}
+            {PRIORITY_LABELS[line.priority]}
+            {conTiempo && ` · ${minutesPhrase(line.minutes)}`}
           </span>
           {onRemove !== undefined && (
             <button
@@ -678,11 +748,34 @@ function LineList({
 function PricesStep({
   workfile,
   update,
+  puedeCotizar,
 }: {
   readonly workfile: OrderWorkfile;
   readonly update: Update;
+  readonly puedeCotizar: boolean;
 }) {
   const total = totalCents(workfile.lines);
+
+  /*
+   * El precio lo ve y lo pone quien VENDE.
+   *
+   * Un técnico no necesita saber por cuánto se vendió lo que va a hacer, y
+   * enseñárselo convierte cada orden en una conversación sobre márgenes. La
+   * frontera de verdad es el permiso en el servidor; esto es no ponérselo
+   * delante.
+   */
+  if (!puedeCotizar) {
+    return (
+      <>
+        <LineList lines={workfile.lines} conTiempo={false} />
+        <Hint>
+          Los precios y el tiempo los pone asesoría. Esta orden está esperando
+          esa parte; en cuanto esté cotizada y el cliente decida, vuelve al
+          taller.
+        </Hint>
+      </>
+    );
+  }
 
   return (
     <>
@@ -693,21 +786,16 @@ function PricesStep({
       ) : (
         <ul className="space-y-1.5">
           {workfile.lines.map((line) => (
-            <li
+            <PriceRow
               key={line.id}
-              className="flex flex-wrap items-center gap-3 rounded-control border border-border bg-surface px-3 py-2"
-            >
-              <span className="min-w-0 flex-1 text-sm text-fg">{line.title}</span>
-              <PriceInput
-                line={line}
-                onChange={(cents) =>
-                  update((w) => ({
-                    ...w,
-                    lines: w.lines.map((l) => (l.id === line.id ? { ...l, cents } : l)),
-                  }))
-                }
-              />
-            </li>
+              line={line}
+              onChange={(cents, minutes) =>
+                update((w) => ({
+                  ...w,
+                  lines: w.lines.map((l) => (l.id === line.id ? { ...l, cents, minutes } : l)),
+                }))
+              }
+            />
           ))}
         </ul>
       )}
@@ -732,33 +820,95 @@ function PricesStep({
   );
 }
 
-function PriceInput({
+/**
+ * Una línea con su precio: PUESTO, no en un campo abierto.
+ *
+ * El precio de un trabajo no es una opinión que se teclea cada vez: está
+ * establecido, y por eso se lee como texto. Cambiarlo es un acto aparte —el
+ * botón «Editar»—, que además es el que dejará rastro el día que el precio
+ * venga de la tarifa y alguien haga una excepción.
+ *
+ * Mientras no exista esa tarifa en el sistema, la primera vez hay que
+ * ponerlo: el botón lo dice, «Poner precio», en vez de fingir un valor por
+ * defecto que nadie ha decidido.
+ */
+function PriceRow({
   line,
   onChange,
 }: {
   readonly line: WorkfileLine;
-  readonly onChange: (cents: number) => void;
+  readonly onChange: (cents: number, minutes: number) => void;
 }) {
+  const [editando, setEditando] = useState(false);
   const [raw, setRaw] = useState(line.cents === 0 ? '' : String(toSoles(line.cents)));
+  const [min, setMin] = useState(String(line.minutes));
+
   const cents = centsFromSoles(raw);
+  const minutos = Number.parseInt(min, 10);
+  const valido = cents !== null && Number.isFinite(minutos) && minutos >= 0;
+
+  const guardar = (): void => {
+    if (!valido) return;
+    onChange(cents, minutos);
+    setEditando(false);
+  };
+
+  if (!editando) {
+    return (
+      <li className="flex flex-wrap items-center gap-3 rounded-control border border-border bg-surface px-3 py-2">
+        <span className="min-w-0 flex-1 text-sm text-fg">{line.title}</span>
+        <span className="shrink-0 text-right">
+          <span data-numeric className="block text-sm font-semibold text-fg">
+            {line.cents === 0 ? 'Sin precio' : formatCurrency(toSoles(line.cents))}
+          </span>
+          <span data-numeric className="block text-xs text-fg-subtle">
+            {minutesPhrase(line.minutes)}
+          </span>
+        </span>
+        <button
+          type="button"
+          onClick={() => setEditando(true)}
+          className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-control border border-border-strong px-3 text-xs font-medium text-fg transition-colors hover:bg-surface-sunken"
+        >
+          <Pencil aria-hidden className="size-3.5" />
+          {line.cents === 0 ? 'Poner precio' : 'Editar'}
+        </button>
+      </li>
+    );
+  }
 
   return (
-    <span className="flex shrink-0 items-center gap-2">
-      <span className="text-xs text-fg-subtle">S/</span>
-      <Input
-        value={raw}
-        onChange={(e) => {
-          setRaw(e.target.value);
-          const leido = centsFromSoles(e.target.value);
-          onChange(leido ?? 0);
-        }}
-        inputMode="decimal"
-        placeholder="0.00"
-        className="w-28"
-        aria-label={`Precio de ${line.title}`}
-        aria-invalid={raw.trim() !== '' && cents === null}
-      />
-    </span>
+    <li className="rounded-control border border-brand-600 bg-surface px-3 py-3">
+      <p className="text-sm font-medium text-fg">{line.title}</p>
+      <div className="mt-2 flex flex-wrap items-end gap-3">
+        <Field label="Precio (S/)">
+          <Input
+            value={raw}
+            onChange={(e) => setRaw(e.target.value)}
+            inputMode="decimal"
+            placeholder="0.00"
+            className="w-32"
+            aria-label={`Precio de ${line.title}`}
+            aria-invalid={raw.trim() !== '' && cents === null}
+          />
+        </Field>
+        <Field label="Minutos">
+          <Input
+            value={min}
+            onChange={(e) => setMin(e.target.value)}
+            inputMode="numeric"
+            className="w-24"
+            aria-label={`Minutos de ${line.title}`}
+          />
+        </Field>
+        <Button type="button" variant="secondary" disabled={!valido} onClick={guardar}>
+          Guardar
+        </Button>
+        <Button type="button" variant="ghost" onClick={() => setEditando(false)}>
+          Cancelar
+        </Button>
+      </div>
+    </li>
   );
 }
 

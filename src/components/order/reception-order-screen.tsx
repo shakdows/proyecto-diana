@@ -198,7 +198,12 @@ export function ReceptionOrderScreen({
             algo que hacer. Lo que dejó la recepción ya está hecho y se
             consulta; lo que la orden necesita para avanzar se rellena aquí.
           */}
-          <OrderWorkfilePanel orderId={data.id} profileId={profileId} actorName={actorName} />
+          <OrderWorkfilePanel
+            orderId={data.id}
+            profileId={profileId}
+            actorName={actorName}
+            permissions={permissions}
+          />
           <ReceptionSummary
             acta={acta}
             percent={row.progressPercent}
@@ -211,7 +216,7 @@ export function ReceptionOrderScreen({
         </div>
 
         <div className="min-w-0 space-y-5">
-          <OrderAdvanceHistory />
+          <OrderAdvanceHistory openedAt={cerrada} />
 
           <Panel title="Cliente">
             <p className="flex flex-wrap items-center gap-2">

@@ -28,12 +28,17 @@ import { checkDeleteCode } from '@/lib/auth/confirm-code';
 import { useHydrated } from '@/lib/demo/store';
 import { useOrderAdvance } from '@/features/orders/use-order-advance';
 import {
+  buildTimeline,
+  durationPhrase,
+  timelinePhrase,
+  type TimelineEntry,
+} from '@/features/orders/services/history';
+import {
   advanceRank,
   isAdvancing,
   nextStepOwner,
   ownerPhrase,
   screenFor,
-  type AppliedTransition,
   type OrderAdvance,
 } from '@/features/orders/services/advance';
 import { ROLE_LABELS, ROLE_PERMISSIONS } from '@/lib/auth/permissions';
@@ -157,9 +162,36 @@ export function OrderAdvanceProvider({
     setCodeError(null);
   }, []);
 
-  const ask = useCallback((option: ActionOption) => {
-    setConfirming(option);
-  }, []);
+  /**
+   * Aplicar la acción. Sin ventana de por medio.
+   *
+   * Había un diálogo de confirmación en cada paso —«la orden pasa de X a Y,
+   * ¿confirmas?»— y en un taller eso es una ventana que se cierra sin leer
+   * treinta veces al día. Cuesta tiempo y no protege: quien pulsa «Enviar
+   * cotización» sabe perfectamente lo que hace, y si se equivoca, deshacer
+   * está en la misma barra.
+   *
+   * La excepción es CANCELAR, y no por costumbre: desde «Cancelado» no sale
+   * ninguna transición del grafo. Ahí sí se pregunta, y con clave.
+   */
+  const ask = useCallback(
+    (option: ActionOption) => {
+      if (NEEDS_CODE.has(option.action)) {
+        setConfirming(option);
+        return;
+      }
+      const result = run(option.action);
+      if (result.ok) {
+        toast(
+          `${ACTION_LABELS[result.applied.action]} · la orden pasa a ${statusLabel(result.applied.to)}`,
+          'ok',
+        );
+        return;
+      }
+      toast([result.message, ...result.unmet].join(' · '), 'crit');
+    },
+    [run, toast],
+  );
 
   const confirm = useCallback((): void => {
     if (confirming === null) return;
@@ -243,13 +275,6 @@ export function OrderAdvanceProvider({
               />
             </Field>
           </>
-        )}
-
-        {confirming !== null && !NEEDS_CODE.has(confirming.action) && (
-          <p className="text-sm text-fg-muted">
-            Se registra a tu nombre y con la hora. Si te equivocas, puedes
-            deshacer el último paso desde la barra de la orden.
-          </p>
         )}
 
         <p className="rounded-control bg-surface-sunken px-3.5 py-2.5 text-xs text-fg-subtle">
@@ -678,28 +703,77 @@ function Blockers({
  * la pena enseñarlo ya, porque una orden que cambia de estado sin decir quién
  * la movió es exactamente la discusión que este sistema existe para evitar.
  */
-export function OrderAdvanceHistory() {
+export function OrderAdvanceHistory({
+  openedAt,
+}: {
+  /** Cuándo ENTRÓ el vehículo. Sin esto la primera espera no se puede medir. */
+  readonly openedAt?: Date;
+}) {
   const { advance, hydrated } = useAdvance();
-  if (!hydrated || advance.history.length === 0) return null;
+
+  /*
+   * El instante se fija UNA vez por montaje: `Date.now()` en el cuerpo daría
+   * un valor distinto en cada pasada y el «lleva 2 h 14 min» parpadearía.
+   */
+  const [ahora] = useState(() => Date.now());
+
+  const timeline = useMemo(
+    () => buildTimeline(openedAt?.getTime() ?? advance.history[0]?.at ?? ahora, advance.history, ahora),
+    [openedAt, advance.history, ahora],
+  );
+
+  if (!hydrated) return null;
 
   return (
     <section className="rounded-panel border border-border bg-surface-raised">
-      <header className="flex items-center gap-2 px-5 py-4">
-        <History aria-hidden className="size-4 text-fg-subtle" />
-        <h2 className="font-display text-base font-semibold tracking-tight text-fg">
-          Avance registrado
-        </h2>
-        <span data-numeric className="ml-auto text-xs text-fg-subtle">
-          {advance.history.length}
-        </span>
+      <header className="px-5 py-4">
+        <div className="flex items-center gap-2">
+          <History aria-hidden className="size-4 text-fg-subtle" />
+          <h2 className="font-display text-base font-semibold tracking-tight text-fg">
+            Historia del vehículo
+          </h2>
+        </div>
+        {/*
+          Lo primero, el dato por el que se abre esto: cuánto lleva dentro.
+          Nadie lo escribe —sale de las marcas de tiempo de los pasos ya
+          dados—, y por eso sirve para hablar con un cliente.
+        */}
+        <p className="mt-1 text-sm text-fg-muted">
+          {timeline.closed ? 'Estuvo en el taller' : 'Lleva en el taller'}{' '}
+          <span data-numeric className="font-semibold text-fg">
+            {durationPhrase(timeline.totalMs)}
+          </span>
+          {advance.history.length > 0 && ` · ${timelinePhrase(timeline)}`}
+        </p>
+        {!timeline.closed && advance.history.length > 0 && (
+          <p className="mt-0.5 text-xs text-fg-subtle">
+            Sin moverse desde hace{' '}
+            <span data-numeric>{durationPhrase(timeline.currentMs)}</span>.
+          </p>
+        )}
       </header>
-      <ol className="px-5 pb-5">
-        {[...advance.history].reverse().map((step, index) => (
-          <HistoryRow key={`${step.at}-${step.action}`} step={step} first={index === 0} />
-        ))}
-      </ol>
-      <p className="px-5 pb-4 text-xs text-fg-subtle">
-        Guardado en este navegador. En producción cada línea es una fila de
+
+      {advance.history.length === 0 ? (
+        <p className="px-5 pb-5 text-sm text-fg-subtle">
+          Todavía no se ha dado ningún paso. Cada uno queda aquí con su hora,
+          su duración y quién lo dio.
+        </p>
+      ) : (
+        <ol className="px-5 pb-5">
+          {[...timeline.entries].reverse().map((step, index) => (
+            <HistoryRow
+              key={`${step.at}-${step.action}`}
+              step={step}
+              first={index === 0}
+              lento={timeline.slowest !== null && timeline.slowest.at === step.at}
+            />
+          ))}
+        </ol>
+      )}
+
+      <p className="border-t border-border px-5 py-3 text-xs text-fg-subtle">
+        Los tiempos se MIDEN, no se escriben: salen de la hora de cada paso.
+        Guardado en este navegador; en producción cada línea es una fila de
         <code className="mx-1 font-mono">audit_logs</code>, con el usuario real.
       </p>
     </section>
@@ -709,18 +783,31 @@ export function OrderAdvanceHistory() {
 function HistoryRow({
   step,
   first,
+  lento,
 }: {
-  readonly step: AppliedTransition;
+  readonly step: TimelineEntry;
   readonly first: boolean;
+  /** El tramo más largo del recorrido. */
+  readonly lento: boolean;
 }) {
   return (
     <li className={cn('flex gap-3 py-2.5', !first && 'border-t border-border')}>
-      <span
-        aria-hidden
-        className="mt-1 size-2 shrink-0 rounded-full bg-brand-600"
-      />
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-fg">{ACTION_LABELS[step.action]}</p>
+      <span aria-hidden className="mt-1 size-2 shrink-0 rounded-full bg-brand-600" />
+      <div className="min-w-0 flex-1">
+        <p className="flex flex-wrap items-baseline gap-x-2 text-sm font-medium text-fg">
+          {ACTION_LABELS[step.action]}
+          <span
+            data-numeric
+            className={cn(
+              'rounded-chip px-1.5 py-0.5 text-[0.6875rem] font-semibold',
+              lento ? 'bg-warn-100 text-warn-700' : 'bg-surface-sunken text-fg-muted',
+            )}
+            title={lento ? 'El tramo más largo de esta orden' : 'Lo que esperó antes de este paso'}
+          >
+            {durationPhrase(step.waitedMs)}
+            {lento && ' · el más largo'}
+          </span>
+        </p>
         <p className="text-xs text-fg-muted">
           {statusLabel(step.from)} → {statusLabel(step.to)}
         </p>
