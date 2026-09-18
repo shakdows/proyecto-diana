@@ -2,12 +2,16 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { ORDER_STATUSES } from '@/features/orders/services/order-status';
+import { allTransitions } from '@/features/orders/services/state-machine';
+import { ROLE_LABELS, ROLE_PERMISSIONS } from '@/lib/auth/permissions';
 import {
   ROUTE_STEPS,
   ROUTE_STEP_IDS,
   STATE_LABELS,
   TERMINADO,
   progressOf,
+  rolesOf,
+  rolesPhrase,
   routeStep,
   stateOf,
   stepForStatus,
@@ -125,5 +129,40 @@ describe('cómo se pinta cada cuadro', () => {
     assert.deepEqual(progressOf('cliente'), { done: 0, total: 9 });
     assert.deepEqual(progressOf('reparacion'), { done: 6, total: 9 });
     assert.deepEqual(progressOf(TERMINADO), { done: 9, total: 9 });
+  });
+});
+
+describe('quién trabaja cada cuadro', () => {
+  const roles = (step: RouteStepId) =>
+    rolesOf(step, allTransitions(), ROLE_PERMISSIONS, ORDER_STATUSES);
+
+  it('sale de los permisos reales, no de una lista escrita a mano', () => {
+    assert.deepEqual([...roles('cliente')], ['asesor']);
+    assert.ok(roles('diagnostico').includes('tecnico'));
+    assert.ok(roles('calidad').includes('calidad'));
+    assert.ok(roles('entrega').includes('lavado'));
+  });
+
+  it('ningún cuadro se queda sin dueño', () => {
+    for (const id of ROUTE_STEP_IDS) {
+      assert.ok(roles(id).length > 0, id);
+    }
+  });
+
+  it('no se llena de administradores: lo que hace falta es a quién ir a buscar', () => {
+    for (const id of ROUTE_STEP_IDS) {
+      assert.ok(!roles(id).includes('super_admin'), id);
+      assert.ok(!roles(id).includes('admin'), id);
+      assert.ok(!roles(id).includes('cliente_corporativo'), id);
+    }
+  });
+
+  it('la frase junta los puestos y nunca queda vacía', () => {
+    assert.equal(rolesPhrase(['asesor'], (r) => ROLE_LABELS[r]), ROLE_LABELS.asesor);
+    assert.equal(
+      rolesPhrase(['asesor', 'tecnico'], (r) => ROLE_LABELS[r]),
+      `${ROLE_LABELS.asesor} · ${ROLE_LABELS.tecnico}`,
+    );
+    assert.equal(rolesPhrase([], (r) => ROLE_LABELS[r]), 'Administración');
   });
 });

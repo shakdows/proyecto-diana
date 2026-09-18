@@ -24,8 +24,11 @@
  * Dominio PURO: sin React, sin imágenes cargadas, sin rutas de Next.
  */
 
+import { isAdvancing } from '@/features/orders/services/advance';
 import { stepFor, type WorkfileStep } from '@/features/orders/services/workfile';
 import type { OrderStatus } from '@/features/orders/services/order-status';
+import type { OrderAction } from '@/features/orders/services/state-machine';
+import type { Permission, RoleCode } from '@/lib/auth/permissions';
 
 export const ROUTE_STEP_IDS = [
   'cliente',
@@ -231,4 +234,72 @@ export function progressOf(position: RoutePosition | null): { readonly done: num
   if (position === null) return { done: 0, total };
   if (position === TERMINADO) return { done: total, total };
   return { done: ROUTE_STEP_IDS.indexOf(position), total };
+}
+
+/* ------------------------------------------------------------------ *
+ * Quién trabaja cada cuadro
+ * ------------------------------------------------------------------ */
+
+/**
+ * El permiso que se ejerce en un cuadro, cuando no sale de una transición.
+ *
+ * Solo el primero: registrar al cliente no mueve ninguna orden —todavía no
+ * hay orden—, así que no hay transición de la que deducirlo.
+ */
+const PERMISO_PROPIO: Partial<Record<RouteStepId, Permission>> = {
+  cliente: 'customers:write',
+};
+
+/**
+ * Los puestos que trabajan un cuadro.
+ *
+ * ── Derivado, no escrito a mano ────────────────────────────────────────────
+ *
+ * Sale de la MISMA tabla que gobierna la orden: se buscan las acciones que
+ * hacen avanzar desde los estados de ese cuadro, se mira qué permiso exigen y
+ * qué puestos lo tienen. Escribir a mano «calidad la trabaja el inspector»
+ * habría creado una segunda verdad que se queda vieja en cuanto alguien toque
+ * los permisos de un rol.
+ *
+ * `super_admin` y `admin` se omiten a propósito, por la misma razón que en
+ * `ownerPhrase`: tienen casi todos los permisos, aparecerían en los nueve
+ * cuadros y no informarían de nada. Lo que hace falta saber es a quién ir a
+ * buscar.
+ */
+export function rolesOf(
+  step: RouteStepId,
+  transitions: readonly {
+    readonly from: OrderStatus;
+    readonly action: OrderAction;
+    readonly permission: Permission | null;
+  }[],
+  rolePermissions: Readonly<Record<RoleCode, readonly Permission[]>>,
+  statuses: readonly OrderStatus[],
+): readonly RoleCode[] {
+  const propio = PERMISO_PROPIO[step];
+  const permisos = new Set<Permission>(propio === undefined ? [] : [propio]);
+
+  const suyos = new Set<OrderStatus>(statuses.filter((s) => stepForStatus(s) === step));
+  for (const t of transitions) {
+    if (!suyos.has(t.from)) continue;
+    if (t.permission === null) continue;
+    if (!isAdvancing(t.action)) continue;
+    permisos.add(t.permission);
+  }
+
+  return (Object.keys(rolePermissions) as RoleCode[]).filter((role) => {
+    if (role === 'super_admin' || role === 'admin') return false;
+    /* `cliente_corporativo` mira desde fuera: no trabaja ningún cuadro. */
+    if (role === 'cliente_corporativo') return false;
+    return rolePermissions[role].some((p) => permisos.has(p));
+  });
+}
+
+/** «Asesor de servicio · Técnico». Vacío cuando no lo trabaja nadie más. */
+export function rolesPhrase(
+  roles: readonly RoleCode[],
+  label: (role: RoleCode) => string,
+): string {
+  if (roles.length === 0) return 'Administración';
+  return roles.map(label).join(' · ');
 }

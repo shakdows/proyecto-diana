@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import {
   Check,
+  ChevronDown,
   CircleDot,
   Minus,
   Pencil,
@@ -10,6 +11,7 @@ import {
   ThumbsDown,
   ThumbsUp,
   Trash2,
+  UserCheck,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
@@ -18,6 +20,7 @@ import { Field } from '@/components/ui/field';
 import { Input, Select, Textarea } from '@/components/ui/input';
 import { useToast } from '@/components/feedback/toast';
 import {
+  NextActionButton,
   useLiveStatus,
   useOrderEvidenceCount,
   useRunAction,
@@ -90,10 +93,29 @@ import { formatCurrency } from '@/lib/utils/format';
  * máquina de estados con los permisos del actor, y en producción lo decide
  * RLS. Esconder un campo aquí no protegería nada, así que no se finge que sí.
  */
-export function OrderWorkfilePanel({ orderId }: { readonly orderId: string }) {
+export function OrderWorkfilePanel({
+  orderId,
+  profileId,
+  actorName,
+}: {
+  readonly orderId: string;
+  /** Quién está mirando: para poder asignarse la orden de un toque. */
+  readonly profileId: string;
+  readonly actorName: string;
+}) {
   const { workfile, update } = useOrderWorkfile(orderId);
   const status = useLiveStatus();
   const hydrated = useHydrated();
+  /*
+   * La lista de los once pasos, plegada.
+   *
+   * Abierta era lo primero que se veía al abrir la orden: once renglones
+   * donde solo uno se puede tocar. «No entiendo cómo avanzar» es exactamente
+   * lo que produce eso. Ahora arriba hay UNA cosa que hacer y su botón, y la
+   * lista completa —que sigue haciendo falta para ver dónde va el trabajo—
+   * está a un clic.
+   */
+  const [lista, setLista] = useState(false);
 
   const actual = stepFor(status);
   const hechos = WORKFILE_STEPS.filter((s) => stepDone(s, workfile)).length;
@@ -108,7 +130,7 @@ export function OrderWorkfilePanel({ orderId }: { readonly orderId: string }) {
           <p className="mt-0.5 text-sm text-fg-subtle">
             {actual === null
               ? `La orden está en «${statusLabel(status)}»: no hay nada que rellenar aquí.`
-              : `Ahora toca: ${STEP_LABELS[actual]}.`}
+              : 'Haz lo de aquí abajo y pulsa el botón. Nada más.'}
           </p>
         </div>
         <span data-numeric className="text-xs text-fg-subtle">
@@ -116,7 +138,47 @@ export function OrderWorkfilePanel({ orderId }: { readonly orderId: string }) {
         </span>
       </header>
 
-      <ol className="divide-y divide-border">
+      {/* ── LO QUE TOCA AHORA ─────────────────────────────────────────── */}
+      {actual !== null && hydrated && (
+        <div className="border-b border-border bg-surface-sunken/50 px-5 py-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-700">
+            Ahora · paso {WORKFILE_STEPS.indexOf(actual) + 1} de {WORKFILE_STEPS.length}
+          </p>
+          <h3 className="mt-1 font-display text-xl font-semibold tracking-tight text-fg">
+            {STEP_LABELS[actual]}
+          </h3>
+
+          <div className="mt-3.5">
+            <StepBody
+              step={actual}
+              orderId={orderId}
+              profileId={profileId}
+              actorName={actorName}
+              workfile={workfile}
+              update={update}
+            />
+          </div>
+
+          {/* Y el botón que avanza, DEBAJO de lo que hay que rellenar. Estaba
+              solo en la barra de abajo, a setecientos píxeles de aquí. */}
+          <div className="mt-5 border-t border-border pt-4">
+            <NextActionButton />
+          </div>
+        </div>
+      )}
+
+      {/* ── Los once pasos, para ver por dónde va ─────────────────────── */}
+      <button
+        type="button"
+        onClick={() => setLista((v) => !v)}
+        aria-expanded={lista}
+        className="flex w-full items-center justify-between gap-3 px-5 py-3 text-left text-sm font-medium text-fg-muted transition-colors hover:bg-surface-sunken"
+      >
+        <span>{lista ? 'Ocultar el recorrido' : `Ver el recorrido completo (${WORKFILE_STEPS.length} pasos)`}</span>
+        <ChevronDown aria-hidden className={cn('size-4 transition-transform', lista && 'rotate-180')} />
+      </button>
+
+      <ol className={cn('divide-y divide-border border-t border-border', !lista && 'hidden')}>
         {WORKFILE_STEPS.map((step, index) => {
           const estado = stepState(step, workfile);
           const current = step === actual;
@@ -137,17 +199,9 @@ export function OrderWorkfilePanel({ orderId }: { readonly orderId: string }) {
                 </span>
               </div>
 
-              {/*
-                Solo se abre el paso del estado actual. Abrirlos todos
-                convertiría la ficha en un formulario de cuarenta campos donde
-                el siguiente paso deja de verse, que es justo lo contrario de
-                lo que hacía falta.
-              */}
-              {current && hydrated && (
-                <div className="mt-3.5 pl-9">
-                  <StepBody step={step} orderId={orderId} workfile={workfile} update={update} />
-                </div>
-              )}
+              {/* El paso actual NO se repite aquí: está arriba, con su botón.
+                  Dos formularios iguales en la misma pantalla son dos sitios
+                  donde escribir lo mismo y uno donde equivocarse. */}
             </li>
           );
         })}
@@ -202,11 +256,15 @@ type Update = (fn: (previous: OrderWorkfile) => OrderWorkfile) => void;
 function StepBody({
   step,
   orderId,
+  profileId,
+  actorName,
   workfile,
   update,
 }: {
   readonly step: WorkfileStep;
   readonly orderId: string;
+  readonly profileId: string;
+  readonly actorName: string;
   readonly workfile: OrderWorkfile;
   readonly update: Update;
 }) {
@@ -214,7 +272,14 @@ function StepBody({
     case 'servicio':
       return <ServiceTypeStep orderId={orderId} />;
     case 'tecnico':
-      return <TechnicianStep workfile={workfile} update={update} />;
+      return (
+        <TechnicianStep
+          workfile={workfile}
+          update={update}
+          profileId={profileId}
+          actorName={actorName}
+        />
+      );
     case 'hallazgos':
       return <FindingsStep workfile={workfile} update={update} />;
     case 'precios':
@@ -400,42 +465,74 @@ function ServiceTypeStep({ orderId }: { readonly orderId: string }) {
 function TechnicianStep({
   workfile,
   update,
+  profileId,
+  actorName,
 }: {
   readonly workfile: OrderWorkfile;
   readonly update: Update;
+  readonly profileId: string;
+  readonly actorName: string;
 }) {
   const toast = useToast();
 
+  /*
+   * Quien mira, si puede ejecutar reparaciones.
+   *
+   * Sin esto la pantalla era un callejón conocido: el asesor asignaba la
+   * orden al primer nombre de la lista, y el botón «Iniciar diagnóstico» se
+   * quedaba apagado para siempre con «Solo el técnico asignado puede iniciar
+   * el diagnóstico». Cierto, y sin salida: para andarlo hay que ENTRAR como
+   * esa persona. Asignársela a uno mismo es un toque y desbloquea el paso.
+   */
+  const yo = TECHNICIANS.find((t) => t.id === profileId) ?? null;
+  const asignada = workfile.technician?.id ?? '';
+
+  const asignar = (id: string, nombre: string): void => {
+    update((w) => ({ ...w, technician: { id, name: nombre } }));
+    toast(`Asignada a ${nombre}`, 'ok');
+  };
+
   return (
     <>
+      {yo !== null && asignada !== yo.id && (
+        <Button
+          type="button"
+          variant="secondary"
+          className="mb-3"
+          onClick={() => asignar(yo.id, yo.name)}
+        >
+          <UserCheck aria-hidden className="size-4" />
+          Asignármela a mí ({actorName})
+        </Button>
+      )}
+
       <Field label="Técnico responsable">
         <Select
-          value={workfile.technician?.id ?? ''}
+          value={asignada}
           onChange={(e) => {
             const elegido = TECHNICIANS.find((t) => t.id === e.target.value) ?? null;
-            update((w) => ({
-              ...w,
-              technician: elegido === null ? null : { id: elegido.id, name: elegido.name },
-            }));
-            toast(
-              elegido === null ? 'Orden sin técnico asignado' : `Asignada a ${elegido.name}`,
-              elegido === null ? 'info' : 'ok',
-            );
+            if (elegido === null) {
+              update((w) => ({ ...w, technician: null }));
+              toast('Orden sin técnico asignado', 'info');
+              return;
+            }
+            asignar(elegido.id, elegido.name);
           }}
         >
           <option value="">Sin asignar</option>
           {TECHNICIANS.map((t) => (
             <option key={t.id} value={t.id}>
               {t.name} · {t.roleLabel}
+              {t.id === profileId ? ' · TÚ' : ''}
             </option>
           ))}
         </Select>
       </Field>
       <Hint>
         El diagnóstico y la reparación solo los puede iniciar el técnico
-        asignado: es una guarda de la máquina de estados, no un adorno. Para
-        andarlo en la demostración, cambia de puesto en el selector de arriba y
-        entra como esa persona.
+        asignado: es una guarda de la máquina de estados, no un adorno. Si la
+        asignas a otra persona, el siguiente paso lo dará ella desde su
+        sesión.
       </Hint>
     </>
   );

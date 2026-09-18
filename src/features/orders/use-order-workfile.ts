@@ -28,7 +28,22 @@ export function useOrderWorkfile(orderId: string): {
 } {
   const [stored, setStored] = usePersistentState<unknown>(workfileSlot(orderId), null);
 
-  const workfile = useMemo(() => readWorkfile(stored), [stored]);
+  /*
+   * El tipo de servicio de antes de que existiera el expediente.
+   *
+   * Se leía solo al pintar el título, y eso dejaba una orden diciendo dos
+   * cosas a la vez: la cabecera con su tipo de servicio, la orden ya enviada a
+   * diagnóstico… y el paso uno del expediente marcado «Pendiente». Se mezcla
+   * AQUÍ, que es por donde pasan todos —los hechos de la máquina de estados
+   * incluidos—, y no en cada pantalla por su cuenta.
+   */
+  const [legado] = usePersistentState<string>(serviceTypeSlot(orderId), '');
+
+  const workfile = useMemo(() => {
+    const leido = readWorkfile(stored);
+    if (leido.serviceType.trim() !== '' || legado.trim() === '') return leido;
+    return { ...leido, serviceType: legado.trim() };
+  }, [stored, legado]);
 
   /*
    * El actualizador recibe SIEMPRE lo que hay guardado, no lo que este
@@ -80,10 +95,10 @@ export function useServiceType(orderId: string): {
   readonly serviceType: string;
   readonly setServiceType: (value: string) => void;
 } {
+  /* La mezcla con la ranura vieja ya la hace `useOrderWorkfile`: aquí solo se
+     lee, para que no haya dos sitios donde pueda salir distinta. */
   const { workfile, update } = useOrderWorkfile(orderId);
-  const [legado] = usePersistentState<string>(serviceTypeSlot(orderId), '');
-
-  const serviceType = workfile.serviceType.trim() !== '' ? workfile.serviceType : legado;
+  const serviceType = workfile.serviceType;
 
   const setServiceType = useCallback(
     (value: string): void => {

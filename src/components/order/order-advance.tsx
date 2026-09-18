@@ -11,8 +11,8 @@ import {
 } from 'react';
 import {
   ArrowRight,
+  ChevronUp,
   CircleAlert,
-  CircleCheckBig,
   History,
   Undo2,
   Wrench,
@@ -89,6 +89,16 @@ interface AdvanceContext {
   readonly run: ReturnType<typeof useOrderAdvance>['run'];
   readonly undo: () => void;
   readonly hydrated: boolean;
+  /**
+   * Pide confirmación para una acción y, si se confirma, la aplica.
+   *
+   * Vive en el proveedor y no en la barra porque ahora hay DOS sitios desde
+   * los que se avanza —la barra de abajo y el paso abierto del expediente— y
+   * con el diálogo dentro de la barra, el botón del expediente habría tenido
+   * que abrir un segundo diálogo propio. Dos diálogos para la misma
+   * transición terminan divergiendo: uno pide la clave y el otro no.
+   */
+  readonly ask: (option: ActionOption) => void;
 }
 
 const Ctx = createContext<AdvanceContext | null>(null);
@@ -136,6 +146,43 @@ export function OrderAdvanceProvider({
     [facts, actor],
   );
 
+  const toast = useToast();
+  const [confirming, setConfirming] = useState<ActionOption | null>(null);
+  const [code, setCode] = useState('');
+  const [codeError, setCodeError] = useState<string | null>(null);
+
+  const close = useCallback(() => {
+    setConfirming(null);
+    setCode('');
+    setCodeError(null);
+  }, []);
+
+  const ask = useCallback((option: ActionOption) => {
+    setConfirming(option);
+  }, []);
+
+  const confirm = useCallback((): void => {
+    if (confirming === null) return;
+    if (NEEDS_CODE.has(confirming.action) && !checkDeleteCode(code)) {
+      setCodeError('La clave no coincide.');
+      return;
+    }
+    const result = run(confirming.action);
+    if (result.ok) {
+      toast(
+        `${ACTION_LABELS[result.applied.action]} · la orden pasa a ${statusLabel(result.applied.to)}`,
+        'ok',
+      );
+      close();
+      return;
+    }
+    // No debería pasar —el botón solo se habilita si la acción está libre—,
+    // pero si alguien cambia algo en otra pestaña entre abrir y confirmar,
+    // gana la máquina de estados y se dice por qué.
+    toast(result.message, 'crit');
+    close();
+  }, [confirming, code, run, toast, close]);
+
   const value = useMemo<AdvanceContext>(
     () => ({
       orderId,
@@ -148,11 +195,71 @@ export function OrderAdvanceProvider({
       run,
       undo,
       hydrated,
+      ask,
     }),
-    [orderId, advance, facts, bench, orderPhotos, options, run, undo, hydrated],
+    [orderId, advance, facts, bench, orderPhotos, options, run, undo, hydrated, ask],
   );
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={value}>
+      {children}
+
+      <Modal
+        open={confirming !== null}
+        onClose={close}
+        width="sm"
+        title={confirming === null ? '' : confirming.label}
+        subtitle={
+          confirming === null
+            ? undefined
+            : `La orden pasa de «${statusLabel(advance.status)}» a «${statusLabel(confirming.to)}».`
+        }
+        onSubmit={confirm}
+        footer={
+          <ModalActions
+            onCancel={close}
+            confirmLabel={confirming === null ? 'Confirmar' : confirming.label}
+            disabled={confirming !== null && NEEDS_CODE.has(confirming.action) && code === ''}
+            hint="Queda registrado con tu nombre y la hora."
+          />
+        }
+      >
+        {confirming !== null && NEEDS_CODE.has(confirming.action) && (
+          <>
+            <p className="text-sm text-fg-muted">
+              Desde «{statusLabel(confirming.to)}» no hay vuelta atrás: ninguna
+              transición sale de ese estado. Escribe la clave para confirmar.
+            </p>
+            <Field label="Clave de confirmación" error={codeError ?? undefined}>
+              <Input
+                value={code}
+                onChange={(e) => {
+                  setCode(e.target.value);
+                  setCodeError(null);
+                }}
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="••••"
+              />
+            </Field>
+          </>
+        )}
+
+        {confirming !== null && !NEEDS_CODE.has(confirming.action) && (
+          <p className="text-sm text-fg-muted">
+            Se registra a tu nombre y con la hora. Si te equivocas, puedes
+            deshacer el último paso desde la barra de la orden.
+          </p>
+        )}
+
+        <p className="rounded-control bg-surface-sunken px-3.5 py-2.5 text-xs text-fg-subtle">
+          Demostración: el estado se guarda en este navegador. Cuando haya base
+          de datos, la transición la aplicará el servidor y la verá todo el
+          taller.
+        </p>
+      </Modal>
+    </Ctx.Provider>
+  );
 }
 
 /**
@@ -230,50 +337,41 @@ export function LiveJourney({
 const NEEDS_CODE: ReadonlySet<OrderAction> = new Set<OrderAction>(['cancelar']);
 
 export function OrderActionBar({ orderId }: { readonly orderId: string }) {
-  const { options, run, status, advance, undo, bench, orderPhotos, hydrated } = useAdvance();
+  const { options, status, advance, undo, bench, orderPhotos, hydrated, ask } = useAdvance();
   const toast = useToast();
 
-  const [confirming, setConfirming] = useState<ActionOption | null>(null);
-  const [code, setCode] = useState('');
-  const [codeError, setCodeError] = useState<string | null>(null);
+  /*
+   * El detalle de lo que falta, plegado.
+   *
+   * La barra es PEGAJOSA: está siempre encima del contenido, así que cada
+   * línea suya es una línea que la orden pierde. Con el recuadro de requisitos
+   * desplegado medía casi doscientos píxeles —un tercio de la pantalla de un
+   * portátil— y al desplazarse tapaba justo lo que se iba a leer. Ahora lo que
+   * falta se resume en UNA línea, que sigue leyéndose sin pasar el ratón, y el
+   * detalle completo se abre al tocarla.
+   */
+  const [detalle, setDetalle] = useState(false);
 
   const siguiente = options.find((o) => isAdvancing(o.action)) ?? null;
   const otras = options.filter((o) => o !== siguiente);
-
-  const close = useCallback(() => {
-    setConfirming(null);
-    setCode('');
-    setCodeError(null);
-  }, []);
-
-  const confirm = useCallback((): void => {
-    if (confirming === null) return;
-    if (NEEDS_CODE.has(confirming.action) && !checkDeleteCode(code)) {
-      setCodeError('La clave no coincide.');
-      return;
-    }
-    const result = run(confirming.action);
-    if (result.ok) {
-      toast(
-        `${ACTION_LABELS[result.applied.action]} · la orden pasa a ${statusLabel(result.applied.to)}`,
-        'ok',
-      );
-      close();
-      return;
-    }
-    // No debería pasar —el botón solo se habilita si la acción está libre—,
-    // pero si alguien cambia algo en otra pestaña entre abrir y confirmar,
-    // gana la máquina de estados y se dice por qué.
-    toast(result.message, 'crit');
-    close();
-  }, [confirming, code, run, toast, close]);
-
   const ultimo = advance.history.at(-1) ?? null;
 
   return (
     <>
-      <section className="sticky bottom-0 -mx-4 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur lg:-mx-6 lg:px-6">
-        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+      <section className="sticky bottom-0 -mx-4 border-t border-border bg-surface/95 px-4 py-2.5 backdrop-blur lg:-mx-6 lg:px-6">
+        {/* El detalle se abre HACIA ARRIBA: la fila de botones no se mueve de
+            sitio al desplegarlo, que es lo que hace fallar el segundo toque. */}
+        {detalle && siguiente !== null && !siguiente.available && (
+          <Blockers
+            action={siguiente.action}
+            unmet={siguiente.unmet}
+            orderId={orderId}
+            bench={bench}
+            orderPhotos={orderPhotos}
+          />
+        )}
+
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
           {/*
             `basis-64`: en un teléfono los dos botones ocupan casi todo el
             ancho y esta columna se encogía hasta caber una palabra por línea
@@ -281,7 +379,7 @@ export function OrderActionBar({ orderId }: { readonly orderId: string }) {
             sitio los botones bajan a la línea siguiente en vez de estrujar el
             texto que explica el paso.
           */}
-          <div className="min-w-0 flex-1 basis-64 space-y-2">
+          <div className="min-w-0 flex-1 basis-64 space-y-1">
             {siguiente === null ? (
               /*
                 «No hay ningún paso disponible con tu rol» era un callejón sin
@@ -292,28 +390,28 @@ export function OrderActionBar({ orderId }: { readonly orderId: string }) {
               <ElseWho orderId={orderId} status={status} />
             ) : (
               <>
-                <p className="text-xs font-medium uppercase tracking-[0.06em] text-fg-subtle">
-                  Siguiente paso
-                </p>
-                <p className="text-sm text-fg">
-                  {ACTION_LABELS[siguiente.action]}{' '}
-                  <span className="text-fg-muted">
-                    · lleva la orden a {statusLabel(siguiente.to)}
+                {/* Rótulo y acción en la MISMA línea: eran dos, y dos líneas
+                    en una barra pegajosa se pagan en cada pantalla. */}
+                <p className="truncate text-sm text-fg">
+                  <span className="mr-2 text-xs font-medium uppercase tracking-[0.06em] text-fg-subtle">
+                    Siguiente paso
                   </span>
+                  {ACTION_LABELS[siguiente.action]}
+                  <span className="text-fg-muted"> · a {statusLabel(siguiente.to)}</span>
                 </p>
 
                 {/*
-                  Los requisitos se LEEN. Estaban en un `title`, que en una
-                  tablet no existe: el asesor veía un botón apagado y ningún
-                  motivo.
+                  Los requisitos se LEEN, y siguen leyéndose: el primero va
+                  aquí en claro. Estaban en un `title`, que en una tablet no
+                  existe —el asesor veía un botón apagado y ningún motivo—, y
+                  luego en un recuadro de tres líneas que dejaba la barra
+                  ocupando media pantalla.
                 */}
                 {!siguiente.available && (
-                  <Blockers
-                    action={siguiente.action}
+                  <BlockerLine
                     unmet={siguiente.unmet}
-                    orderId={orderId}
-                    bench={bench}
-                    orderPhotos={orderPhotos}
+                    abierto={detalle}
+                    onToggle={() => setDetalle((d) => !d)}
                   />
                 )}
               </>
@@ -321,13 +419,33 @@ export function OrderActionBar({ orderId }: { readonly orderId: string }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/*
+              Deshacer estaba en una línea propia debajo de todo. Es un enlace
+              de cuatro palabras y le costaba a la barra un renglón entero en
+              todas las órdenes ya avanzadas.
+            */}
+            {hydrated && ultimo !== null && (
+              <button
+                type="button"
+                onClick={() => {
+                  undo();
+                  toast(`Deshecho: la orden vuelve a ${statusLabel(ultimo.from)}`, 'info');
+                }}
+                title={`${ACTION_LABELS[ultimo.action]} · ${statusLabel(ultimo.from)} → ${statusLabel(ultimo.to)}`}
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-control px-2.5 text-xs font-medium text-fg-muted transition-colors hover:bg-surface-sunken hover:text-fg"
+              >
+                <Undo2 aria-hidden className="size-3.5" />
+                Deshacer
+              </button>
+            )}
+
             {otras.map((option) => (
               <Button
                 key={option.action}
                 type="button"
                 variant={option.action === 'cancelar' ? 'danger' : 'secondary'}
                 disabled={!option.available}
-                onClick={() => setConfirming(option)}
+                onClick={() => ask(option)}
                 title={option.available ? undefined : option.unmet.join(' · ')}
               >
                 {option.label}
@@ -339,7 +457,7 @@ export function OrderActionBar({ orderId }: { readonly orderId: string }) {
                 type="button"
                 variant="primary"
                 disabled={!siguiente.available}
-                onClick={() => setConfirming(siguiente)}
+                onClick={() => ask(siguiente)}
               >
                 {siguiente.label}
                 <ArrowRight aria-hidden className="size-4" />
@@ -348,88 +466,52 @@ export function OrderActionBar({ orderId }: { readonly orderId: string }) {
           </div>
         </div>
 
-        {/*
-          Deshacer vive aquí y no en el historial porque el momento en que se
-          necesita es el segundo siguiente al toque equivocado, sin mover la
-          vista.
-        */}
-        {hydrated && ultimo !== null && (
-          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-fg-subtle">
-            <CircleCheckBig aria-hidden className="size-3.5 text-ok-600" />
-            <span>
-              {ACTION_LABELS[ultimo.action]} · {statusLabel(ultimo.from)} →{' '}
-              {statusLabel(ultimo.to)}
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                undo();
-                toast(`Deshecho: la orden vuelve a ${statusLabel(ultimo.from)}`, 'info');
-              }}
-              className="inline-flex items-center gap-1 font-medium text-brand-600 underline-offset-2 hover:underline"
-            >
-              <Undo2 aria-hidden className="size-3.5" />
-              Deshacer
-            </button>
-          </p>
-        )}
       </section>
 
-      <Modal
-        open={confirming !== null}
-        onClose={close}
-        width="sm"
-        title={confirming === null ? '' : confirming.label}
-        subtitle={
-          confirming === null
-            ? undefined
-            : `La orden pasa de «${statusLabel(status)}» a «${statusLabel(confirming.to)}».`
-        }
-        onSubmit={confirm}
-        footer={
-          <ModalActions
-            onCancel={close}
-            confirmLabel={confirming === null ? 'Confirmar' : confirming.label}
-            disabled={confirming !== null && NEEDS_CODE.has(confirming.action) && code === ''}
-            hint="Queda registrado con tu nombre y la hora."
-          />
-        }
-      >
-        {confirming !== null && NEEDS_CODE.has(confirming.action) && (
-          <>
-            <p className="text-sm text-fg-muted">
-              Desde «{statusLabel(confirming.to)}» no hay vuelta atrás: ninguna
-              transición sale de ese estado. Escribe la clave para confirmar.
-            </p>
-            <Field label="Clave de confirmación" error={codeError ?? undefined}>
-              <Input
-                value={code}
-                onChange={(e) => {
-                  setCode(e.target.value);
-                  setCodeError(null);
-                }}
-                inputMode="numeric"
-                autoComplete="off"
-                placeholder="••••"
-              />
-            </Field>
-          </>
-        )}
-
-        {confirming !== null && !NEEDS_CODE.has(confirming.action) && (
-          <p className="text-sm text-fg-muted">
-            Se registra a tu nombre y con la hora. Si te equivocas, puedes
-            deshacer el último paso desde la barra de la orden.
-          </p>
-        )}
-
-        <p className="rounded-control bg-surface-sunken px-3.5 py-2.5 text-xs text-fg-subtle">
-          Demostración: el estado se guarda en este navegador. Cuando haya base
-          de datos, la transición la aplicará el servidor y la verá todo el
-          taller.
-        </p>
-      </Modal>
     </>
+  );
+}
+
+/**
+ * El botón del paso siguiente, para usarlo FUERA de la barra.
+ *
+ * La barra de abajo sigue estando —es donde se mira cuando ya se conoce la
+ * pantalla—, pero quien abre una orden por primera vez no la relaciona con lo
+ * que acaba de rellenar setecientos píxeles más arriba. Este es el mismo
+ * botón, con el mismo diálogo y la misma regla, justo debajo de lo que hay
+ * que hacer.
+ */
+export function NextActionButton() {
+  const { options, ask } = useAdvance();
+  const siguiente = options.find((o) => isAdvancing(o.action)) ?? null;
+
+  if (siguiente === null) return null;
+
+  return (
+    <div className="space-y-2">
+      <Button
+        type="button"
+        variant="primary"
+        disabled={!siguiente.available}
+        onClick={() => ask(siguiente)}
+      >
+        {siguiente.label}
+        <ArrowRight aria-hidden className="size-4" />
+      </Button>
+
+      {/* Deshabilitado y sin motivo es un callejón: el motivo va debajo, en
+          claro, no en un `title` que en una tablet no existe. */}
+      {!siguiente.available && (
+        <ul className="space-y-1">
+          {siguiente.unmet.map((u) => (
+            <li key={u} className="flex items-start gap-1.5 text-xs text-warn-700">
+              <CircleAlert aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+              {u}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -459,12 +541,14 @@ function ElseWho({
 
   return (
     <>
-      <p className="text-xs font-medium uppercase tracking-[0.06em] text-fg-subtle">
-        Siguiente paso
-      </p>
-      <p className="text-sm text-fg">
-        {ACTION_LABELS[owner.action]}{' '}
-        <span className="text-fg-muted">· lleva la orden a {statusLabel(owner.to)}</span>
+      {/* Rótulo y acción en la misma línea, como en el caso normal: la barra
+          está encima del contenido y cada renglón se paga en cada pantalla. */}
+      <p className="truncate text-sm text-fg">
+        <span className="mr-2 text-xs font-medium uppercase tracking-[0.06em] text-fg-subtle">
+          Siguiente paso
+        </span>
+        {ACTION_LABELS[owner.action]}
+        <span className="text-fg-muted"> · a {statusLabel(owner.to)}</span>
       </p>
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-fg-muted">
         <span>{ownerPhrase(owner, (r) => ROLE_LABELS[r])} Tu rol no tiene ese permiso.</span>
@@ -479,6 +563,46 @@ function ElseWho({
         )}
       </p>
     </>
+  );
+}
+
+/**
+ * Lo que falta, en UNA línea.
+ *
+ * El primero en claro —que es el que se va a resolver— y cuántos quedan
+ * detrás. Toda la información sigue estando: la línea entera es el botón que
+ * abre el detalle. Lo que ya no está es el recuadro de tres renglones
+ * pegajoso encima del contenido.
+ */
+function BlockerLine({
+  unmet,
+  abierto,
+  onToggle,
+}: {
+  readonly unmet: readonly string[];
+  readonly abierto: boolean;
+  readonly onToggle: () => void;
+}) {
+  const primero = unmet[0] ?? 'Faltan requisitos.';
+  const resto = unmet.length - 1;
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={abierto}
+      className="flex w-full min-w-0 items-center gap-1.5 rounded-control text-left text-xs text-warn-700 transition-colors hover:bg-warn-100"
+    >
+      <CircleAlert aria-hidden className="size-3.5 shrink-0" />
+      <span className="min-w-0 flex-1 truncate">
+        <span className="font-semibold">Falta:</span> {primero}
+        {resto > 0 && <span className="text-warn-700/80"> · y {resto} más</span>}
+      </span>
+      <ChevronUp
+        aria-hidden
+        className={cn('size-3.5 shrink-0 transition-transform', abierto && 'rotate-180')}
+      />
+    </button>
   );
 }
 
@@ -500,7 +624,7 @@ function Blockers({
   const resumen = benchPhrase(bench, orderPhotos);
 
   return (
-    <div className="rounded-control border border-warn-500/40 bg-warn-100 px-3.5 py-2.5">
+    <div className="mb-2.5 rounded-control border border-warn-500/40 bg-warn-100 px-3.5 py-2.5">
       <p className="flex items-center gap-2 text-xs font-semibold text-warn-700">
         <CircleAlert aria-hidden className="size-3.5" />
         Para avanzar falta:

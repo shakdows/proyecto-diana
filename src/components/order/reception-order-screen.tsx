@@ -198,7 +198,7 @@ export function ReceptionOrderScreen({
             algo que hacer. Lo que dejó la recepción ya está hecho y se
             consulta; lo que la orden necesita para avanzar se rellena aquí.
           */}
-          <OrderWorkfilePanel orderId={data.id} />
+          <OrderWorkfilePanel orderId={data.id} profileId={profileId} actorName={actorName} />
           <ReceptionSummary
             acta={acta}
             percent={row.progressPercent}

@@ -24,6 +24,7 @@ import {
   STATE_LABELS,
   TERMINADO,
   progressOf,
+  rolesOf,
   stateOf,
   stepForStatus,
   stepNumber,
@@ -38,7 +39,7 @@ import {
   ownerPhrase,
   screenFor,
 } from '@/features/orders/services/advance';
-import { statusLabel } from '@/features/orders/services/order-status';
+import { ORDER_STATUSES, statusLabel } from '@/features/orders/services/order-status';
 import {
   allTransitions,
   availableActions,
@@ -48,7 +49,7 @@ import {
 } from '@/features/orders/services/state-machine';
 import { useOrderAdvance } from '@/features/orders/use-order-advance';
 import { useReceptionOrders } from '@/features/orders/use-reception-orders';
-import { ROLE_LABELS, ROLE_PERMISSIONS, type Permission } from '@/lib/auth/permissions';
+import { ROLE_LABELS, ROLE_PERMISSIONS, type Permission, type RoleCode } from '@/lib/auth/permissions';
 import { useHydrated } from '@/lib/demo/store';
 import { cn } from '@/lib/utils/cn';
 
@@ -111,6 +112,21 @@ const SIN_ORDEN: OrderFacts = {
   deliveryActSigned: false,
   hasOpenTasks: false,
 };
+
+/**
+ * Qué puesto trabaja cada cuadro.
+ *
+ * Se calcula UNA vez, al cargar el módulo: sale de la tabla de transiciones y
+ * de los permisos, que no cambian en ejecución. Y sale de ahí —y no de una
+ * lista escrita a mano— para que el día que un rol gane o pierda un permiso,
+ * el tablero lo diga solo.
+ */
+const PUESTOS: Readonly<Record<RouteStepId, readonly RoleCode[]>> = Object.fromEntries(
+  ROUTE_STEPS.map((s) => [
+    s.id,
+    rolesOf(s.id, allTransitions(), ROLE_PERMISSIONS, ORDER_STATUSES),
+  ]),
+) as Record<RouteStepId, readonly RoleCode[]>;
 
 const ICONOS: Readonly<Record<RouteStepId, ReactNode>> = {
   cliente: <UserRound className="size-5" />,
@@ -232,6 +248,11 @@ export function RouteBoard({
               ? 'El recorrido completo, del cliente a la entrega. Empieza por el uno.'
               : `Siguiendo ${objetivo.row.order.code} · ${objetivo.acta.vehicle} · ${objetivo.acta.plate}`}
           </p>
+          {/* El administrador ve el proceso ENTERO; cada cuadro dice de quién
+              es, que es la otra mitad de la pregunta. */}
+          <p className="mt-0.5 text-xs text-fg-subtle">
+            Cada cuadro lleva el puesto que lo trabaja.
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -309,6 +330,7 @@ export function RouteBoard({
               step={step}
               estado={stateOf(step.id, position)}
               href={hrefFor(step, objetivo?.row.order.id ?? null)}
+              puestos={PUESTOS[step.id]}
               priority={index < 3}
               apagado={marcando && stateOf(step.id, position) !== 'actual'}
               senalado={marcando && stateOf(step.id, position) === 'actual'}
@@ -342,6 +364,7 @@ function RouteCard({
   step,
   estado,
   href,
+  puestos,
   priority,
   apagado,
   senalado,
@@ -349,14 +372,19 @@ function RouteCard({
   readonly step: RouteStep;
   readonly estado: 'hecho' | 'actual' | 'pendiente';
   readonly href: string;
+  readonly puestos: readonly RoleCode[];
   readonly priority: boolean;
   readonly apagado: boolean;
   readonly senalado: boolean;
 }) {
+  /* Dos nombres y un «+N»: la lista entera no cabe en una tarjeta, y el
+     título la lleva completa para quien la necesite. */
+  const visibles = puestos.slice(0, 2).map((r) => ROLE_LABELS[r]);
+  const resto = puestos.length - visibles.length;
   return (
     <Link
       href={href}
-      aria-label={`Paso ${stepNumber(step.id)}: ${step.title}. ${STATE_LABELS[estado]}`}
+      aria-label={`Paso ${stepNumber(step.id)}: ${step.title}. ${STATE_LABELS[estado]}. Lo trabaja: ${puestos.map((r) => ROLE_LABELS[r]).join(', ') || 'administración'}`}
       className={cn(
         'group relative block overflow-hidden rounded-[1rem] bg-graphite-950',
         'shadow-[0_4px_18px_rgb(20_20_20/0.08)]',
@@ -401,6 +429,17 @@ function RouteCard({
           </span>
         )}
       </span>
+
+      {/* Quién lo trabaja, arriba a la derecha. */}
+      {visibles.length > 0 && (
+        <span
+          title={puestos.map((r) => ROLE_LABELS[r]).join(' · ')}
+          className="absolute right-3 top-3 max-w-[60%] truncate rounded-chip bg-white/85 px-2 py-0.5 text-[0.6875rem] font-medium text-graphite-800"
+        >
+          {visibles.join(' · ')}
+          {resto > 0 && ` +${resto}`}
+        </span>
+      )}
 
       {/* El número y el estado, siempre arriba: es lo que convierte nueve
           fotografías en un recorrido. */}
