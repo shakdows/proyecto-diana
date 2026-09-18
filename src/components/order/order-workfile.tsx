@@ -29,6 +29,9 @@ import { PRIORITIES, PRIORITY_LABELS, type Priority } from '@/features/diagnosis
 import {
   SERVICE_TYPES,
   checkServiceType,
+  hasServiceType,
+  parseServiceTypes,
+  toggleServiceType,
 } from '@/features/orders/services/from-reception';
 import { FINAL_STAGE_LABELS, FINAL_STAGES, type FinalStage } from '@/features/orders/services/final-stages';
 import { statusLabel } from '@/features/orders/services/order-status';
@@ -420,38 +423,49 @@ function ServiceTypeStep({ orderId }: { readonly orderId: string }) {
   const { serviceType, setServiceType } = useServiceType(orderId);
   const toast = useToast();
 
-  const enLista = SERVICE_TYPES.includes(serviceType);
-  const [otro, setOtro] = useState(enLista ? '' : serviceType);
-  const [escribiendo, setEscribiendo] = useState(!enLista && serviceType !== '');
+  /*
+   * VARIOS, no uno.
+   *
+   * Un vehículo entra por más de una cosa —aceite y frenos en la misma
+   * visita es lo normal—, y obligar a elegir uno dejaba el segundo motivo sin
+   * escribir en ninguna parte: aparecía después como una ampliación de
+   * cotización, o no aparecía.
+   */
+  const elegidos = parseServiceTypes(serviceType);
+  const propios = elegidos.filter((t) => !SERVICE_TYPES.includes(t));
+  const [otro, setOtro] = useState('');
+  const [escribiendo, setEscribiendo] = useState(false);
   const check = checkServiceType(otro);
 
-  const elegir = (valor: string): void => {
-    setServiceType(valor);
-    toast(`Tipo de servicio: ${valor}`, 'ok');
+  const alternar = (valor: string): void => {
+    const siguiente = toggleServiceType(serviceType, valor);
+    setServiceType(siguiente);
+    toast(
+      hasServiceType(siguiente, valor) ? `Añadido: ${valor}` : `Quitado: ${valor}`,
+      hasServiceType(siguiente, valor) ? 'ok' : 'info',
+    );
   };
 
   return (
     <>
       <div role="group" aria-label="Tipo de servicio" className="flex flex-wrap gap-1.5">
-        {SERVICE_TYPES.map((t) => {
-          const activo = serviceType === t;
+        {[...SERVICE_TYPES, ...propios].map((t) => {
+          const activo = elegidos.includes(t);
           return (
             <button
               key={t}
               type="button"
-              onClick={() => {
-                setEscribiendo(false);
-                elegir(t);
-              }}
+              onClick={() => alternar(t)}
               aria-pressed={activo}
               className={cn(
-                'inline-flex min-h-11 items-center rounded-control border px-3 text-sm font-medium',
+                'inline-flex min-h-11 items-center gap-1.5 rounded-control border px-3 text-sm font-medium',
                 'transition-colors duration-150 ease-snap',
                 activo
                   ? 'border-brand-600 bg-brand-600 text-white'
                   : 'border-border bg-surface text-fg hover:bg-surface-sunken',
               )}
             >
+              {activo && <Check aria-hidden className="size-3.5" strokeWidth={3} />}
               {t}
             </button>
           );
@@ -487,17 +501,31 @@ function ServiceTypeStep({ orderId }: { readonly orderId: string }) {
             type="button"
             variant="secondary"
             disabled={!check.valid}
-            onClick={() => elegir(otro.trim())}
+            onClick={() => {
+              alternar(otro.trim());
+              setOtro('');
+              setEscribiendo(false);
+            }}
           >
-            Guardar
+            Añadir
           </Button>
         </div>
       )}
 
+      {elegidos.length > 0 && (
+        <p className="mt-2.5 text-sm text-fg-muted">
+          <span data-numeric className="font-semibold text-fg">{elegidos.length}</span>{' '}
+          {elegidos.length === 1 ? 'motivo elegido' : 'motivos elegidos'}. Toca uno
+          otra vez para quitarlo.
+        </p>
+      )}
+
       <Hint>
-        En recepción no se sabe qué hay que hacer: lo dice el cliente al dejar
-        el vehículo o el diagnóstico al revisarlo. Sin esto, «Enviar a
-        diagnóstico» queda bloqueado.
+        Se pueden marcar VARIOS: un vehículo entra por más de una cosa, y lo
+        que no se escriba aquí aparece después como una ampliación de
+        cotización o no aparece. En recepción no siempre se sabe: lo dice el
+        cliente al dejarlo o el diagnóstico al revisarlo. Sin ninguno, «Enviar
+        a diagnóstico» queda bloqueado.
       </Hint>
     </>
   );

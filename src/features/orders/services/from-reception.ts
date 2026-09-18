@@ -231,6 +231,73 @@ export const SERVICE_TYPES: readonly string[] = [
   'REVISIÓN POR GARANTÍA',
 ];
 
+/**
+ * Cómo se guardan VARIOS tipos de servicio en un solo campo.
+ *
+ * ── Por qué varios ────────────────────────────────────────────────────────
+ *
+ * Porque un vehículo entra por más de una cosa. «Cambio de aceite» y
+ * «revisión de frenos» en la misma visita es lo normal, no la excepción, y
+ * obligar a elegir uno hacía que el segundo motivo no quedara escrito en
+ * ningún sitio: aparecía después como una ampliación de cotización, o no
+ * aparecía.
+ *
+ * ── Por qué en un campo de texto y no en una lista ─────────────────────────
+ *
+ * Porque el tipo de servicio viaja por medio sistema como una cadena: el
+ * título de la orden, el buscador, la ficha de la demostración y, en
+ * producción, `service_orders.service_type`. Convertirlo en lista obligaría a
+ * tocar los cuatro sitios a la vez, y lo que se gana —consultar por tipo— se
+ * consigue igual con esta separación, que es estable y tiene ida y vuelta.
+ *
+ * Lo guardado de antes —un solo tipo— se lee sin tocar nada: es una lista de
+ * uno.
+ */
+export const SERVICE_SEPARATOR = ' · ';
+
+export function parseServiceTypes(value: string): readonly string[] {
+  return value
+    .split(SERVICE_SEPARATOR)
+    .map((t) => t.trim())
+    .filter((t) => t !== '');
+}
+
+/**
+ * Los tipos elegidos, en el orden del catálogo.
+ *
+ * El orden NO es el de los clics: si lo fuera, el título de la orden
+ * cambiaría de forma según en qué orden se tocaran los botones, y dos órdenes
+ * con el mismo trabajo se leerían distinto. Lo escrito a mano va al final,
+ * que es donde se espera lo excepcional.
+ */
+export function formatServiceTypes(list: readonly string[]): string {
+  const vistos = new Set<string>();
+  const limpios = list
+    .map((t) => t.trim())
+    .filter((t) => t !== '' && !vistos.has(t) && vistos.add(t) !== undefined);
+
+  const delCatalogo = SERVICE_TYPES.filter((t) => limpios.includes(t));
+  const otros = limpios.filter((t) => !SERVICE_TYPES.includes(t));
+
+  return [...delCatalogo, ...otros].join(SERVICE_SEPARATOR);
+}
+
+/** Marca o desmarca un tipo. Devuelve el campo ya formado. */
+export function toggleServiceType(value: string, option: string): string {
+  const actuales = parseServiceTypes(value);
+  const limpio = option.trim();
+  if (limpio === '') return value;
+  return formatServiceTypes(
+    actuales.includes(limpio)
+      ? actuales.filter((t) => t !== limpio)
+      : [...actuales, limpio],
+  );
+}
+
+export function hasServiceType(value: string, option: string): boolean {
+  return parseServiceTypes(value).includes(option.trim());
+}
+
 export function checkServiceType(value: string): { readonly valid: boolean; readonly error: string | null } {
   const limpio = value.trim();
   if (limpio === '') return { valid: false, error: null };

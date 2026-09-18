@@ -11,6 +11,10 @@ import {
   SIN_DEFINIR,
   checkServiceType,
   customerName,
+  formatServiceTypes,
+  hasServiceType,
+  parseServiceTypes,
+  toggleServiceType,
   factsFromReception,
   findVehicle,
   isReceptionOrderId,
@@ -254,5 +258,62 @@ describe('las órdenes recibidas se buscan', () => {
   it('cada acta da exactamente una orden', () => {
     assert.equal(receptionOrderTargets(actas, () => '').length, 2);
     assert.equal(receptionOrderTargets([], () => '').length, 0);
+  });
+});
+
+describe('varios tipos de servicio en un solo campo', () => {
+  it('lo guardado de antes —uno solo— se lee como una lista de uno', () => {
+    assert.deepEqual(parseServiceTypes('CAMBIO DE ACEITE Y FILTROS'), [
+      'CAMBIO DE ACEITE Y FILTROS',
+    ]);
+    assert.deepEqual(parseServiceTypes(''), []);
+    assert.deepEqual(parseServiceTypes('   '), []);
+  });
+
+  it('marca y desmarca sin perder los demás', () => {
+    let v = '';
+    v = toggleServiceType(v, 'CAMBIO DE ACEITE Y FILTROS');
+    v = toggleServiceType(v, 'REVISIÓN DE FRENOS');
+    assert.deepEqual(parseServiceTypes(v), [
+      'CAMBIO DE ACEITE Y FILTROS',
+      'REVISIÓN DE FRENOS',
+    ]);
+
+    v = toggleServiceType(v, 'CAMBIO DE ACEITE Y FILTROS');
+    assert.deepEqual(parseServiceTypes(v), ['REVISIÓN DE FRENOS']);
+  });
+
+  it('el orden es el del catálogo, no el de los clics', () => {
+    // Si fuera el de los clics, dos órdenes con el mismo trabajo se leerían
+    // distinto según en qué orden tocaran los botones.
+    const a = toggleServiceType(toggleServiceType('', 'REVISIÓN DE FRENOS'), 'MANTENIMIENTO PREVENTIVO');
+    const b = toggleServiceType(toggleServiceType('', 'MANTENIMIENTO PREVENTIVO'), 'REVISIÓN DE FRENOS');
+    assert.equal(a, b);
+    assert.equal(parseServiceTypes(a)[0], 'MANTENIMIENTO PREVENTIVO');
+  });
+
+  it('lo escrito a mano va al final, que es donde se espera lo excepcional', () => {
+    let v = toggleServiceType('', 'RUIDO RARO EN LA SUSPENSIÓN');
+    v = toggleServiceType(v, 'REVISIÓN DE FRENOS');
+    assert.deepEqual(parseServiceTypes(v), ['REVISIÓN DE FRENOS', 'RUIDO RARO EN LA SUSPENSIÓN']);
+  });
+
+  it('no se repite lo mismo dos veces', () => {
+    assert.equal(
+      formatServiceTypes(['REVISIÓN DE FRENOS', 'REVISIÓN DE FRENOS', '  ']),
+      'REVISIÓN DE FRENOS',
+    );
+  });
+
+  it('sabe si un tipo está marcado', () => {
+    const v = formatServiceTypes(['REVISIÓN DE FRENOS', 'CAMBIO DE PASTILLAS']);
+    assert.equal(hasServiceType(v, 'CAMBIO DE PASTILLAS'), true);
+    assert.equal(hasServiceType(v, 'AIRE ACONDICIONADO'), false);
+  });
+
+  it('la orden sigue leyendo un texto, como todo lo demás del sistema', () => {
+    const v = formatServiceTypes(['MANTENIMIENTO PREVENTIVO', 'REVISIÓN DE FRENOS']);
+    assert.equal(v, 'MANTENIMIENTO PREVENTIVO · REVISIÓN DE FRENOS');
+    assert.notEqual(v, SIN_DEFINIR);
   });
 });

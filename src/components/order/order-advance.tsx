@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   createContext,
   useCallback,
@@ -15,6 +16,7 @@ import {
   CircleAlert,
   History,
   Undo2,
+  UserCog,
   Wrench,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,6 +29,8 @@ import { Input } from '@/components/ui/input';
 import { checkDeleteCode } from '@/lib/auth/confirm-code';
 import { useHydrated } from '@/lib/demo/store';
 import { useOrderAdvance } from '@/features/orders/use-order-advance';
+import { TECHNICIANS } from '@/features/orders/use-order-workfile';
+import { continueAsDemo } from '@/app/login/actions';
 import {
   buildTimeline,
   durationPhrase,
@@ -104,6 +108,7 @@ interface AdvanceContext {
    * transición terminan divergiendo: uno pide la clave y el otro no.
    */
   readonly ask: (option: ActionOption) => void;
+  readonly actor: Actor;
 }
 
 const Ctx = createContext<AdvanceContext | null>(null);
@@ -228,8 +233,9 @@ export function OrderAdvanceProvider({
       undo,
       hydrated,
       ask,
+      actor,
     }),
-    [orderId, advance, facts, bench, orderPhotos, options, run, undo, hydrated, ask],
+    [orderId, advance, facts, bench, orderPhotos, options, run, undo, hydrated, ask, actor],
   );
 
   return (
@@ -507,8 +513,23 @@ export function OrderActionBar({ orderId }: { readonly orderId: string }) {
  * que hacer.
  */
 export function NextActionButton() {
-  const { options, ask } = useAdvance();
+  const { options, ask, facts, actor } = useAdvance();
+  const pathname = usePathname();
   const siguiente = options.find((o) => isAdvancing(o.action)) ?? null;
+
+  /*
+   * El relevo al técnico asignado.
+   *
+   * «Solo el técnico asignado puede iniciar el diagnóstico» es correcto y, en
+   * una demostración de una sola persona, un callejón sin salida: se asigna
+   * la orden a Carlos y el botón se apaga para siempre. La regla no se toca
+   * —el paso tiene que quedar a nombre de quien lo da—; lo que se ofrece es
+   * entrar como esa persona sin salir de la pantalla.
+   */
+  const asignado =
+    facts.assignedTechnicianId === null || facts.assignedTechnicianId === actor.profileId
+      ? null
+      : (TECHNICIANS.find((t) => t.id === facts.assignedTechnicianId) ?? null);
 
   if (siguiente === null) return null;
 
@@ -535,6 +556,22 @@ export function NextActionButton() {
             </li>
           ))}
         </ul>
+      )}
+
+      {!siguiente.available && asignado !== null && (
+        <form action={continueAsDemo} className="pt-1">
+          <input type="hidden" name="role" value={asignado.role} />
+          <input type="hidden" name="to" value={pathname} />
+          <Button type="submit" variant="secondary">
+            <UserCog aria-hidden className="size-4" />
+            Continuar como {asignado.name}
+          </Button>
+          <p className="mt-1.5 text-xs text-fg-subtle">
+            Este paso lo da {asignado.name}, y queda a su nombre. En el taller
+            lo haría desde su propia sesión; aquí se entra como esa persona sin
+            salir de la orden.
+          </p>
+        </form>
       )}
     </div>
   );

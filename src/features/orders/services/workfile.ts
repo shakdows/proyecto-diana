@@ -597,7 +597,13 @@ export function readWorkfile(stored: unknown): OrderWorkfile {
   const minutos = s.estimatedMinutes;
 
   return {
-    serviceType: text(s.serviceType).slice(0, 80),
+    /*
+     * 200 y no 80: el campo lleva VARIOS tipos separados por « · », y tres
+     * de ellos pasan de ochenta caracteres con facilidad. El corte sigue
+     * estando —un almacén manipulado no puede meter un texto sin fin— pero
+     * ya no recorta un motivo de ingreso legítimo por la mitad.
+     */
+    serviceType: text(s.serviceType).slice(0, 200),
     technician: readAssignee(s.technician),
     lines,
     linkIssued: flag(s.linkIssued),

@@ -367,7 +367,7 @@ describe('expediente · lectura de lo guardado', () => {
 
   it('descarta valores que no existen en vez de creérselos', () => {
     const leido = readWorkfile({
-      serviceType: 'x'.repeat(200),
+      serviceType: 'x'.repeat(500),
       technician: { id: '' },
       lines: [{ id: 'a', title: 'x', kind: 'inventado', decision: 'aprobadísimo', priority: 'ninguna' }],
       partsReceived: 'casi',
@@ -375,7 +375,8 @@ describe('expediente · lectura de lo guardado', () => {
       finalStages: ['lavado', 'teletransporte'],
       qualityFindings: ['   ', 'Fuga en la tapa'],
     });
-    assert.equal(leido.serviceType.length, 80, 'el tipo de servicio se recorta, no se cree');
+    // 200 y no 80: el campo lleva VARIOS motivos separados por « · ».
+    assert.equal(leido.serviceType.length, 200, 'el tipo de servicio se recorta, no se cree');
     assert.equal(leido.technician, null);
     assert.equal(leido.lines[0]?.kind, 'servicio');
     assert.equal(leido.lines[0]?.decision, 'pendiente');
